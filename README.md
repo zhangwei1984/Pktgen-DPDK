@@ -6,7 +6,7 @@ Pktgen-DPDK
 Please look at the product eval PDF and the 3rd party PDF for license information.
 
 ---
-**Copyright &copy; <2010-2013>, Intel Corporation All rights reserved.**
+**Copyright &copy; \<2010-2013\>, Intel Corporation All rights reserved.**
  
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@ Please look at the product eval PDF and the 3rd party PDF for license informatio
  OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ---
-**Copyright &copy; <2010-2013>, Wind River Systems, Inc.**
+**Copyright &copy; \<2010-2013\>, Wind River Systems, Inc.**
 
  Redistribution and use in source and binary forms, with or without modification, are
  permitted provided that the following conditions are met:
@@ -75,7 +75,7 @@ Please look at the product eval PDF and the 3rd party PDF for license informatio
 
 Pktgen
 ------
-Copyright &copy; <2010-2013>, Wind River Systems, Inc.
+Copyright &copy; \<2010-2013\>, Wind River Systems, Inc.
 
        Contact me if you have questions @ pktgen.dpdk@gmail.com<br>
        Source can be found on GitHub: http://github.com/Pktgen/Pktgen-DPDK
