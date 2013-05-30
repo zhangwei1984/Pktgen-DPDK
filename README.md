@@ -1,11 +1,11 @@
-*** Pktgen-DPDK ***<br>
-*** =========== ***
+Pktgen-DPDK
+===========
 
-Pktgen is a traffic generator powered by Intel's DPDK.
+Pktgen is a traffic generator powered by Intel's DPDK.<br>
 Please look at the product eval PDF and the 3rd party PDF for license information.
 
- Copyright (c) <2010-2013>, Intel Corporation
- All rights reserved.
+---
+Copyright (c) <2010-2013>, Intel Corporation All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -36,7 +36,8 @@ Please look at the product eval PDF and the 3rd party PDF for license informatio
  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  OF THE POSSIBILITY OF SUCH DAMAGE.
 
- Copyright (c) <2010-2013>, Wind River Systems, Inc.
+---
+Copyright (c) <2010-2013>, Wind River Systems, Inc.
 
  Redistribution and use in source and binary forms, with or without modification, are
  permitted provided that the following conditions are met:
@@ -67,20 +68,23 @@ Please look at the product eval PDF and the 3rd party PDF for license informatio
  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
  Pktgen: Created 2010 by Keith Wiles @ windriver.com
- 
- ====================== Part of the README file ===========================
+ ---
+
+====================== Part of the README file ===========================
 
                           *** Pktgen ****
           Copyright (c) <2010-2013>, Wind River Systems, Inc.
 
-       Contact me if you have questions @ pktgen.dpdk@gmail.com
+       Contact me if you have questions @ pktgen.dpdk@gmail.com<br>
        Source can be found on GitHub: http://github.com/Pktgen/Pktgen-DPDK
 
 README for setting up Pktgen with DPDK on Ubuntu 10.04 to 12.10 desktop, it
 should work on most Linux systems as long as the kernel has hugeTLB support.
 
-*** Note: Tested with Ubuntu 12.10 kernel version
-    Linux 3.5.0-25-generic #39-Ubuntu SMP Mon Feb 25 18:26:58 UTC 2013 x86_64
+```
+Note: Tested with Ubuntu 12.10 kernel version
+Linux 3.5.0-25-generic #39-Ubuntu SMP Mon Feb 25 18:26:58 UTC 2013 x86_64
+```
 
 I am using Ubuntu 12.10 x86_64 (64 bit support) for running pktgen/DPDK on a
 Westmere Dual socket board running at 2.4GHz with 12GB of ram 6GB per socket.
@@ -89,10 +93,6 @@ work on just about any new Linux kernel version.
 
 To get hugeTLB support your Linux kernel must be at least 2.6.33 and in the
 DPDK documents it talks about how you can upgrade your Linux kernel.
-
-Here is another document on how to upgrade your Linux kernel.
-Ubuntu 10.04 is 2.6.32 by default so upgraded to kernel 2.6.34 using this HOWTO:
-http://usablesoftware.wordpress.com/2010/05/26/switch-to-a-newer-kernel-in-ubuntu-10-04/
 
 The pktgen output display needs 132 columns and about 42 lines to display
 correctly. I am using an xterm of 132x42, but you can have a larger display
@@ -109,7 +109,8 @@ and you can configure a port using the 'seq' pktgen command. A script file
 can be loaded from the shell command line via the -f option and you can 'load'
 a script file from within pktgen as well.
 
-**** Packet Buffer types and usages:
+Packet Buffer types and usages:
+-------------------------------
 
 Pktgen has four different sets of packet buffers to be used for a given type of
 data to be sent on the wire per port. The four buffer types are single packet, 
@@ -147,5 +148,52 @@ the configuration of the other packet buffers in the system. If you want to save
 configuration you need to a 'save' command to write the configuration to a file. You can
 then load that file again using the load command or place it on the command line.
 
+Example screen of Pktgen:
+-------------------------
 
+```
+-  Ports 0-3 of 4 ** Main Page **   Copyright (c) <2010-2013>, Wind River Systems, Inc., Powered by Intel® DPDK
+  Flags:Port     :    P-----------:0    P-----------:1    P-----------:2    P-----------:3
+Link State       :     <UP-10000-FD>     <UP-10000-FD>     <UP-10000-FD>     <UP-10000-FD>   ---TotalRate---
+Pkts/s  Rx       :                 0                 0                 0                 0                 0
+        Tx       :                 0                 0                 0                 0                 0
+MBits/s Rx/Tx    :               0/0               0/0               0/0               0/0               0/0
+Broadcast        :                 0                 0                 0                 0
+Multicast        :                 0                 0                 0                 0
+  64 Bytes       :                 0                 0                 0                 0
+  65-127         :                 0                 0                 0                 0
+  128-255        :                 0                 0                 0                 0
+  256-511        :                 0                 0                 0                 0
+  512-1023       :                 0                 0                 0                 0
+  1024-1518      :                 0                 0                 0                 0
+  Runts          :                 0                 0                 0                 0
+  Jumbo          :                 0                 0                 0                 0
+Errors Rx/Tx     :               0/0               0/0               0/0               0/0
+Total Rx Pkts    :                 0                 0                 0                 0
+      Tx Pkts    :                 0                 0                 0                 0
+      Rx MBs     :                 0                 0                 0                 0
+      Tx MBs     :                 0                 0                 0                 0
+ARP/ICMP Pkts    :               0/0               0/0               0/0               0/0
+No Mbufs/unknown :               0/0               0/0               0/0               0/0
+                 :
+Tx Count/% Rate  :      Forever/100%      Forever/100%      Forever/100%      Forever/100%
+PktSize/Tx Burst :            64/128            64/128            64/128            64/128
+Src/Dest Port    :         1234/5678         1234/5678         1234/5678         1234/5678
+Pkt Type:VLAN ID :     IPv4/TCP:0001     IPv4/TCP:0001     IPv4/TCP:0001     IPv4/TCP:0001
+Dst  IP Address  :       192.168.1.1       192.168.0.1       192.168.3.1       192.168.2.1
+Src  IP Address  :    192.168.0.1/24    192.168.1.1/24    192.168.2.1/24    192.168.3.1/24
+Dst MAC Address  :    001b:218e:b1e9    001b:218e:b1e8    001b:218e:b761    001b:218e:b760
+Src MAC Address  :    001b:218e:b1e8    001b:218e:b1e9    001b:218e:b760    001b:218e:b761
+- Pktgen Ver:1.9.1(DPDK-1.3.0) --------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+pktgen> quit
+```
+
+Thanks
 ++Keith
