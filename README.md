@@ -99,8 +99,8 @@ correctly. I am using an xterm of 132x42, but you can have a larger display
 and maybe a bit smaller. If you are displaying more then 4-6 ports then you
 will need a wider display. The pktgen allows you to view a set ports if they
 do not all fit on the screen at one time via the 'page' command in pktgen.
-Type 'help' at the 'pktgen>' prompt to see the complete pktgen command line
-commands. Pktgen uses VT100 control codes or escape codes to display the screens,
+Type 'help' at the 'pktgen>' prompt to see the complete pktgen commands.
+Pktgen uses VT100 control codes or escape codes to display the screens,
 which means your terminal must support VT100. The Hyperterminal in windows is not
 going to work for Pktgen as it has a few problems with VT100 codes.
 
