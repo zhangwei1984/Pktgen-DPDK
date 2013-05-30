@@ -1,0 +1,6 @@
+rm -fr x86_64-wr-linuxapp-gcc
+find . -name "*.[aod]" -exec rm "{}" ";" -print
+find . -name "*.map" -exec rm "{}" ";" -print
+find . -name "*.cmd" -exec rm "{}" ";" -print
+find . -name "_postbuild" -exec rm "{}" ";" -print
+find . -name "_postinstall" -exec rm "{}" ";" -print

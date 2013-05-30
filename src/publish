@@ -1,0 +1,17 @@
+#!/bin/bash
+
+dd=wr-all-pktgen-$1-`date +"%Y%m%d"`.tgz
+
+if [ "x"$1 = "x" ]; then
+	echo "Must give the a version number e.g. $0 1.3.0"
+	exit
+else
+	./cleanit
+	./dotarall $1
+
+	rsh ala-cdftp-int.wrs.com rm /folk/ftp/pub/Pktgen/latest-pktgen.tgz /folk/ftp/pub/Pktgen/$dd
+	(cd wr-examples/pktgen; scp *.pdf README.pktgen  ala-cdftp-int.wrs.com:/folk/ftp/pub/Pktgen)
+	(cd ..; scp $dd ala-cdftp-int.wrs.com:/folk/ftp/pub/Pktgen)
+	rsh ala-cdftp-int.wrs.com "(cd /folk/ftp/pub/Pktgen; ln -s $dd latest-pktgen.tgz)"
+	rsh ala-cdftp-int.wrs.com ls -l /folk/ftp/pub/Pktgen
+fi

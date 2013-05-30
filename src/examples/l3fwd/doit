@@ -1,0 +1,12 @@
+sudo build/l3fwd -c 7f -n 3 --proc-type auto -b 0000:01:00.0 -b 0000:01:00.1 -b 0000:04:00.0 -b 0000:04:00.1 -b 0000:0c:00.0 -b 0000:0c:00.1 -b 0000:0f:00.0 -b 0000:0f:00.1 -- -p 03
+# 01:00.0 Ethernet controller: Intel Corporation 82575EB Gigabit Network Connection (rev 02)
+# 01:00.1 Ethernet controller: Intel Corporation 82575EB Gigabit Network Connection (rev 02)
+# 04:00.0 Ethernet controller: Intel Corporation 82599EB 10-Gigabit SFI/SFP+ Network Connection (rev 01)
+# 04:00.1 Ethernet controller: Intel Corporation 82599EB 10-Gigabit SFI/SFP+ Network Connection (rev 01)
+# 07:00.0 Ethernet controller: Intel Corporation 82599EB 10-Gigabit SFI/SFP+ Network Connection (rev 01)
+# 07:00.1 Ethernet controller: Intel Corporation 82599EB 10-Gigabit SFI/SFP+ Network Connection (rev 01)
+# 0c:00.0 Ethernet controller: Intel Corporation 82576 Gigabit Network Connection (rev 01)
+# 0c:00.1 Ethernet controller: Intel Corporation 82576 Gigabit Network Connection (rev 01)
+# 0f:00.0 Ethernet controller: Intel Corporation 82576 Gigabit Network Connection (rev 01)
+# 0f:00.1 Ethernet controller: Intel Corporation 82576 Gigabit Network Connection (rev 01)
+
