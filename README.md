@@ -226,7 +226,8 @@ set udp|tcp|icmp <portlist>        - Set the packet type UDP or TCP or ICMP per 
 set ipv4|ipv6|vlan <portlist>      - Set the packet type to IPv4 or IPv6 or VLAN
 set ip src|dst <portlist> ipaddr   - Set IP addresses
 geometry <geom>                    - Set the display geometry Columns by Rows (ColxRow)
-tap <portlist> <state>             - Enable/disable tap interface supportvlan <portlist> <state>            - Enable/disable sending VLAN ID in packets
+tap <portlist> <state>             - Enable/disable tap interface support
+vlan <portlist> <state>            - Enable/disable sending VLAN ID in packets
 vlanid <portlist> <vlanid>         - Set the VLAN ID for the portlist
 pcap <portlist> <state>            - Enable or Disable sending pcap packets on a portlist
 pcap.show                          - Show the PCAP information
@@ -263,7 +264,8 @@ clear <portlist>                   - Clear the statistics
 clr                                - Clear all Statistices
 cls                                - Clear the screen
 reset <portlist>                   - Reset the configuration to the default
-rst                                - Reset the configuration for all portshelp                               - Display this help message
+rst                                - Reset the configuration for all ports
+help                               - Display this help message
 quit                               - Quit the Pktgen program
 
   -- Setup the packet range values --
