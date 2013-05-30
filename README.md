@@ -1,11 +1,12 @@
 Pktgen-DPDK
 ===========
 
-Pktgen is a traffic generator powered by Intel's DPDK.<br>
+**Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
+
 Please look at the product eval PDF and the 3rd party PDF for license information.
 
 ---
-Copyright (c) <2010-2013>, Intel Corporation All rights reserved.
+**Copyright &copy; <2010-2013>, Intel Corporation All rights reserved.**
  
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -37,7 +38,7 @@ Copyright (c) <2010-2013>, Intel Corporation All rights reserved.
  OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ---
-Copyright (c) <2010-2013>, Wind River Systems, Inc.
+**Copyright &copy; <2010-2013>, Wind River Systems, Inc.**
 
  Redistribution and use in source and binary forms, with or without modification, are
  permitted provided that the following conditions are met:
@@ -70,10 +71,11 @@ Copyright (c) <2010-2013>, Wind River Systems, Inc.
  Pktgen: Created 2010 by Keith Wiles @ windriver.com
  ---
 
-====================== Part of the README file ===========================
+**====================== Part of the README file ===========================**
 
-                          *** Pktgen ****
-          Copyright (c) <2010-2013>, Wind River Systems, Inc.
+Pktgen
+------
+Copyright &copy; <2010-2013>, Wind River Systems, Inc.
 
        Contact me if you have questions @ pktgen.dpdk@gmail.com<br>
        Source can be found on GitHub: http://github.com/Pktgen/Pktgen-DPDK
