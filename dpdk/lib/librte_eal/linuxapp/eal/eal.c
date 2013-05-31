@@ -76,7 +76,9 @@
 #include "eal_filesystem.h"
 #include "eal_hugepages.h"
 
+#ifdef RTE_LIBWR
 #include <wr_core_info.h>
+#endif
 
 #define OPT_HUGE_DIR    "huge-dir"
 #define OPT_PROC_TYPE   "proc-type"
@@ -362,9 +364,13 @@ eal_parse_coremask(const char *coremask)
 		return -1;
 
 	if ( coremask[0] == ':' ) {			/* parse the lcore string */
+#ifdef RTE_LIBWR
 		cm = wr_parse_coremask(coremask);
 		if ( cm == 0 )
 			return -1;
+#else
+		return -1;
+#endif
 	} else {							/* parse hexadecimal string */
 		cm = strtoull(coremask, &end, 16);
 		if ( (end == NULL) || (*end != '\0') || (cm == 0) )

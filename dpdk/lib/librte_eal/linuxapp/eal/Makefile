@@ -42,7 +42,9 @@ CFLAGS += -I$(RTE_SDK)/lib/librte_ring
 CFLAGS += -I$(RTE_SDK)/lib/librte_mempool
 CFLAGS += -I$(RTE_SDK)/lib/librte_malloc
 CFLAGS += -I$(RTE_SDK)/lib/librte_ether
+ifeq ($(CONFIG_RTE_LIBWR),y)
 CFLAGS += -I$(RTE_SDK)/lib/libwr_common
+endif
 CFLAGS += $(WERROR_FLAGS) -O3
 
 # specific to linuxapp exec-env
