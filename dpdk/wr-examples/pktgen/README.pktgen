@@ -45,9 +45,9 @@ make sure hyper-threading is enabled.
 
 Get the DPDK and pktgen source code from the WR internal git repo via:
 # cd <InstallDir>
-# git clone git://git.wrs.com/git/projects/dpdk/current-dpdk
+# git clone git://github.com/Pktgen/Pktgen-DPDK.git
 
-Will create a directory called current-dpdk in the current directory location. Using
+Will create a directory called Pktgen-DPDK in the current directory location. Using
 this clone command you will get DPDK and pktgen source files.
 
 Make sure you have HUGE TLB support in the kernel with the following commands:
@@ -89,13 +89,13 @@ sure you have contiguous memory for the 2Meg pages.
 
 ** Note: If you startup Eclipse or WR Workbench before starting pktgen the first
    time after reboot, pktgen will fail to load because it can not get all of the
-   huge pages a eclipse has consume some of the huge pages. If you did start eclipse
+   huge pages as eclipse has consumed some of the huge pages. If you did start eclipse
    or WR Workbench then you need to close that application first. 
 
 This is my current machine you will have a few different numbers depending on 
 how your system was booted and if you had hugeTLB support enabled.
 
-At the current-dpdk/wr-examples/pktgen level directory we have the 'setup' script,
+At the ${RTE_SDK}/wr-examples/pktgen level directory we have the 'setup' script,
 which needs to be run as root once per boot. The script contains a commands to setup
 the environment.
 
@@ -112,15 +112,24 @@ command is to display the huge TLB setup.
 Edit your .bashrc or .profile or .cshrc to add the environment variables.
 I am using bash:
 # vi ~/.bashrc
-Add the following lines: Change the <installDir> to the location of the DPDK version
+Add the following lines: Change the $RTE_SDK to the location of the DPDK version
 directory. Your SDK directory maybe named differently, but should point to the DPDK
 SDK directory.
 
-export RTE_SDK=<installDir>/current-dpdk
+Make sure you have the Linux kernel headers installed as DPDK requires them to build
+the kernel modules. On Ubuntu I run the following:
+
+# sudo apt-get install linux-headers-3.5.0-32-generic
+
+You will need to adjust the version number to match your current kernel version.
+If you upgrade your system or kernel version you will need to install the correct
+headers and rebuild the RTE_TARGET directory.
+
+export RTE_SDK=<installDir>/Pktgen-DPDK/dpdk
 export RTE_TARGET=x86_64-wr-linuxapp-gcc
 
 Create the DPDK build tree:
-# cd <installDir>/current-dpdk
+# cd $RTE_SDK
 # make install T=x86_64-wr-linuxapp-gcc
 
 This above command will create the x86_64-wr-linuxapp-gcc directory in the
