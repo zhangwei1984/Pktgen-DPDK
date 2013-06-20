@@ -3,6 +3,8 @@ Pktgen version 2.1.3 using DPDK-1.3.0
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
 
+**Sounds like 'Packet-Gen'**
+
 Please look at the product eval PDF and the 3rd party PDF for license information.
 
 ---
