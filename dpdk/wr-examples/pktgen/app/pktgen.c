@@ -353,7 +353,7 @@ pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * et
     if ( rte_atomic32_read(&info->port_flags) & SEND_VLAN_ID ) {
     	char	  * p = (char *)&eth->ether_type;
 
-    	*(uint32_t *)p = (uint32_t)((ETHER_TYPE_VLAN << 16) | pkt->vlanid);
+    	*(uint32_t *)p = (uint32_t)htonl(((ETHER_TYPE_VLAN << 16) | pkt->vlanid));
     	*(uint16_t *)(&p[VLAN_TAG_SIZE]) = htons(pkt->ethType);
     	return &p[VLAN_TAG_SIZE + sizeof(uint16_t)];
     }
