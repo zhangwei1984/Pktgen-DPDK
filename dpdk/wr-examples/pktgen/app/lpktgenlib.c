@@ -1306,6 +1306,34 @@ static int pktgen_vlan_id (lua_State *L) {
 
 /**************************************************************************//**
 *
+* pktgen_vlan - Enable or Disable vlan header
+*
+* DESCRIPTION
+* Enable or disable insertion of VLAN header.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_vlan (lua_State *L) {
+	uint32_t	portlist;
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "process, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+
+	foreach_port( portlist,
+		pktgen_set_vlan(info, parseState(luaL_checkstring(L, 2))) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
 * pktgen_pkt_size - Set the port range size.
 *
 * DESCRIPTION
@@ -1430,7 +1458,6 @@ static int pktgen_process (lua_State *L) {
 	case 2:
 		break;
 	}
-	portlist = 0;
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
 
 	foreach_port( portlist,
@@ -1460,7 +1487,6 @@ static int pktgen_blink (lua_State *L) {
 	case 2:
 		break;
 	}
-	portlist = 0;
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
 
 	foreach_port( portlist,
@@ -1519,7 +1545,6 @@ static int pktgen_isSending (lua_State *L) {
 	case 1:
 		break;
 	}
-	portlist = 0;
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
 
 	lua_newtable(L);
@@ -1783,7 +1808,6 @@ static int pktgen_portStats (lua_State *L) {
 	case 2:
 		break;
 	}
-	portlist = 0;
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
 	
 	type = (char *)luaL_checkstring(L, 2);
@@ -1920,7 +1944,6 @@ static int pktgen_decompile (lua_State *L) {
 	seqnum = luaL_checkinteger(L, 1);
 	if ( seqnum >= NUM_SEQ_PKTS )
 		return 0;
-	portlist = 0;
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 2), &portlist);
 
 	lua_newtable(L);
@@ -1953,7 +1976,6 @@ static int pktgen_sendPkt (lua_State *L) {
 	case 2:
 		break;
 	}
-	portlist = 0;
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
 
 	seqnum = luaL_checkinteger(L, 2);
@@ -1986,7 +2008,6 @@ static int pktgen_recvPkt (lua_State *L) {
 	case 1:
 		break;
 	}
-	portlist = 0;
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
 	if ( portlist == 0 )
 		return 0;
@@ -2056,6 +2077,8 @@ static const luaL_Reg pktgenlib[] = {
   {"save",			pktgen_config_save},	// Save the configuration of Pktgen to a file.
   {"clear",			pktgen_clear},			// Clear all of the stats
   {"reset",			pktgen_reset_config},	// Reset the configuration to all ports
+
+  {"vlan",		pktgen_vlan},		// Enable or disable VLAN header
 
   // Range commands
   {"dst_mac",		pktgen_dst_mac},		// Set the destination MAC address for a port

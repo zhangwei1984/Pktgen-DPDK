@@ -142,6 +142,8 @@ cmdline_parse_portlist(__attribute__((unused)) cmdline_parse_token_hdr_t *tk,
 		return (-1);
 
 	pl = res;
+	if ( pl )
+		pl->map = 0;
 
 	while (!cmdline_isendoftoken(buf[token_len]) &&
 	    (token_len < PORTLIST_TOKEN_SIZE))
@@ -153,7 +155,6 @@ cmdline_parse_portlist(__attribute__((unused)) cmdline_parse_token_hdr_t *tk,
 	rte_snprintf(portlist_str, token_len+1, "%s", buf);
 
 	if (pl) {
-		pl->map = 0;
 		if (strcmp("all", portlist_str) == 0)
 			pl->map	= UINT32_MAX;
 		else if (parse_ports(pl, portlist_str) != 0)
