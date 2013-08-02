@@ -459,10 +459,6 @@ pktgen_tcp_hdr_ctor(pkt_seq_t * pkt, tcpip_t * tip, __attribute__ ((unused)) int
     tip->ip.dst         = htonl(pkt->ip_dst_addr);
     tlen           		= pkt->pktSize - (pkt->ether_hdr_size + sizeof(ipHdr_t));
 
-//CTG - Need to decrease length if VLAN header
-    if ( pkt->vlanid > 0 ) 
-        tlen -= 4;
-
     tip->ip.len         = htons(tlen);
     tip->ip.proto       = pkt->ipProto;
 
@@ -476,10 +472,6 @@ pktgen_tcp_hdr_ctor(pkt_seq_t * pkt, tcpip_t * tip, __attribute__ ((unused)) int
     tip->tcp.urgent     = 0;
 
     tlen           		= pkt->pktSize - pkt->ether_hdr_size;
-
-//CTG - Need to decrease length if VLAN header
-    if ( pkt->vlanid > 0 ) 
-        tlen -= 4;
 
     tip->tcp.cksum      = cksum(tip, tlen, 0);
 }
@@ -559,7 +551,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			// IPv4 Header constructor
 			pktgen_ipv4_ctor(pkt, (ipHdr_t *)tip);
 
-			pkt->tlen = sizeof(pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(tcpHdr_t);
+			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(tcpHdr_t);
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_UDP) ) {
 			udpip_t	  * udp;
