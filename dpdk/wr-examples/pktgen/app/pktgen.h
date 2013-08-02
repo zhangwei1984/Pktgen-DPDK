@@ -152,7 +152,7 @@
 
 int main(int argc, char **argv);
 
-#define PKTGEN_VERSION			"2.1.4"
+#define PKTGEN_VERSION			"2.1.5"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -325,7 +325,7 @@ typedef struct pkt_seq_s {
     uint16_t            ethType;                /**< IPv4 or IPv6 */
     uint16_t            ipProto;                /**< TCP or UDP or ICMP */
     uint16_t			vlanid;					/**< VLAN ID value if used */
-    uint16_t			pad0;
+    uint16_t			ether_hdr_size;			/**< Size of Ethernet header in packet for VLAN ID */
 
     uint16_t            pktSize;                /**< Size of packet in bytes not counting FCS */
     uint16_t            tlen;					/**< Total length of packet data */
@@ -398,6 +398,7 @@ typedef struct port_info_s {
 	range_info_t			range;				/**< Range Information */
 
 	uint16_t				nb_mbufs;			/**< Number of mbufs in the system */
+	uint16_t				pad0;
 	
 	pkt_stats_t				stats;				/**< Statistics for a number of stats */
 	port_sizes_t			sizes;				/**< Stats for the different packets sizes */

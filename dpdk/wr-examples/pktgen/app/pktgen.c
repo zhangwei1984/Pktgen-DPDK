@@ -350,11 +350,13 @@ pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * et
     ether_addr_copy(&pkt->eth_src_addr, &eth->s_addr);
     ether_addr_copy(&pkt->eth_dst_addr, &eth->d_addr);
     eth->ether_type = htons(pkt->ethType);
+	pkt->ether_hdr_size = sizeof(struct ether_hdr);
     if ( rte_atomic32_read(&info->port_flags) & SEND_VLAN_ID ) {
     	char	  * p = (char *)&eth->ether_type;
 
     	*(uint32_t *)p = (uint32_t)htonl(((ETHER_TYPE_VLAN << 16) | pkt->vlanid));
     	*(uint16_t *)(&p[VLAN_TAG_SIZE]) = htons(pkt->ethType);
+		pkt->ether_hdr_size += VLAN_TAG_SIZE;
     	return &p[VLAN_TAG_SIZE + sizeof(uint16_t)];
     }
     return (char *)&eth[1];
@@ -378,7 +380,7 @@ pktgen_ipv4_ctor(pkt_seq_t * pkt, ipHdr_t * ip)
 	uint16_t	tlen;
 	
     // IPv4 Header constructor
-    tlen                = pkt->pktSize - sizeof(struct ether_hdr);
+    tlen                = pkt->pktSize - pkt->ether_hdr_size;
 
     // Zero out the header space
     memset((char *)ip, 0, sizeof(ipHdr_t));
@@ -420,7 +422,8 @@ pktgen_ipv6_ctor(pkt_seq_t * pkt, ipv6Hdr_t * ip)
     memset(ip, 0, sizeof(ipv6Hdr_t));
 
     ip->ver_tc_fl       = htonl(IPv6_VERSION << 28);
-    tlen           		= pkt->pktSize - (sizeof(struct ether_hdr) + sizeof(ipv6Hdr_t));
+    tlen           		= pkt->pktSize - (pkt->ether_hdr_size + sizeof(ipv6Hdr_t));
+
     ip->payload_length  = htons(tlen);
     ip->hop_limit       = 4;
     ip->next_header     = pkt->ipProto;
@@ -454,7 +457,12 @@ pktgen_tcp_hdr_ctor(pkt_seq_t * pkt, tcpip_t * tip, __attribute__ ((unused)) int
     // Create the TCP header
     tip->ip.src         = htonl(pkt->ip_src_addr);
     tip->ip.dst         = htonl(pkt->ip_dst_addr);
-    tlen           		= pkt->pktSize - (sizeof(struct ether_hdr) + sizeof(ipHdr_t));
+    tlen           		= pkt->pktSize - (pkt->ether_hdr_size + sizeof(ipHdr_t));
+
+//CTG - Need to decrease length if VLAN header
+    if ( pkt->vlanid > 0 ) 
+        tlen -= 4;
+
     tip->ip.len         = htons(tlen);
     tip->ip.proto       = pkt->ipProto;
 
@@ -467,7 +475,12 @@ pktgen_tcp_hdr_ctor(pkt_seq_t * pkt, tcpip_t * tip, __attribute__ ((unused)) int
     tip->tcp.window     = htons(DEFAULT_WND_SIZE);
     tip->tcp.urgent     = 0;
 
-    tlen           		= pkt->pktSize - sizeof(struct ether_hdr);
+    tlen           		= pkt->pktSize - pkt->ether_hdr_size;
+
+//CTG - Need to decrease length if VLAN header
+    if ( pkt->vlanid > 0 ) 
+        tlen -= 4;
+
     tip->tcp.cksum      = cksum(tip, tlen, 0);
 }
 
@@ -494,7 +507,8 @@ pktgen_udp_hdr_ctor(pkt_seq_t * pkt, udpip_t * uip, __attribute__ ((unused)) int
     // Create the UDP header
     uip->ip.src         = htonl(pkt->ip_src_addr);
     uip->ip.dst         = htonl(pkt->ip_dst_addr);
-    tlen                = pkt->pktSize - (sizeof(struct ether_hdr) + sizeof(ipHdr_t));
+    tlen                = pkt->pktSize - (pkt->ether_hdr_size + sizeof(ipHdr_t));
+
     uip->ip.len         = htons(tlen);
     uip->ip.proto       = pkt->ipProto;
 
@@ -503,7 +517,8 @@ pktgen_udp_hdr_ctor(pkt_seq_t * pkt, udpip_t * uip, __attribute__ ((unused)) int
     uip->udp.dport      = htons(pkt->dport);
 
 	// Includes the pseudo header information
-    tlen                = pkt->pktSize - sizeof(struct ether_hdr);
+    tlen                = pkt->pktSize - pkt->ether_hdr_size;
+
     uip->udp.cksum      = cksum(uip, tlen, 0);
     if ( uip->udp.cksum == 0 )
         uip->udp.cksum = 0xFFFF;	
@@ -544,7 +559,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			// IPv4 Header constructor
 			pktgen_ipv4_ctor(pkt, (ipHdr_t *)tip);
 
-			pkt->tlen = sizeof(struct ether_hdr) + sizeof(ipHdr_t) + sizeof(tcpHdr_t);
+			pkt->tlen = sizeof(pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(tcpHdr_t);
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_UDP) ) {
 			udpip_t	  * udp;
@@ -558,7 +573,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			// IPv4 Header constructor
 			pktgen_ipv4_ctor(pkt, (ipHdr_t *)udp);
 
-			pkt->tlen = sizeof(struct ether_hdr) + sizeof(ipHdr_t) + sizeof(udpHdr_t);
+			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(udpHdr_t);
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_ICMP) ) {
 			udpip_t           * uip;
@@ -570,7 +585,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			// Create the ICMP header
 			uip->ip.src         = htonl(pkt->ip_src_addr);
 			uip->ip.dst         = htonl(pkt->ip_dst_addr);
-			tlen           		= pkt->pktSize - (sizeof(struct ether_hdr) + sizeof(ipHdr_t));
+			tlen           		= pkt->pktSize - (pkt->ether_hdr_size + sizeof(ipHdr_t));
 			uip->ip.len         = htons(tlen);
 			uip->ip.proto       = pkt->ipProto;
 
@@ -590,7 +605,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 				icmp->data.echo.data			= 0;
 			}
 			icmp->cksum     = 0;
-			tlen       		= pkt->pktSize - (sizeof(struct ether_hdr) + sizeof(ipHdr_t)); //ICMP4_TIMESTAMP_SIZE
+			tlen       		= pkt->pktSize - (pkt->ether_hdr_size + sizeof(ipHdr_t)); //ICMP4_TIMESTAMP_SIZE
 			icmp->cksum     = cksum(icmp, tlen, 0);
 			if ( icmp->cksum == 0 )
 				icmp->cksum = 0xFFFF;
@@ -598,7 +613,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			// IPv4 Header constructor
 			pktgen_ipv4_ctor(pkt, (ipHdr_t *)uip);
 
-			pkt->tlen = sizeof(struct ether_hdr) + sizeof(ipHdr_t) + ICMP4_TIMESTAMP_SIZE;
+			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + ICMP4_TIMESTAMP_SIZE;
 		}
     } else if ( pkt->ethType == ETHER_TYPE_IPv6 ) {
 		if ( (pkt->ipProto == PG_IPPROTO_TCP) ) {
@@ -614,7 +629,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			addr                = htonl(pkt->ip_src_addr);
 			rte_memcpy(&tip->ip.saddr[8], &addr, sizeof(uint32_t));
 
-			tlen           		= sizeof(tcpHdr_t) + (pkt->pktSize - sizeof(struct ether_hdr) - sizeof(ipv6Hdr_t) - sizeof(tcpHdr_t));
+			tlen           		= sizeof(tcpHdr_t) + (pkt->pktSize - pkt->ether_hdr_size - sizeof(ipv6Hdr_t) - sizeof(tcpHdr_t));
 			tip->ip.tcp_length  = htonl(tlen);
 			tip->ip.next_header = pkt->ipProto;
 
@@ -627,13 +642,13 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			tip->tcp.urgent     = 0;
 			tip->tcp.flags      = ACK_FLAG;     /* ACK */
 
-			tlen           		= sizeof(tcpipv6_t) + (pkt->pktSize - sizeof(struct ether_hdr) - sizeof(ipv6Hdr_t) - sizeof(tcpHdr_t));
+			tlen           		= sizeof(tcpipv6_t) + (pkt->pktSize - pkt->ether_hdr_size - sizeof(ipv6Hdr_t) - sizeof(tcpHdr_t));
 			tip->tcp.cksum      = cksum(tip, tlen, 0);
 
 			// IPv6 Header constructor
 			pktgen_ipv6_ctor(pkt, (ipv6Hdr_t *)&tip->ip);
 
-			pkt->tlen = sizeof(tcpHdr_t) + sizeof(struct ether_hdr) + sizeof(ipv6Hdr_t);
+			pkt->tlen = sizeof(tcpHdr_t) + pkt->ether_hdr_size + sizeof(ipv6Hdr_t);
 			if ( unlikely(pkt->pktSize < pkt->tlen) )
 				pkt->pktSize = pkt->tlen;
 
@@ -650,14 +665,14 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			addr                = htonl(pkt->ip_src_addr);
 			rte_memcpy(&uip->ip.saddr[8], &addr, sizeof(uint32_t));
 
-			tlen           		= sizeof(udpHdr_t) + (pkt->pktSize - sizeof(struct ether_hdr) - sizeof(ipv6Hdr_t) - sizeof(udpHdr_t));
+			tlen           		= sizeof(udpHdr_t) + (pkt->pktSize - pkt->ether_hdr_size - sizeof(ipv6Hdr_t) - sizeof(udpHdr_t));
 			uip->ip.tcp_length  = htonl(tlen);
 			uip->ip.next_header = pkt->ipProto;
 
 			uip->udp.sport      = htons(pkt->sport);
 			uip->udp.dport      = htons(pkt->dport);
 
-			tlen           		= sizeof(udpipv6_t) + (pkt->pktSize - sizeof(struct ether_hdr) - sizeof(ipv6Hdr_t) - sizeof(udpHdr_t));
+			tlen           		= sizeof(udpipv6_t) + (pkt->pktSize - pkt->ether_hdr_size - sizeof(ipv6Hdr_t) - sizeof(udpHdr_t));
 			uip->udp.cksum      = cksum(uip, tlen, 0);
 			if ( uip->udp.cksum == 0 )
 				uip->udp.cksum = 0xFFFF;
@@ -665,7 +680,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			// IPv6 Header constructor
 			pktgen_ipv6_ctor(pkt, (ipv6Hdr_t *)&uip->ip);
 
-			pkt->tlen = sizeof(udpHdr_t) + sizeof(struct ether_hdr) + sizeof(ipv6Hdr_t);
+			pkt->tlen = sizeof(udpHdr_t) + pkt->ether_hdr_size + sizeof(ipv6Hdr_t);
 			if ( unlikely(pkt->pktSize < pkt->tlen) )
 				pkt->pktSize = pkt->tlen;
 		}
