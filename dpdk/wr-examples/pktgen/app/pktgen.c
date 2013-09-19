@@ -1412,6 +1412,35 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                     p = range->pkt_size_min;
                 pkt->pktSize = p;
             }
+
+            if (unlikely(range->src_mac_inc != 0))
+            {
+                uint64_t p;
+                inet_mtoh64(&pkt->eth_src_addr, &p);
+
+                p += range->src_mac_inc;
+                if (p < range->src_mac_min)
+                    p = range->src_mac_max;
+                else if (p > range->src_mac_max)
+                    p = range->src_mac_min;
+
+                inet_h64tom(p, &pkt->eth_src_addr);
+            }
+
+            if (unlikely(range->dst_mac_inc != 0))
+            {
+                uint64_t p;
+                inet_mtoh64(&pkt->eth_dst_addr, &p);
+
+                p += range->dst_mac_inc;
+                if (p < range->dst_mac_min)
+                    p = range->dst_mac_max;
+                else if (p > range->dst_mac_max)
+                    p = range->dst_mac_min;
+
+                inet_h64tom(p, &pkt->eth_dst_addr);
+            }
+
 			break;
 		default:
 			printf_info("%s: IPv4 ipProto %02x\n", __FUNCTION__, pkt->ipProto);
@@ -2173,6 +2202,7 @@ pktgen_print_range(void)
     unsigned int pid, col, sp;
     char buff[32];
     unsigned int row;
+    struct ether_addr eaddr;
 
     display_topline("** Range Page **");
     scrn_printf(1, 3, "Ports %d-%d of %d", pktgen.starting_port, (pktgen.ending_port - 1), pktgen.nb_ports);
@@ -2216,7 +2246,15 @@ pktgen_print_range(void)
 
     row++;
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "dst.mac");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    inc");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    min");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    max");
+
+    row++;
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "src.mac");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    inc");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    min");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    max");
 
     // Get the last location to use for the window starting row.
     pktgen.last_row = ++row;
@@ -2278,8 +2316,16 @@ pktgen_print_range(void)
         scrn_printf(row++, col, "%*d", COLUMN_WIDTH_0, range->pkt_size_max+FCS_SIZE);
 
         row++;
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), &range->dst_mac.addr));
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), &range->src_mac.addr));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_inc, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_min, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_max, &eaddr)));
+
+        row++;
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_inc, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_min, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_max, &eaddr)));
     }
 
     pktgen.flags &= ~PRINT_LABELS_FLAG;
@@ -2853,8 +2899,15 @@ pktgen_range_setup(port_info_t * info)
 
 	info->seq_pkt[RANGE_PKT].pktSize = MIN_PKT_SIZE;
 
-	ethAddrCopy(&range->dst_mac.u64, &info->seq_pkt[RANGE_PKT].eth_dst_addr);
-	ethAddrCopy(&range->src_mac.u64, &info->seq_pkt[RANGE_PKT].eth_src_addr);
+	inet_mtoh64(&info->seq_pkt[SINGLE_PKT].eth_dst_addr, &range->dst_mac);
+    memset(&range->dst_mac_inc, 0, sizeof (range->dst_mac_inc));
+    memset(&range->dst_mac_min, 0, sizeof (range->dst_mac_min));
+    memset(&range->dst_mac_max, 0, sizeof (range->dst_mac_max));
+
+	inet_mtoh64(&info->seq_pkt[SINGLE_PKT].eth_src_addr, &range->src_mac);
+    memset(&range->src_mac_inc, 0, sizeof (range->src_mac_inc));
+    memset(&range->src_mac_min, 0, sizeof (range->src_mac_min));
+    memset(&range->src_mac_max, 0, sizeof (range->src_mac_max));
 }
 
 /**************************************************************************//**

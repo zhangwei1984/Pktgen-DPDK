@@ -203,13 +203,13 @@ enum {
 	PKT_SIZE_ROWS			= 9,
 	PKT_TOTALS_ROWS			= 8,
 	IP_ADDR_ROWS			= 10,
-		
+
 	PORT_STATE_ROW			= 2,
 	LINK_STATE_ROW			= (PORT_STATE_ROW + PORT_STATE_ROWS),
 	PKT_SIZE_ROW			= (LINK_STATE_ROW + LINK_STATE_ROWS),
 	PKT_TOTALS_ROW			= (PKT_SIZE_ROW + PKT_SIZE_ROWS),
 	IP_ADDR_ROW				= (PKT_TOTALS_ROW + PKT_TOTALS_ROWS),
-	
+
 	DEFAULT_NETMASK			= 0xFFFFFF00,
 	DEFAULT_IP_ADDR			= (192 << 24) | (168 << 16),
 	DEFAULT_TX_COUNT		= 0,			// Forever
@@ -240,7 +240,7 @@ enum {
 	PING_PKT				= (RANGE_PKT + 1),						// 18
 	EXTRA_TX_PKT			= (PING_PKT + 1),						// 19
 	NUM_TOTAL_PKTS			= (EXTRA_TX_PKT + NUM_EXTRA_TX_PKTS),
-	
+
 	DEFAULT_PKT_BURST		= 128,		// Increasing this number consumes memory very fast
 	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 4),
 	DEFAULT_TX_DESC			= DEFAULT_RX_DESC,
@@ -256,7 +256,7 @@ enum {
 	FCS_SIZE				= 4,
 	MIN_PKT_SIZE			= (ETHER_MIN_LEN - FCS_SIZE),
 	MAX_PKT_SIZE			= (ETHER_MAX_LEN - FCS_SIZE),
-	
+
 	MAX_RX_QUEUES			= 16,	/**< RX Queues per port */
 	MAX_TX_QUEUES			= 16,	/**< TX Queues per port */
 
@@ -315,7 +315,7 @@ typedef struct pkt_seq_s {
     // Packet type and information
     struct ether_addr   eth_dst_addr;           /**< Destination Ethernet address */
     struct ether_addr   eth_src_addr;           /**< Source Ethernet address */
-   
+
     uint32_t            ip_src_addr;            /**< Source IPv4 address also used for IPv6 */
     uint32_t            ip_dst_addr;            /**< Destination IPv4 address */
     uint32_t            ip_mask;                /**< IPv4 Netmask value */
@@ -346,6 +346,8 @@ typedef struct range_info_s {
 	uint16_t				dst_port_inc;		/**< Destination port increment */
 	uint16_t				vlan_id_inc;		/**< VLAN id increment */
 	uint16_t				pkt_size_inc;		/**< PKT size increment */
+    uint64_t				src_mac_inc;		/**< Source MAC increment */
+    uint64_t				dst_mac_inc;		/**< Destination MAC increment */
 
 	uint32_t				src_ip;				/**< Source starting IP address */
 	uint32_t				src_ip_min;			/**< Source IP minimum */
@@ -371,8 +373,13 @@ typedef struct range_info_s {
 	uint16_t				pkt_size_min;		/**< PKT Size minimum */
 	uint16_t				pkt_size_max;		/**< PKT Size maximum */
 
-	ethaddr_t				dst_mac;			/**< Destination Starting MAC address */
-	ethaddr_t				src_mac;			/**< Source Starting MAC address */
+	uint64_t				dst_mac;			/**< Destination starting MAC address */
+	uint64_t				dst_mac_min;		/**< Destination minimum MAC address */
+	uint64_t				dst_mac_max;		/**< Destination maximum MAC address */
+
+	uint64_t				src_mac;			/**< Source starting MAC address */
+	uint64_t				src_mac_min;		/**< Source minimum MAC address */
+	uint64_t				src_mac_max;		/**< Source maximum MAC address */
 } range_info_t;
 
 typedef struct port_info_s {
@@ -388,7 +395,7 @@ typedef struct port_info_s {
 	uint64_t				tx_pps;				/**< Transmit packets per seconds */
 	uint64_t				delta;				/**< Delta value for latency testing */
 	uint64_t				tx_count;			/**< Total count of tx attempts */
-	
+
 	// Packet buffer space for traffic generator, shared for all packets per port
 	uint16_t				seqIdx;				/**< Current Packet sequence index 0 to NUM_SEQ_PKTS */
 	uint16_t				seqCnt;				/**< Current packet sequence max count */
@@ -399,7 +406,7 @@ typedef struct port_info_s {
 
 	uint16_t				nb_mbufs;			/**< Number of mbufs in the system */
 	uint16_t				pad0;
-	
+
 	pkt_stats_t				stats;				/**< Statistics for a number of stats */
 	port_sizes_t			sizes;				/**< Stats for the different packets sizes */
 
@@ -437,7 +444,7 @@ typedef struct pktgen_s {
 	int32_t					socket_port;		/**< GUI port number */
 	uint32_t				coremask;			/**< Coremask of lcores */
 	char				  * prompt;				/**< Pktgen command line prompt */
-	
+
 	uint32_t				enabled_port_mask;	/**< mask of enabled ports */
 	uint32_t				blinklist;			/**< Port list for blinking the led */
 	uint32_t				flags;				/**< Flag values */
@@ -465,7 +472,7 @@ typedef struct pktgen_s {
 
 	// port to lcore mapping
 	l2p_t				  * l2p;
-	
+
 	port_info_t				info[RTE_MAX_ETHPORTS];	/**< Port information */
 	lc_info_t				core_info[RTE_MAX_LCORE];
 	uint32_t				core_cnt;

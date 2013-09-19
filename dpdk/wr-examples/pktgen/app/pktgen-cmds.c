@@ -90,6 +90,7 @@ pktgen_save(char * path)
 	FILE	  * fd;
 	int			i, j;
 	uint32_t	lcore;
+    struct ether_addr eaddr;
 
 	fd = fopen(path, "w");
 	if ( fd == NULL ) {
@@ -189,8 +190,15 @@ pktgen_save(char * path)
 		fprintf(fd, "vlan %d %sable\n\n", i, (flags & SEND_VLAN_ID)? "en" : "dis");
 
 		fprintf(fd, "#\n# Range packet information:\n");
-		fprintf(fd, "dst.mac start %d %s\n", i, inet_mtoa(buff, sizeof(buff), &range->dst_mac.addr));
-		fprintf(fd, "src.mac start %d %s\n", i, inet_mtoa(buff, sizeof(buff), &range->src_mac.addr));
+		fprintf(fd, "src.mac start %d %s\n", i, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac, &eaddr)));
+		fprintf(fd, "src.mac min %d %s\n", i, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_min, &eaddr)));
+		fprintf(fd, "src.mac max %d %s\n", i, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_max, &eaddr)));
+        fprintf(fd, "src.mac inc %d %s\n", i, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_inc, &eaddr)));
+
+		fprintf(fd, "dst.mac start %d %s\n", i, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac, &eaddr)));
+		fprintf(fd, "dst.mac min %d %s\n", i, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_min, &eaddr)));
+		fprintf(fd, "dst.mac max %d %s\n", i, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_max, &eaddr)));
+		fprintf(fd, "dst.mac inc %d %s\n", i, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_inc, &eaddr)));
 
 		fprintf(fd, "\n");
 		fprintf(fd, "src.ip start %d %s\n", i, inet_ntop4(buff, sizeof(buff), ntohl(range->src_ip), 0xFFFFFFFF));
@@ -295,7 +303,7 @@ char *
 pktgen_link_state(int port, char * buff, int len)
 {
 	port_info_t * info = &pktgen.info[port];
-	
+
     if (info->link.link_status) {
         snprintf(buff, len, "<UP-%u-%s>",
            (uint32_t) info->link.link_speed,
@@ -322,7 +330,7 @@ char *
 pktgen_transmit_count_rate(int port, char * buff, int len)
 {
 	port_info_t * info = &pktgen.info[port];
-	
+
     if ( info->transmit_count == 0 )
         snprintf(buff, len, "Forever/%d%%", info->tx_rate);
     else
@@ -416,7 +424,7 @@ pktgen_flags_string( port_info_t * info )
 {
     static char buff[32];
     uint32_t	flags = rte_atomic32_read(&info->port_flags);
-    
+
     snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c",
             (pktgen.flags & PROMISCUOUS_ON_FLAG)? 'P' : '-',
             (flags & ICMP_ECHO_ENABLE_FLAG)? 'E' : '-',
@@ -1034,7 +1042,7 @@ void pktgen_port_defaults(uint32_t pid, uint8_t seq)
 		    &pkt->eth_dst_addr);
 	else
 		memset(&pkt->eth_dst_addr, 0, sizeof (pkt->eth_dst_addr));
-			    
+
 
 	pktgen_packet_ctor(info, seq, -1);
 
@@ -1373,8 +1381,14 @@ pktgen_range_enable_disable(port_info_t * info, char * str)
 void
 pktgen_set_dest_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
 {
-	if ( !strcmp(what, "start") )
-		memcpy(&info->range.dst_mac.addr, mac->mac, 6);
+	if ( !strcmp(what, "min") )
+		inet_mtoh64((struct ether_addr *)mac, &info->range.dst_mac_min);
+	else if ( !strcmp(what, "max") )
+		inet_mtoh64((struct ether_addr *)mac, &info->range.dst_mac_max);
+	else if ( !strcmp(what, "inc") )
+		inet_mtoh64((struct ether_addr *)mac, &info->range.dst_mac_inc);
+	else if ( !strcmp(what, "start") )
+		inet_mtoh64((struct ether_addr *)mac, &info->range.dst_mac);
 }
 
 /**************************************************************************//**
@@ -1392,8 +1406,14 @@ pktgen_set_dest_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
 void
 pktgen_set_src_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
 {
-	if ( !strcmp(what, "start") )
-		memcpy(&info->range.src_mac.addr, mac->mac, 6);
+	if ( !strcmp(what, "min") )
+		inet_mtoh64((struct ether_addr *)mac, &info->range.src_mac_min);
+	else if ( !strcmp(what, "max") )
+		inet_mtoh64((struct ether_addr *)mac, &info->range.src_mac_max);
+	else if ( !strcmp(what, "inc") )
+		inet_mtoh64((struct ether_addr *)mac, &info->range.src_mac_inc);
+	else if ( !strcmp(what, "start") )
+		inet_mtoh64((struct ether_addr *)mac, &info->range.src_mac);
 }
 
 /**************************************************************************//**
