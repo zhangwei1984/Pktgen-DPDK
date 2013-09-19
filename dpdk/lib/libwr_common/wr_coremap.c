@@ -270,15 +270,12 @@ print_and_free_lcores(lcore_t *lc)
 static lc_info_t *
 get_and_free_lcores(lcore_t *lc, lc_info_t * get, int cnt)
 {
-	if ( cnt == 0 )
-		return NULL;
+    if ((lc == NULL) || (cnt == 0))
+        return NULL;
 
-    if (lc) {
-        get = get_and_free_lcores(lc->next, get, cnt-1);
-    	get->word = lc->u.word;
-        free(lc);
-    }
-    return (get + 1);
+    get_and_free_lcores(lc->next, get+1, cnt-1);
+    get->word = lc->u.word;
+    return get;
 }
 
 
@@ -408,7 +405,7 @@ wr_coremap(const char * arg, lc_info_t * get_lcores, int max_cnt, const char * p
 			if ( strcmp(arg, "array") == 0 ) {
 				int num_cores = count_cores(lcores);
 				if ( (get_lcores != NULL) || (max_cnt > 0) )
-					get_and_free_lcores(lcores, &get_lcores[-1], max_cnt);
+					get_and_free_lcores(lcores, &get_lcores[0], max_cnt);
 				return num_cores;
 			}
     }
