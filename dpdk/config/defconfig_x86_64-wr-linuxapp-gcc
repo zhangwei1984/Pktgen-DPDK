@@ -37,3 +37,9 @@ CONFIG_INCLUDE_PING6=n
 ##
 CONFIG_RTE_LIBRTE_HASH_USE_MEMZONE=y
 CONFIG_RTE_MBUF_SCATTER_GATHER=y
+
+##
+# Release unneeded files to better co-exist with other hugepage users
+##
+CONFIG_RTE_EAL_UNLINK_UNNEEDED_HUGEPAGE_FILES=y
+
