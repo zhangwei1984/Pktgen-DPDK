@@ -343,23 +343,32 @@ static __inline__ int pktgen_has_work(void) {
 static __inline__ char *
 pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * eth)
 {
-    // Zero out the header space
-    memset((char *)eth, 0, sizeof(struct ether_hdr));
+    struct vlan_hdr *vlan_hdr;
 
     /* src and dest addr */
     ether_addr_copy(&pkt->eth_src_addr, &eth->s_addr);
     ether_addr_copy(&pkt->eth_dst_addr, &eth->d_addr);
-    eth->ether_type = htons(pkt->ethType);
-	pkt->ether_hdr_size = sizeof(struct ether_hdr);
     if ( rte_atomic32_read(&info->port_flags) & SEND_VLAN_ID ) {
-    	char	  * p = (char *)&eth->ether_type;
+        /* vlan ethernet header */
+        eth->ether_type = htons(ETHER_TYPE_VLAN);
 
-    	*(uint32_t *)p = (uint32_t)htonl(((ETHER_TYPE_VLAN << 16) | pkt->vlanid));
-    	*(uint16_t *)(&p[VLAN_TAG_SIZE]) = htons(pkt->ethType);
-		pkt->ether_hdr_size += VLAN_TAG_SIZE;
-    	return &p[VLAN_TAG_SIZE + sizeof(uint16_t)];
+        /* only set the TCI field for now; don't bother with PCP/DEI */
+        struct vlan_hdr *vlan_hdr = (struct vlan_hdr *)(eth+1);
+        vlan_hdr->vlan_tci = htons(pkt->vlanid);
+        vlan_hdr->eth_proto = htons(pkt->ethType);
+
+        /* adjust header size for VLAN tag */
+        pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(struct vlan_hdr);
+
+        return (char *)(vlan_hdr+1);
     }
-    return (char *)&eth[1];
+    else {
+        /* normal ethernet header */
+        eth->ether_type = htons(pkt->ethType);
+        pkt->ether_hdr_size = sizeof(struct ether_hdr);
+    }
+
+    return (char *)(eth+1);
 }
 
 /**************************************************************************//**
@@ -2028,8 +2037,7 @@ pktgen_print_static_data(void)
         snprintf(buff, sizeof(buff), "%d/%d", pkt->sport, pkt->dport);
         scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, buff);
         snprintf(buff, sizeof(buff), "%s/%s:%04x", (pkt->ethType == ETHER_TYPE_IPv4)? "IPv4" :
-                                              (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" :
-                                              (pkt->ethType == ETHER_TYPE_VLAN)? "VLAN" : "Other",
+                                              (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" : "Other",
                                               (pkt->ipProto == PG_IPPROTO_TCP)? "TCP" :
                                               (pkt->ipProto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                pkt->vlanid);
@@ -2161,8 +2169,7 @@ pktgen_print_pcap(uint16_t pid)
         	col += ((2 * COLUMN_WIDTH_0) + 2 + 12);
         }
         snprintf(buff, sizeof(buff), "%s/%s:%4d", (type == ETHER_TYPE_IPv4)? "IPv4" :
-                                              	   (type == ETHER_TYPE_IPv6)? "IPv6" :
-                                              	   (vlan)? "VLAN" : "Other",
+                                                   (type == ETHER_TYPE_IPv6)? "IPv6" : "Other",
                                                    (type == PG_IPPROTO_TCP)? "TCP" :
                                                    (proto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                    (vlan & 0xFFF));
@@ -2660,8 +2667,7 @@ pktgen_page_seq(uint32_t pid)
         scrn_printf(row, col, "%*s", 12, buff);
         col += 12;
         snprintf(buff, sizeof(buff), "%s/%s:%04x", (pkt->ethType == ETHER_TYPE_IPv4)? "IPv4" :
-                                              (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" :
-                                              (pkt->ethType == ETHER_TYPE_VLAN)? "VLAN" : "Other",
+                                                      (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" : "Other",
                                                       (pkt->ipProto == PG_IPPROTO_TCP)? "TCP" :
                                                       (pkt->ipProto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                     		  pkt->vlanid);

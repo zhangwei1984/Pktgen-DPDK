@@ -1629,7 +1629,7 @@ cmdline_parse_token_num_t cmd_set_seq_sport =
 cmdline_parse_token_num_t cmd_set_seq_dport =
 	TOKEN_NUM_INITIALIZER(struct cmd_set_seq_result, dport, UINT32);
 cmdline_parse_token_string_t cmd_set_seq_eth =
-	TOKEN_STRING_INITIALIZER(struct cmd_set_seq_result, eth, "ipv4#ipv6#vlan");
+	TOKEN_STRING_INITIALIZER(struct cmd_set_seq_result, eth, "ipv4#ipv6");
 cmdline_parse_token_string_t cmd_set_seq_proto =
 	TOKEN_STRING_INITIALIZER(struct cmd_set_seq_result, proto, "udp#tcp#icmp");
 cmdline_parse_token_num_t cmd_set_seq_vlanid =
@@ -2190,14 +2190,14 @@ static void cmd_set_pkt_type_parsed(void *parsed_result,
 cmdline_parse_token_string_t cmd_set_set_pkt_type =
 	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, set, "set");
 cmdline_parse_token_string_t cmd_set_pkt_type =
-	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, type, "ipv4#ipv6#vlan");
+	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, type, "ipv4#ipv6");
 cmdline_parse_token_portlist_t cmd_set_pkt_type_portlist =
 	TOKEN_PORTLIST_INITIALIZER(struct cmd_set_pkt_type_result, portlist);
 
 cmdline_parse_inst_t cmd_pkt_type = {
 	.f = cmd_set_pkt_type_parsed,
 	.data = NULL,
-	.help_str = "set ipv4|ipv6|vlan <portlist>",
+	.help_str = "set ipv4|ipv6 <portlist>",
 	.tokens = {
 		(void *)&cmd_set_set_pkt_type,
 		(void *)&cmd_set_pkt_type,

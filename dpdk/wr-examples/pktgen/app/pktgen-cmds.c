@@ -888,9 +888,7 @@ pktgen_process_enable_disable(port_info_t * info, char * str)
 void
 pktgen_set_pkt_type(port_info_t * info, char type)
 {
-	info->seq_pkt[SINGLE_PKT].ethType = (type == '4')? ETHER_TYPE_IPv4 :
-									   (type == '6')? ETHER_TYPE_IPv6 :
-									   (type == 'n')? ETHER_TYPE_VLAN : ETHER_TYPE_IPv4;
+	info->seq_pkt[SINGLE_PKT].ethType = (type == '6')? ETHER_TYPE_IPv6 : ETHER_TYPE_IPv4;
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
 }
 
@@ -1725,9 +1723,7 @@ void pktgen_set_seq(port_info_t * info, uint32_t seqnum,
 	// Force the IP protocol to IPv4 if this is a ICMP packet.
 	if ( proto == 'i' )
 		type = '4';
-	pkt->ethType		= (type == '4')? ETHER_TYPE_IPv4 :
-						  (type == '6')? ETHER_TYPE_IPv6 :
-						  (type == 'n')? ETHER_TYPE_VLAN : ETHER_TYPE_IPv4;
+	pkt->ethType		= (type == '6')? ETHER_TYPE_IPv6 : ETHER_TYPE_IPv4;
 	pkt->vlanid			= vlanid;
 	pktgen_packet_ctor(info, seqnum, -1);
 }
