@@ -225,7 +225,7 @@ set mac <portlist> etheraddr       - Set MAC addresses 00:11:22:33:44:55
                                      You can use 0011:2233:4455 format as well
 mac_from_arp <state>               - Set the option to get MAC from ARP request
 set udp|tcp|icmp <portlist>        - Set the packet type UDP or TCP or ICMP per port
-set ipv4|ipv6|vlan <portlist>      - Set the packet type to IPv4 or IPv6 or VLAN
+set ipv4|ipv6 <portlist>           - Set the packet type to IPv4 or IPv6
 set ip src|dst <portlist> ipaddr   - Set IP addresses
 geometry <geom>                    - Set the display geometry Columns by Rows (ColxRow)
 tap <portlist> <state>             - Enable/disable tap interface support

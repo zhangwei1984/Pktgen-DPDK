@@ -343,23 +343,32 @@ static __inline__ int pktgen_has_work(void) {
 static __inline__ char *
 pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * eth)
 {
-    // Zero out the header space
-    memset((char *)eth, 0, sizeof(struct ether_hdr));
+    struct vlan_hdr *vlan_hdr;
 
     /* src and dest addr */
     ether_addr_copy(&pkt->eth_src_addr, &eth->s_addr);
     ether_addr_copy(&pkt->eth_dst_addr, &eth->d_addr);
-    eth->ether_type = htons(pkt->ethType);
-	pkt->ether_hdr_size = sizeof(struct ether_hdr);
     if ( rte_atomic32_read(&info->port_flags) & SEND_VLAN_ID ) {
-    	char	  * p = (char *)&eth->ether_type;
+        /* vlan ethernet header */
+        eth->ether_type = htons(ETHER_TYPE_VLAN);
 
-    	*(uint32_t *)p = (uint32_t)htonl(((ETHER_TYPE_VLAN << 16) | pkt->vlanid));
-    	*(uint16_t *)(&p[VLAN_TAG_SIZE]) = htons(pkt->ethType);
-		pkt->ether_hdr_size += VLAN_TAG_SIZE;
-    	return &p[VLAN_TAG_SIZE + sizeof(uint16_t)];
+        /* only set the TCI field for now; don't bother with PCP/DEI */
+        struct vlan_hdr *vlan_hdr = (struct vlan_hdr *)(eth+1);
+        vlan_hdr->vlan_tci = htons(pkt->vlanid);
+        vlan_hdr->eth_proto = htons(pkt->ethType);
+
+        /* adjust header size for VLAN tag */
+        pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(struct vlan_hdr);
+
+        return (char *)(vlan_hdr+1);
     }
-    return (char *)&eth[1];
+    else {
+        /* normal ethernet header */
+        eth->ether_type = htons(pkt->ethType);
+        pkt->ether_hdr_size = sizeof(struct ether_hdr);
+    }
+
+    return (char *)(eth+1);
 }
 
 /**************************************************************************//**
@@ -378,7 +387,7 @@ static __inline__ void
 pktgen_ipv4_ctor(pkt_seq_t * pkt, ipHdr_t * ip)
 {
 	uint16_t	tlen;
-	
+
     // IPv4 Header constructor
     tlen                = pkt->pktSize - pkt->ether_hdr_size;
 
@@ -450,7 +459,7 @@ static __inline__ void
 pktgen_tcp_hdr_ctor(pkt_seq_t * pkt, tcpip_t * tip, __attribute__ ((unused)) int type)
 {
 	uint16_t		tlen;
-	
+
     // Zero out the header space
     memset((char *)tip, 0, sizeof(tcpip_t));
 
@@ -513,7 +522,7 @@ pktgen_udp_hdr_ctor(pkt_seq_t * pkt, udpip_t * uip, __attribute__ ((unused)) int
 
     uip->udp.cksum      = cksum(uip, tlen, 0);
     if ( uip->udp.cksum == 0 )
-        uip->udp.cksum = 0xFFFF;	
+        uip->udp.cksum = 0xFFFF;
 }
 
 /**************************************************************************//**
@@ -1123,7 +1132,7 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid )
 #else
         icmpv4Hdr_t * icmp = (icmpv4Hdr_t *)((uint64_t)ip + sizeof(ipHdr_t));
 #endif
-        
+
         // We do not handle IP options, which will effect the IP header size.
         if ( unlikely(cksum(icmp, (m->pkt.data_len - sizeof(struct ether_hdr) - sizeof(ipHdr_t)), 0)) ) {
             printf_info("ICMP checksum failed\n");
@@ -1178,13 +1187,13 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid )
             ethAddrSwap(&eth->d_addr, &eth->s_addr);
 
             pktgen_send_mbuf(m, pid, 0);
-            
+
             pktgen_set_q_flags(info, 0, DO_TX_FLUSH);
 
             // No need to free mbuf as it was reused.
             return;
         } else if ( unlikely(icmp->type == ICMP4_ECHO_REPLY) ) {
-            info->stats.echo_pkts++;        	
+            info->stats.echo_pkts++;
         }
     }
 leave:
@@ -1357,7 +1366,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 					sport = range->src_port_min;
 				pkt->sport = sport;
 			}
-			
+
 			if ( unlikely(range->dst_port_inc != 0) ) {
 				uint16_t dport = pkt->dport;
 				dport += range->dst_port_inc;
@@ -1367,7 +1376,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 					dport = range->dst_port_min;
 				pkt->dport = dport;
 			}
-			
+
             if (unlikely(range->src_ip_inc != 0))
             {
                 uint32_t p = pkt->ip_src_addr;
@@ -1412,6 +1421,35 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                     p = range->pkt_size_min;
                 pkt->pktSize = p;
             }
+
+            if (unlikely(range->src_mac_inc != 0))
+            {
+                uint64_t p;
+                inet_mtoh64(&pkt->eth_src_addr, &p);
+
+                p += range->src_mac_inc;
+                if (p < range->src_mac_min)
+                    p = range->src_mac_max;
+                else if (p > range->src_mac_max)
+                    p = range->src_mac_min;
+
+                inet_h64tom(p, &pkt->eth_src_addr);
+            }
+
+            if (unlikely(range->dst_mac_inc != 0))
+            {
+                uint64_t p;
+                inet_mtoh64(&pkt->eth_dst_addr, &p);
+
+                p += range->dst_mac_inc;
+                if (p < range->dst_mac_min)
+                    p = range->dst_mac_max;
+                else if (p > range->dst_mac_max)
+                    p = range->dst_mac_min;
+
+                inet_h64tom(p, &pkt->eth_dst_addr);
+            }
+
 			break;
 		default:
 			printf_info("%s: IPv4 ipProto %02x\n", __FUNCTION__, pkt->ipProto);
@@ -1453,13 +1491,13 @@ pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp)
 	struct rte_mbuf	* m, * mm;
 	pkt_seq_t * pkt;
 	uint8_t		idx, k;
-	
+
 	for(k = 0, idx = 0; idx < wr_get_lcore_txcnt(pktgen.l2p, rte_lcore_id()); idx++) {
 		if ( mp != info->q[idx].pcap_mp ) {
 			mm	= NULL;
 			pkt = NULL;
 			k++;
-		
+
 			if ( mp == info->q[idx].tx_mp )
 				pkt = &info->seq_pkt[SINGLE_PKT];
 			else if ( mp == info->q[idx].range_mp )
@@ -1531,10 +1569,10 @@ static __inline__ void
 pktgen_send_pkts(port_info_t * info, uint8_t qid, struct rte_mempool * mp)
 {
 	int			txCnt;
-	
+
 	if ( unlikely(rte_atomic32_read(&info->q[qid].flags) & CLEAR_FAST_ALLOC_FLAG) )
 		pktgen_setup_packets(info, mp);
-	
+
 	txCnt = info->current_tx_count;
 	if ( likely(txCnt == 0) || unlikely(txCnt > info->tx_burst) )
 		txCnt = info->tx_burst;
@@ -1999,8 +2037,7 @@ pktgen_print_static_data(void)
         snprintf(buff, sizeof(buff), "%d/%d", pkt->sport, pkt->dport);
         scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, buff);
         snprintf(buff, sizeof(buff), "%s/%s:%04x", (pkt->ethType == ETHER_TYPE_IPv4)? "IPv4" :
-                                              (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" :
-                                              (pkt->ethType == ETHER_TYPE_VLAN)? "VLAN" : "Other",
+                                              (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" : "Other",
                                               (pkt->ipProto == PG_IPPROTO_TCP)? "TCP" :
                                               (pkt->ipProto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                pkt->vlanid);
@@ -2132,8 +2169,7 @@ pktgen_print_pcap(uint16_t pid)
         	col += ((2 * COLUMN_WIDTH_0) + 2 + 12);
         }
         snprintf(buff, sizeof(buff), "%s/%s:%4d", (type == ETHER_TYPE_IPv4)? "IPv4" :
-                                              	   (type == ETHER_TYPE_IPv6)? "IPv6" :
-                                              	   (vlan)? "VLAN" : "Other",
+                                                   (type == ETHER_TYPE_IPv6)? "IPv6" : "Other",
                                                    (type == PG_IPPROTO_TCP)? "TCP" :
                                                    (proto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                    (vlan & 0xFFF));
@@ -2173,6 +2209,7 @@ pktgen_print_range(void)
     unsigned int pid, col, sp;
     char buff[32];
     unsigned int row;
+    struct ether_addr eaddr;
 
     display_topline("** Range Page **");
     scrn_printf(1, 3, "Ports %d-%d of %d", pktgen.starting_port, (pktgen.ending_port - 1), pktgen.nb_ports);
@@ -2216,7 +2253,15 @@ pktgen_print_range(void)
 
     row++;
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "dst.mac");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    inc");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    min");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    max");
+
+    row++;
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "src.mac");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    inc");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    min");
+    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "    max");
 
     // Get the last location to use for the window starting row.
     pktgen.last_row = ++row;
@@ -2236,7 +2281,7 @@ pktgen_print_range(void)
         // Display Port information Src/Dest IP addr, Netmask, Src/Dst MAC addr
         col = (COLUMN_WIDTH_0 * pid) + COLUMN_WIDTH_0 + 1;
         row = PORT_STATE_ROW;
-        
+
         // Display the port number for the column
         snprintf(buff, sizeof(buff), "Port-%d", pid+sp);
         scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
@@ -2278,8 +2323,16 @@ pktgen_print_range(void)
         scrn_printf(row++, col, "%*d", COLUMN_WIDTH_0, range->pkt_size_max+FCS_SIZE);
 
         row++;
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), &range->dst_mac.addr));
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), &range->src_mac.addr));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_inc, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_min, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->dst_mac_max, &eaddr)));
+
+        row++;
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_inc, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_min, &eaddr)));
+        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_0, inet_mtoa(buff, sizeof(buff), inet_h64tom(range->src_mac_max, &eaddr)));
     }
 
     pktgen.flags &= ~PRINT_LABELS_FLAG;
@@ -2328,7 +2381,7 @@ pktgen_page_stats(void)
         row = LINK_STATE_ROW;
 
         // Grab the link state of the port and display Duplex/Speed and UP/Down
-        rte_eth_link_get(pid+sp, &info->link);
+        rte_eth_link_get_nowait(pid+sp, &info->link);
        	pktgen_link_state(pid, buff, sizeof(buff));
         scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
 
@@ -2614,8 +2667,7 @@ pktgen_page_seq(uint32_t pid)
         scrn_printf(row, col, "%*s", 12, buff);
         col += 12;
         snprintf(buff, sizeof(buff), "%s/%s:%04x", (pkt->ethType == ETHER_TYPE_IPv4)? "IPv4" :
-                                              (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" :
-                                              (pkt->ethType == ETHER_TYPE_VLAN)? "VLAN" : "Other",
+                                                      (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" : "Other",
                                                       (pkt->ipProto == PG_IPPROTO_TCP)? "TCP" :
                                                       (pkt->ipProto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                     		  pkt->vlanid);
@@ -2652,7 +2704,7 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
     scrn_save();
 
     scrn_printf(1,1, "%c", "-\\|/"[(counter++ & 3)]);
-    
+
     if ( pktgen.flags & CPU_PAGE_FLAG )
         pktgen_page_cpu();
     else if ( pktgen.flags & PCAP_PAGE_FLAG )
@@ -2835,12 +2887,12 @@ pktgen_range_setup(port_info_t * info)
 	range->dst_port_inc	= 0x0001;
 	range->dst_port_min	= range->dst_port + 0;
 	range->dst_port_max	= range->dst_port + 254;
-	
+
 	range->src_port		= (info->pid << 8);
 	range->src_port_inc	= 0x0001;
 	range->src_port_min	= range->src_port + 0;
 	range->src_port_max	= range->src_port + 254;
-	
+
 	range->vlan_id		= info->vlanid;
 	range->vlan_id_inc	= 0;
 	range->vlan_id_min	= MIN_VLAN_ID;
@@ -2853,8 +2905,15 @@ pktgen_range_setup(port_info_t * info)
 
 	info->seq_pkt[RANGE_PKT].pktSize = MIN_PKT_SIZE;
 
-	ethAddrCopy(&range->dst_mac.u64, &info->seq_pkt[RANGE_PKT].eth_dst_addr);
-	ethAddrCopy(&range->src_mac.u64, &info->seq_pkt[RANGE_PKT].eth_src_addr);
+	inet_mtoh64(&info->seq_pkt[SINGLE_PKT].eth_dst_addr, &range->dst_mac);
+    memset(&range->dst_mac_inc, 0, sizeof (range->dst_mac_inc));
+    memset(&range->dst_mac_min, 0, sizeof (range->dst_mac_min));
+    memset(&range->dst_mac_max, 0, sizeof (range->dst_mac_max));
+
+	inet_mtoh64(&info->seq_pkt[SINGLE_PKT].eth_src_addr, &range->src_mac);
+    memset(&range->src_mac_inc, 0, sizeof (range->src_mac_inc));
+    memset(&range->src_mac_min, 0, sizeof (range->src_mac_min));
+    memset(&range->src_mac_max, 0, sizeof (range->src_mac_max));
 }
 
 /**************************************************************************//**
@@ -2889,7 +2948,7 @@ void pktgen_config_ports(void)
     pktgen.nb_ports = rte_eth_dev_count();
     if (pktgen.nb_ports > RTE_MAX_ETHPORTS)
         pktgen.nb_ports = RTE_MAX_ETHPORTS;
-    
+
     if ( pktgen.nb_ports == 0 )
     	rte_panic("*** Did not find any ports to use ***");
 
@@ -3016,7 +3075,7 @@ void pktgen_config_ports(void)
 			}
 			// Find out the link speed to program the WTHRESH value correctly.
 			memset(&info->link, 0, sizeof(info->link));
-			rte_eth_link_get(pid, &info->link);
+			rte_eth_link_get_nowait(pid, &info->link);
 
 			tx.tx_thresh.wthresh = (info->link.link_speed == 1000)? TX_WTHRESH_1GB : TX_WTHRESH;
 
@@ -3042,7 +3101,7 @@ void pktgen_config_ports(void)
 
         /* get link status */
         memset(&info->link, 0, sizeof(info->link));
-        rte_eth_link_get(pid, &info->link);
+        rte_eth_link_get_nowait(pid, &info->link);
 
         if (info->link.link_status) {
             printf_info("Port %2d: Link Up - speed %u Mbps - %s", pid,
@@ -3064,7 +3123,7 @@ void pktgen_config_ports(void)
         // Setup the port and packet defaults. (must be after link speed is found)
         for (s = 0; s < NUM_TOTAL_PKTS; s++)
             pktgen_port_defaults(pid, s);
-        
+
         pktgen_range_setup(info);
     }
 }
@@ -3441,14 +3500,14 @@ pktgen_load_cmds( char * filename )
 		fd = fopen((const char *)filename, "r");
 		if ( fd == NULL )
 			return -1;
-	
+
 		// Reset the command line system for the script.
 		rdline_reset(&pktgen.cl->rdl);
-		
+
 		// Read and feed the lines to the cmdline parser.
 		while(fgets(buff, sizeof(buff), fd) )
 			cmdline_in(pktgen.cl, buff, strlen(buff));
-	
+
 		fclose(fd);
     }
     return 0;
@@ -3575,7 +3634,7 @@ main(int argc, char **argv)
 
     scrn_fprintf(0, 0, stdout, "\n>>> Packet Burst %d, RX Desc %d, TX Desc %d, mbufs/port %d, mbuf cache %d\n",
     		DEFAULT_PKT_BURST, DEFAULT_RX_DESC,	DEFAULT_TX_DESC, MAX_MBUFS_PER_PORT, MBUF_CACHE_SIZE);
-    
+
     // Configure and initialize the ports
     pktgen_config_ports();
 
@@ -3626,7 +3685,7 @@ main(int argc, char **argv)
 
     // Wait for all of the cores to stop running and exit.
     rte_eal_mp_wait_lcore();
-    
+
     return 0;
 }
 

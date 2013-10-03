@@ -126,10 +126,10 @@
 
 char *
 cmd_port_display(char * buff, uint32_t len, uint32_t portlist) {
-	
+
 	char	  * p = buff;
 	uint32_t	bit = 0, first, comma = 0;
-	
+
 	buff[0] = '\0';
 	while( bit < (sizeof(portlist) << 3) ) {
 		if ( (portlist & (1 << bit++)) == 0 )
@@ -167,7 +167,7 @@ cmdline_pause(struct cmdline *cl, const char * msg)
 {
 	char c;
 	int	n;
-	
+
 	cmdline_printf(cl, "%s", msg);
 	n = read(cl->s_in, &c, 1);
 	if ( n < 0 )
@@ -321,12 +321,12 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 	int		i, paused;
 
 	paused = scrn_is_paused();
-	
+
 	if ( ! paused )
 		scrn_pause();
 	scrn_setw(1);
 	scrn_cls();
-	
+
 	scrn_pos(0,0);
 	cmdline_printf(cl, help_info[1], wr_copyright_msg());
 	for(i=2; help_info[i] != NULL; i++ ) {
@@ -341,7 +341,7 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 	}
 
 	cmdline_pause(cl, "   <Press Return to Continue>");
-	
+
 	if ( !paused ) {
 		scrn_setw(pktgen.last_row+1);
 		scrn_resume();
@@ -437,7 +437,7 @@ static void cmd_script_parsed(void *parsed_result,
 		return;
 	}
 
-	if ( luaL_dofile(L, res->filename) != 0 ) 
+	if ( luaL_dofile(L, res->filename) != 0 )
 		fprintf(stderr,"%s\n", lua_tostring(L,-1));
 }
 
@@ -738,7 +738,7 @@ static void cmd_dest_mac_parsed(void *parsed_result,
 cmdline_parse_token_string_t cmd_set_dest_mac =
 	TOKEN_STRING_INITIALIZER(struct cmd_dest_mac_result, dst_mac, "dst.mac");
 cmdline_parse_token_string_t cmd_dest_mac_what =
-	TOKEN_STRING_INITIALIZER(struct cmd_dest_mac_result, what, "start");
+	TOKEN_STRING_INITIALIZER(struct cmd_dest_mac_result, what, "start#min#max#inc");
 cmdline_parse_token_portlist_t cmd_dest_mac_portlist =
 	TOKEN_PORTLIST_INITIALIZER(struct cmd_dest_mac_result, portlist);
 cmdline_parse_token_etheraddr_t cmd_dest_mac_addr =
@@ -747,7 +747,7 @@ cmdline_parse_token_etheraddr_t cmd_dest_mac_addr =
 cmdline_parse_inst_t cmd_dest_mac = {
 	.f = cmd_dest_mac_parsed,
 	.data = NULL,
-	.help_str = "dst.mac start <portlist> ethaddr",
+	.help_str = "dst.mac start|min|max|inc <portlist> ethaddr",
 	.tokens = {
 		(void *)&cmd_set_dest_mac,
 		(void *)&cmd_dest_mac_what,
@@ -793,7 +793,7 @@ static void cmd_src_mac_parsed(void *parsed_result,
 cmdline_parse_token_string_t cmd_set_src_mac =
 	TOKEN_STRING_INITIALIZER(struct cmd_src_mac_result, src_mac, "src.mac");
 cmdline_parse_token_string_t cmd_src_mac_what =
-	TOKEN_STRING_INITIALIZER(struct cmd_src_mac_result, what, "start");
+	TOKEN_STRING_INITIALIZER(struct cmd_src_mac_result, what, "start#min#max#inc");
 cmdline_parse_token_portlist_t cmd_src_mac_portlist =
 	TOKEN_PORTLIST_INITIALIZER(struct cmd_src_mac_result, portlist);
 cmdline_parse_token_etheraddr_t cmd_src_mac_addr =
@@ -802,7 +802,7 @@ cmdline_parse_token_etheraddr_t cmd_src_mac_addr =
 cmdline_parse_inst_t cmd_src_mac = {
 	.f = cmd_src_mac_parsed,
 	.data = NULL,
-	.help_str = "src.mac start <portlist> ethaddr",
+	.help_str = "src.mac start|min|max|inc <portlist> ethaddr",
 	.tokens = {
 		(void *)&cmd_set_src_mac,
 		(void *)&cmd_src_mac_what,
@@ -1629,7 +1629,7 @@ cmdline_parse_token_num_t cmd_set_seq_sport =
 cmdline_parse_token_num_t cmd_set_seq_dport =
 	TOKEN_NUM_INITIALIZER(struct cmd_set_seq_result, dport, UINT32);
 cmdline_parse_token_string_t cmd_set_seq_eth =
-	TOKEN_STRING_INITIALIZER(struct cmd_set_seq_result, eth, "ipv4#ipv6#vlan");
+	TOKEN_STRING_INITIALIZER(struct cmd_set_seq_result, eth, "ipv4#ipv6");
 cmdline_parse_token_string_t cmd_set_seq_proto =
 	TOKEN_STRING_INITIALIZER(struct cmd_set_seq_result, proto, "udp#tcp#icmp");
 cmdline_parse_token_num_t cmd_set_seq_vlanid =
@@ -2190,14 +2190,14 @@ static void cmd_set_pkt_type_parsed(void *parsed_result,
 cmdline_parse_token_string_t cmd_set_set_pkt_type =
 	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, set, "set");
 cmdline_parse_token_string_t cmd_set_pkt_type =
-	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, type, "ipv4#ipv6#vlan");
+	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, type, "ipv4#ipv6");
 cmdline_parse_token_portlist_t cmd_set_pkt_type_portlist =
 	TOKEN_PORTLIST_INITIALIZER(struct cmd_set_pkt_type_result, portlist);
 
 cmdline_parse_inst_t cmd_pkt_type = {
 	.f = cmd_set_pkt_type_parsed,
 	.data = NULL,
-	.help_str = "set ipv4|ipv6|vlan <portlist>",
+	.help_str = "set ipv4|ipv6 <portlist>",
 	.tokens = {
 		(void *)&cmd_set_set_pkt_type,
 		(void *)&cmd_set_pkt_type,
@@ -2431,7 +2431,7 @@ static void cmd_mac_from_arp_parsed(void *parsed_result,
 {
 	struct cmd_mac_from_arp_result *res = parsed_result;
 	uint32_t		onOff = parseState(res->onOff);
-	
+
 	//cmdline_printf(cl, "%s ARP MAC configuration\n", (onOff)? "Enable":"Disable");
 	pktgen_mac_from_arp(onOff);
 }
