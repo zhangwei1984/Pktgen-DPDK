@@ -96,10 +96,10 @@ wr_lcore_mask(uint8_t * first, uint8_t * last) {
     return cnt;
 }
 
-static __inline__ uint32_t
-wr_get_coremask(uint32_t * ret_cnt)
+static __inline__ uint64_t
+wr_get_coremask(uint64_t * ret_cnt)
 {
-	uint32_t	cm, lcore, cnt;
+	uint64_t	cm, lcore, cnt;
 
 	for(lcore = 0, cm = 0, cnt = 0; lcore < RTE_MAX_LCORE; lcore++) {
 		if ( rte_lcore_is_enabled(lcore) ) {
@@ -114,6 +114,6 @@ wr_get_coremask(uint32_t * ret_cnt)
 }
 
 extern uint32_t wr_sct_convert( char * sct[] );
-extern uint32_t wr_parse_coremask( const char * coremask );
+extern uint64_t wr_parse_coremask( const char * coremask );
 
 #endif /* _WR_CORE_INFO_H */

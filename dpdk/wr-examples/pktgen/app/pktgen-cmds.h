@@ -77,6 +77,7 @@ extern int pktgen_pkt_stats(int port, pkt_stats_t * pstats);
 extern int pktgen_port_stats(int port, const char * name, eth_stats_t * pstats);
 extern char * pktgen_flags_string( port_info_t * info );
 extern void pktgen_matrix_dump(void);
+extern void pktgen_l2p_dump(void);
 extern void pktgen_redisplay( int cls_flag );
 extern void pktgen_update_display(void);
 extern void pktgen_set_page_size(uint32_t page_size);

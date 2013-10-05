@@ -2365,7 +2365,7 @@ pktgen_page_stats(void)
 
     sp = pktgen.starting_port;
     for (pid = 0; pid < pktgen.nb_ports_per_page; pid++) {
-        if ( wr_get_map(pktgen.l2p, pid + sp, RTE_MAX_LCORE) == 0 )
+        if ( wr_get_map(pktgen.l2p, pid+sp, RTE_MAX_LCORE) == 0 )
             continue;
 
         info = &pktgen.info[pid + sp];
@@ -2744,7 +2744,7 @@ pktgen_process_stats(__attribute__((unused)) struct rte_timer *tim, __attribute_
     counter++;
     if ( pktgen.flags & BLINK_PORTS_FLAG ) {
     	for (pid = 0; pid < pktgen.nb_ports; pid++) {
-    		if ( (pktgen.blinklist & (1 << pid)) == 0 )
+    		if ( (pktgen.blinklist & (1ULL << pid)) == 0 )
     			continue;
 
 			if ( counter & 1 )
@@ -2930,7 +2930,8 @@ pktgen_range_setup(port_info_t * info)
 
 void pktgen_config_ports(void)
 {
-    uint32_t lid, pid, i, s, k, q, sid;
+    uint32_t lid, pid, i, s, q, sid;
+	uint64_t	k;
     rxtx_t	rt;
     pkt_seq_t   * pkt;
     port_info_t     * info;
@@ -3284,6 +3285,23 @@ pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
     return 0;
 }
 
+/**************************************************************************//**
+*
+* pktgen_l2p_dump - Dump the l2p table
+*
+* DESCRIPTION
+* Dump the l2p table
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_l2p_dump(void)
+{
+	wr_raw_dump_l2p(pktgen.l2p);
+}
 /**************************************************************************//**
 *
 * pktgen_usage - Display the help for the command line.

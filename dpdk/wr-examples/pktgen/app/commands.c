@@ -125,17 +125,17 @@
 */
 
 char *
-cmd_port_display(char * buff, uint32_t len, uint32_t portlist) {
+cmd_port_display(char * buff, uint32_t len, uint64_t portlist) {
 
 	char	  * p = buff;
 	uint32_t	bit = 0, first, comma = 0;
 
 	buff[0] = '\0';
 	while( bit < (sizeof(portlist) << 3) ) {
-		if ( (portlist & (1 << bit++)) == 0 )
+		if ( (portlist & (1ULL << bit++)) == 0 )
 			continue;
 		first = (bit-1);
-		while( (portlist & (1 << bit)) )
+		while( (portlist & (1ULL << bit)) )
 			bit++;
 		if ( first == (bit-1) )
 			snprintf(p, len - strlen(buff), "%s%d", (comma)?",":"", first);
@@ -2103,6 +2103,46 @@ cmdline_parse_inst_t cmd_on = {
 
 /**********************************************************/
 
+struct cmd_l2p_result {
+	cmdline_fixed_string_t l2p;
+};
+
+/**************************************************************************//**
+*
+* cmd_l2p_parsed - Display the l2p table information
+*
+* DESCRIPTION
+* Display the l2p table information.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_l2p_parsed(void *parsed_result,
+		__attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_l2p_result *res = parsed_result;
+
+	pktgen_l2p_dump();
+}
+
+cmdline_parse_token_string_t cmd_set_l2p =
+	TOKEN_STRING_INITIALIZER(struct cmd_l2p_result, l2p, "l2p");
+
+cmdline_parse_inst_t cmd_l2p = {
+	.f = cmd_l2p_parsed,
+	.data = NULL,
+	.help_str = "l2p dump the information",
+	.tokens = {
+		(void *)&cmd_set_l2p,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
 struct cmd_mempool_result {
 	cmdline_fixed_string_t mempool;
 	cmdline_fixed_string_t dump;
@@ -3122,6 +3162,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_stp,
 	    (cmdline_parse_inst_t *)&cmd_str,
 	    (cmdline_parse_inst_t *)&cmd_rst,
+	    (cmdline_parse_inst_t *)&cmd_l2p,
 	NULL,
 };
 

@@ -89,7 +89,7 @@ pktgen_save(char * path)
 	char		buff[64];
 	FILE	  * fd;
 	int			i, j;
-	uint32_t	lcore;
+	uint64_t	lcore;
     struct ether_addr eaddr;
 
 	fd = fopen(path, "w");
@@ -106,7 +106,7 @@ pktgen_save(char * path)
 
 	// TODO: Determine DPDK arguments for rank and memory, default for now.
 	fprintf(fd, "# Command line arguments: (DPDK args are defaults)\n");
-	fprintf(fd, "# %s -c %x -n 3 -m 512 --proc-type %s -- ", pktgen.argv[0], lcore, (rte_eal_process_type() == RTE_PROC_PRIMARY)? "primary" : "secondary");
+	fprintf(fd, "# %s -c %lx -n 3 -m 512 --proc-type %s -- ", pktgen.argv[0], lcore, (rte_eal_process_type() == RTE_PROC_PRIMARY)? "primary" : "secondary");
 	for(i=1; i < pktgen.argc; i++)
 		fprintf(fd, "%s ", pktgen.argv[i]);
 	fprintf(fd, "\n\n");
@@ -118,7 +118,7 @@ pktgen_save(char * path)
 	fprintf(fd, "#   Flags %08x\n", pktgen.flags);
 	fprintf(fd, "#   Number of ports: %d\n", pktgen.nb_ports);
 	fprintf(fd, "#   Number ports per page: %d\n", pktgen.nb_ports_per_page);
-	fprintf(fd, "#   Coremask 0x%08x\n", pktgen.coremask);
+	fprintf(fd, "#   Coremask 0x%08lx\n", pktgen.coremask);
 	fprintf(fd, "#   Number descriptors: RX %d TX: %d\n", pktgen.nb_rxd, pktgen.nb_txd);
 	fprintf(fd, "#   Promiscuous mode is %s\n\n", (pktgen.flags & PROMISCUOUS_ON_FLAG)? "Enabled" : "Disabled");
 

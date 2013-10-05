@@ -94,8 +94,8 @@
 enum { RX_IDX = 0, TX_IDX = 1, RXTX_CNT = 2 };
 
 typedef struct lcore_port_s {
-	uint32_t	lcores[RXTX_CNT];
-	uint32_t	ports[RXTX_CNT];
+	uint64_t	lcores[RXTX_CNT];
+	uint64_t	ports[RXTX_CNT];
 } lp_t;
 
 /**************************************************************************//**
@@ -129,7 +129,7 @@ wr_parse_portmask(const char *portmask)
 */
 
 static int32_t
-wr_parse_rt_list(char * list, uint32_t * map)
+wr_parse_rt_list(char * list, uint64_t * map)
 {
 	char	  * p;
 	int32_t		k, i;
@@ -155,10 +155,10 @@ wr_parse_rt_list(char * list, uint32_t * map)
 			l = strtol(arr[i], NULL, 10);
 			h = strtol(p, NULL, 10);
 			do {
-				map[0] |= (1 << l);
+				map[0] |= (1ULL << l);
 			} while( ++l <= h );
 		} else							// Must be a single value
-			map[0] |= (1 << strtol(arr[i], NULL, 10));
+			map[0] |= (1ULL << strtol(arr[i], NULL, 10));
 	}
 	return 0;
 }
@@ -176,7 +176,7 @@ wr_parse_rt_list(char * list, uint32_t * map)
 */
 
 static int32_t
-wr_parse_lp_list( char * list, uint32_t * rt)
+wr_parse_lp_list( char * list, uint64_t * rt)
 {
 	char	  * arr[3];
 	int32_t		k;
@@ -250,7 +250,8 @@ wr_parse_matrix(l2p_t * l2p, char * str)
 {
     char      * lcore_port[MAX_MATRIX_ENTRIES];
     char		buff[256];
-    int         i, m, k, pid, lid, lid_type, pid_type;
+    int         i, m, k, lid_type, pid_type;
+	uint32_t	pid, lid;
     lp_t		lp;
     rxtx_t		cnt, n;
 
@@ -294,23 +295,23 @@ wr_parse_matrix(l2p_t * l2p, char * str)
 		}
 
 		// Handle the lcore and port list maps
-		fprintf(stderr, "%-16s = lcores(rx %08x, tx %08x) ports(rx %08x, tx %08x)\n",
+		fprintf(stderr, "%-16s = lcores(rx %016lx, tx %016lx) ports(rx %016lx, tx %016lx)\n",
 				str, lp.lcores[RX_IDX], lp.lcores[TX_IDX], lp.ports[RX_IDX], lp.ports[TX_IDX]);
 
     	for(lid = 0; lid < RTE_MAX_LCORE; lid++) {
     		lid_type = 0;
-    		if ( (lp.lcores[RX_IDX] & (1 << lid)) != 0 )
+    		if ( (lp.lcores[RX_IDX] & (1ULL << lid)) != 0 )
     			lid_type |= RX_TYPE;
-    		if ( (lp.lcores[TX_IDX] & (1 << lid)) != 0 )
+    		if ( (lp.lcores[TX_IDX] & (1ULL << lid)) != 0 )
     			lid_type |= TX_TYPE;
 	   		if ( lid_type == 0 )
 	   			continue;
 
 	   		for(pid = 0; pid < RTE_MAX_ETHPORTS; pid++) {
 	   			pid_type = 0;
-	    		if ( (lp.ports[RX_IDX] & (1 << pid)) != 0 )
+	    		if ( (lp.ports[RX_IDX] & (1ULL << pid)) != 0 )
 	    			pid_type |= RX_TYPE;
-	    		if ( (lp.ports[TX_IDX] & (1 << pid)) != 0 )
+				if ( (lp.ports[TX_IDX] & (1ULL << pid)) != 0 )
 	    			pid_type |= TX_TYPE;
 		   		if ( pid_type == 0 )
 		   			continue;

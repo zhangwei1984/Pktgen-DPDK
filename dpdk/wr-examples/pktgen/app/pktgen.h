@@ -224,7 +224,7 @@ enum {
 	MAX_VLAN_ID				= 4095,
 	DEFAULT_VLAN_ID			= MIN_VLAN_ID,
 	MAX_ETHER_TYPE_SIZE		= 0x600,
-	OVERHEAD_FUDGE_VALUE	= 25,
+	OVERHEAD_FUDGE_VALUE	= 60,
 
 	DEFAULT_BUFF_SIZE		= 2048,
 	DEFAULT_PORTS_PER_PAGE	= 4,
@@ -442,7 +442,7 @@ typedef struct pktgen_s {
 	rte_scrn_t			  * scrn;				/**< Screen structure pointer */
 	char				  * hostname;			/**< GUI hostname */
 	int32_t					socket_port;		/**< GUI port number */
-	uint32_t				coremask;			/**< Coremask of lcores */
+	uint64_t				coremask;			/**< Coremask of lcores */
 	char				  * prompt;				/**< Pktgen command line prompt */
 
 	uint32_t				enabled_port_mask;	/**< mask of enabled ports */

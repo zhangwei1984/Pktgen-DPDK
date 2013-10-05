@@ -133,7 +133,7 @@ wr_get_portdesc(struct rte_pci_addr * pciAddr, uint8_t ** portdesc, uint32_t num
 		pciAddr[idx].function	= strtol(++p, &p, 16);
 
 		if ( verbose )
-			fprintf(stdout, " 0x%08x: %s\n", (1 << idx), buff);
+			fprintf(stdout, " 0x%016llx: %s\n", (1ULL << idx), buff);
 
 		// Save the port description for later if asked to do so.
 		if ( portdesc )
@@ -187,7 +187,7 @@ wr_free_portdesc( uint8_t ** portdesc, uint32_t num )
 */
 
 uint32_t
-wr_create_blacklist(uint32_t portmask, struct rte_pci_addr * portlist, uint32_t port_cnt, uint8_t * desc[]) {
+wr_create_blacklist(uint64_t portmask, struct rte_pci_addr * portlist, uint32_t port_cnt, uint8_t * desc[]) {
     static struct rte_pci_addr	blacklist[RTE_MAX_ETHPORTS];
     uint32_t i, idx;
 
@@ -197,10 +197,10 @@ wr_create_blacklist(uint32_t portmask, struct rte_pci_addr * portlist, uint32_t 
 	memset(blacklist, '\0', sizeof(blacklist));			// Zero the complete list.
 
 	if ( desc )
-		fprintf(stdout, "Ports: Port Mask: %08x blacklisted = --, not-blacklisted = ++\n", portmask);
+		fprintf(stdout, "Ports: Port Mask: %016lx blacklisted = --, not-blacklisted = ++\n", portmask);
 	idx = 0;
     for(i = 0; i < port_cnt; i++) {
-		if ( (portmask & (1 << i)) == 0 ) {
+		if ( (portmask & (1ULL << i)) == 0 ) {
 			if ( desc )
 				fprintf(stdout, "-- %s\n", desc[i]);
 			blacklist[idx++] = portlist[i];

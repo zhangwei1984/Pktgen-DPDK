@@ -119,10 +119,11 @@ wr_sct_convert( char * sct[] )
 	return lcore;
 }
 
-uint32_t
+uint64_t
 wr_parse_coremask( const char * coremask )
 {
-	uint32_t	cm, lcore, n, i;
+	uint64_t	cm;
+	uint32_t	lcore, n, i;
 	char      * sct[4];
 	char      * arr[MAX_CORE_MATRIX_ENTRIES], * p;
 	char		buff[COREMASK_STRING_SIZE], * str;
@@ -164,10 +165,10 @@ wr_parse_coremask( const char * coremask )
 			hi = (p != NULL) ? strtoul(++p, NULL, 10) : lo;
 
 			while( lo <= hi )
-				cm |= (1 << lo++);
+				cm |= (1ULL << lo++);
 		} else {						// We have a lcore number
 			lcore = strtoul(p, NULL, 10);
-			cm |= (1 << lcore);
+			cm |= (1ULL << lcore);
 		}
 	}
 
