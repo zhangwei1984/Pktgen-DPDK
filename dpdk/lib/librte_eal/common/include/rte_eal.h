@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _RTE_EAL_H_
@@ -84,12 +83,18 @@ struct rte_config {
 	/** Primary or secondary configuration */
 	enum rte_proc_type_t process_type;
 
+	/** A set of general status flags */
+	unsigned flags;
+
 	/**
 	 * Pointer to memory configuration, which may be shared across multiple
 	 * Intel DPDK instances
 	 */
 	struct rte_mem_config *mem_config;
 } __attribute__((__packed__));
+
+/* Flag definitions for rte_config flags */
+#define EAL_FLG_HIGH_IOPL 1 /**< indicates high IO privilage in a linux env */
 
 /**
  * Get the global configuration structure.
@@ -146,7 +151,6 @@ enum rte_proc_type_t rte_eal_process_type(void);
  *   - On failure, a negative error value.
  */
 int rte_eal_init(int argc, char **argv);
-
 /**
  * Usage function typedef used by the application usage function.
  *
@@ -154,8 +158,6 @@ int rte_eal_init(int argc, char **argv);
  * routine.
  */
 typedef void	(*rte_usage_hook_t)(const char * prgname);
-
-extern rte_usage_hook_t	rte_application_usage_hook;
 
 /**
  * Add application usage routine callout from the eal_usage() routine.
@@ -178,17 +180,8 @@ extern rte_usage_hook_t	rte_application_usage_hook;
  *   - Returns the current value of the rte_application_usage pointer to allow
  *     the caller to daisy chain the usage routines if needing more then one.
  */
-static inline rte_usage_hook_t
-rte_set_application_usage_hook( rte_usage_hook_t usage_func )
-{
-	rte_usage_hook_t	old_func;
-
-	/* Will be NULL on the first call to denote the last usage routine. */
-	old_func					= rte_application_usage_hook;
-	rte_application_usage_hook	= usage_func;
-
-	return old_func;
-}
+rte_usage_hook_t
+rte_set_application_usage_hook( rte_usage_hook_t usage_func );
 
 /**
  * macro to get the lock of tailq in mem_config 

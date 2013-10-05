@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdarg.h>
@@ -83,200 +82,448 @@
 
 static void cmd_reconfig_device_queue(portid_t id, uint8_t dev, uint8_t queue);
 
-/* *** HELP *** */
-struct cmd_help_result {
+/* *** Help command with introduction. *** */
+struct cmd_help_brief_result {
 	cmdline_fixed_string_t help;
 };
 
-static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
-			    struct cmdline *cl,
-			    __attribute__((unused)) void *data)
+static void cmd_help_brief_parsed(__attribute__((unused)) void *parsed_result,
+                                  struct cmdline *cl,
+                                  __attribute__((unused)) void *data)
 {
-	cmdline_printf(cl,
-		       "\n"
-		       "TEST PMD\n"
-		       "--------\n"
-		       "\n"
-		       "This commandline can be used to configure forwarding\n"
-		       "\n");
-	cmdline_printf(cl,
-		       "Display informations:\n"
-		       "---------------------\n"
-		       "- show port info|stats|fdir|stat_qmap X|all\n"
-		       "    Diplays information or stats or stats queue mapping on port X, or all\n"
-		       "- clear port stats X|all\n"
-		       "    Clear stats for port X, or all\n"
-		       "- show config rxtx|cores|fwd\n"
-		       "    Displays the given configuration\n"
-		       "- read reg port_id reg_off\n"
-		       "    Displays value of a port register\n"
-		       "- read regfield port_id reg_off bit_x bit_y\n"
-		       "    Displays value of a port register bit field\n"
-		       "- read regbit port_id reg_off bit_x\n"
-		       "    Displays value of a port register bit\n"
-		       "- read rxd port_id queue_id rxd_id\n"
-		       "    Displays a RX descriptor of a port RX queue\n"
-		       "- read txd port_id queue_id txd_id\n"
-		       "    Displays a TX descriptor of a port TX queue\n"
-		       "\n");
-	cmdline_printf(cl,
-		       "Configure:\n"
-		       "----------\n"
-		       "Modifications are taken into account once "
-		       "forwarding is restarted.\n"
-		       "- set default\n"
-		       "    Set forwarding to default configuration\n"
-		       "- set nbport|nbcore|burst|verbose X\n"
-		       "    Set number of ports, number of cores, number "
-		       "of packets per burst,\n    or verbose level to X\n"
-		       "- set txpkts x[,y]*\n"
-		       "    Set the length of each segment of TXONLY packets\n"
-		       "- set coremask|portmask X\n"
-		       "    Set the hexadecimal mask of forwarding cores / "
-		       "forwarding ports\n"
-		       "- set corelist|portlist x[,y]*\n"
-		       "    Set the list of forwarding cores / forwarding "
-		       "ports\n"
-		       "- vlan set strip|filter|qinq on/off port_id\n"
-		       "    Set the VLAN strip, filter, QinQ(extended) on a port"
-		       "- rx_vlan add/rm vlan_id|all port_id\n"
-		       "    Set the VLAN filter table, add/remove vlan_id, or all "
-		       "identifiers, to/from the set of VLAN Identifiers\n"
-		       "filtered by port_id\n"
-		       "- rx_vlan set tpid value port_id\n"
-		       "    Set Outer VLAN TPID for Packet Filtering on a port \n"
-		       "- tx_vlan set vlan_id port_id\n"
-		       "    Set hardware insertion of VLAN ID in packets sent on a port\n"
-		       "- tx_vlan reset port_id\n"
-		       "    Disable hardware insertion of a VLAN header in "
-		       "packets sent on port_id\n"
-		       "- tx_checksum set mask port_id\n"
-		       "    Enable hardware insertion of checksum offload with "
-		       "the 4-bit mask (0~0xf)\n    in packets sent on port_id\n"
-		       "    Please check the NIC datasheet for HW limits\n"
-		       "      bit 0 - insert ip checksum offload if set \n"
-		       "      bit 1 - insert udp checksum offload if set \n"
-		       "      bit 2 - insert tcp checksum offload if set\n"
-		       "      bit 3 - insert sctp checksum offload if set\n"
-#ifdef RTE_LIBRTE_IEEE1588
-		       "- set fwd io|mac|rxonly|txonly|csum|ieee1588\n"
-		       "    Set IO, MAC, RXONLY, TXONLY, CSUM or IEEE1588 "
-		       "packet forwarding mode\n"
-#else
-		       "- set fwd io|mac|rxonly|txonly|csum\n"
-		       "    Set IO, MAC, RXONLY, CSUM or TXONLY packet "
-		       "forwarding mode\n"
-#endif
-		       "- mac_addr add|remove X <xx:xx:xx:xx:xx:xx>\n"
-		       "    Add/Remove the MAC address <xx:xx:xx:xx:xx:xx> on port X\n"
-		       "- set promisc|allmulti [all|X] on|off\n"
-		       "    Set/unset promisc|allmulti mode on port X, or all\n"
-		       "- set flow_ctrl rx on|off tx on|off high_water low_water "
-						"pause_time send_xon port_id \n"
-		       "    Set the link flow control parameter on the port \n"
-		       "- set pfc_ctrl rx on|off tx on|off high_water low_water "
-						"pause_time priority port_id \n"
-		       "    Set the priority flow control parameter on the port \n"
-		       "- write reg port_id reg_off value\n"
-		       "    Set value of a port register\n"
-		       "- write regfield port_id reg_off bit_x bit_y value\n"
-		       "    Set bit field value of a port register\n"
-		       "- write regbit port_id reg_off bit_x value\n"
-		       "    Set bit value of a port register\n"
-		       "- set stat_qmap tx|rx port_id queue_id qmapping\n"
-		       "    Set statistics mapping (qmapping 0..15) for tx|rx queue_id on port_id\n"
-		       "    e.g., 'set stat_qmap rx 0 2 5' sets rx queue 2 on port 0 to mapping 5\n"
-		       "\n");
-	cmdline_printf(cl,
-		       "Control forwarding:\n"
-		       "-------------------\n"
-		       "- start\n"
-		       "    Start packet forwarding with current config\n"
-		       "- start tx_first\n"
-		       "    Start packet forwarding with current config"
-		       " after sending one burst\n    of packets\n"
-		       "- stop\n"
-		       "    Stop packet forwarding, and displays accumulated"
-		       " stats\n"
-		       "\n");
-	cmdline_printf(cl,
-		       "Flow director mode:\n"
-		       "-------------------\n"
-		       "- add_signature_filter port_id ip|udp|tcp|sctp src\n"
-		       "    ip_src_address port_src dst ip_dst_address port_dst\n"
-		       "    flexbytes flexbytes_values vlan vlan_id queue queue_id\n"
-		       "- upd_signature_filter port_id ip|udp|tcp|sctp src \n"
-		       "    ip_src_address port_src dst ip_dst_address port_dst\n"
-		       "    flexbytes flexbytes_values vlan vlan_id queue queue_id\n"
-		       "- rm_signature_filter port_id ip|udp|tcp|sctp src\n"
-		       "    ip_src_address port_src dst ip_dst_address port_dst\n"
-		       "    flexbytes flexbytes_values vlan vlan_id\n"
-		       "- add_perfect_filter port_id ip|udp|tcp|sctp src\n"
-		       "    ip_src_address port_src dst ip_dst_address port_dst\n"
-		       "    flexbytes flexbytes_values vlan vlan_id queue \n"
-		       "    queue_id soft soft_id\n"
-		       "- upd_perfect_filter port_id ip|udp|tcp|sctp src\n"
-		       "    ip_src_address port_src dst ip_dst_address port_dst\n"
-		       "    flexbytes flexbytes_values vlan vlan_id queue queue_id\n"
-		       "- rm_perfect_filter port_id ip|udp|tcp|sctp src\n"
-		       "    ip_src_address port_src dst ip_dst_address port_dst\n"
-		       "    flexbytes flexbytes_values vlan vlan_id soft soft_id\n"
-		       "- set_masks_filter port_id only_ip_flow 0|1 src_mask\n"
-		       "    ip_src_mask port_src_mask dst_mask ip_dst_mask\n"
-		       "    port_dst_mask flexbytes 0|1 vlan_id 0|1 vlan_prio 0|1\n"
-		       "- set_ipv6_masks_filter port_id only_ip_flow 0|1 src_mask\n"
-		       "    ip_src_mask port_src_mask dst_mask ip_dst_mask\n"
-		       "    port_dst_mask flexbytes 0|1 vlan_id 0|1\n"
-		       "    vlan_prio 0|1 compare_dst 0|1\n"
-		       "\n");
-	cmdline_printf(cl,
-		       "Port Operations:\n"
-		       "--------------\n"
-		       "- port start|stop|close all|X\n"
-		       "    start/stop/close all ports or port X\n"
-		       "- port config all|X speed 10|100|1000|10000|auto "
-		       "duplex half|full|auto\n"
-		       "    set speed for all ports or port X\n"
-		       "- port config all rxq|txq|rxd|txd value\n"
-		       "    set number for rxq/txq/rxd/txd\n"
-		       "- port config all max-pkt-len value\n"
-		       "    set the max packet lenght\n"
-		       "- port config all crc-strip|rx-cksum|hw-vlan|drop-en on|off\n"
-		       "    set crc-strip/rx-checksum/hardware-vlan/drop_en on or off"
-		       "\n"
-		       "- port config all rss ip|udp|none\n"
-		       "    set rss mode\n"
-		       "- port config port-id dcb vt on|off nb-tcs pfc on|off\n"
-		       "    set dcb mode\n"
-		       "- port config all burst value\n"
-		       "    set the number of packet per burst\n"
-		       "- port config all txpt|txht|txwt|rxpt|rxht|rxwt value\n"
-		       "    set ring prefetch/host/writeback threshold for "
-		       "tx/rx queue\n"
-		       "- port config all txfreet|txrst|rxfreet value\n"
-		       "    set free threshold for rx/tx, or set tx rs bit "
-		       "threshold\n"
-		       "\n");
-	cmdline_printf(cl,
-		       "Misc:\n"
-		       "-----\n"
-		       "- quit\n"
-		       "    Quit to prompt in linux, and reboot on baremetal\n"
-		       "\n");
+	cmdline_printf(
+		cl,
+		"\n"
+		"Help is available for the following sections:\n\n"
+		"    help control    : Start and stop forwarding.\n"
+		"    help display    : Displaying port, stats and config "
+		"information.\n"
+		"    help config     : Configuration information.\n"
+		"    help ports      : Configuring ports.\n"
+		"    help flowdir    : Flow Director filter help.\n"
+		"    help registers  : Reading and setting port registers.\n"
+		"    help all        : All of the above sections.\n\n"
+	);
+
 }
 
-cmdline_parse_token_string_t cmd_help_help =
-	TOKEN_STRING_INITIALIZER(struct cmd_help_result, help, "help");
+cmdline_parse_token_string_t cmd_help_brief_help =
+	TOKEN_STRING_INITIALIZER(struct cmd_help_brief_result, help, "help");
 
-cmdline_parse_inst_t cmd_help = {
-	.f = cmd_help_parsed,
+cmdline_parse_inst_t cmd_help_brief = {
+	.f = cmd_help_brief_parsed,
 	.data = NULL,
 	.help_str = "show help",
 	.tokens = {
-		(void *)&cmd_help_help,
+		(void *)&cmd_help_brief_help,
 		NULL,
 	},
 };
+
+/* *** Help command with help sections. *** */
+struct cmd_help_long_result {
+	cmdline_fixed_string_t help;
+	cmdline_fixed_string_t section;
+};
+
+static void cmd_help_long_parsed(void *parsed_result,
+                                 struct cmdline *cl,
+                                 __attribute__((unused)) void *data)
+{
+	int show_all = 0;
+	struct cmd_help_long_result *res = parsed_result;
+
+	if (!strcmp(res->section, "all"))
+		show_all = 1;
+
+	if (show_all || !strcmp(res->section, "control")) {
+
+		cmdline_printf(
+			cl,
+			"\n"
+			"Control forwarding:\n"
+			"-------------------\n\n"
+
+			"start\n"
+			"    Start packet forwarding with current configuration.\n\n"
+
+			"start tx_first\n"
+			"    Start packet forwarding with current config"
+			" after sending one burst of packets.\n\n"
+
+			"stop\n"
+			"    Stop packet forwarding, and display accumulated"
+			" statistics.\n\n"
+
+			"quit\n"
+			"    Quit to prompt in Linux and reboot on Baremetal.\n\n"
+		);
+	}
+
+	if (show_all || !strcmp(res->section, "display")) {
+
+		cmdline_printf(
+			cl,
+			"\n"
+			"Display:\n"
+			"--------\n\n"
+
+			"show port (info|stats|fdir|stat_qmap) (port_id|all)\n"
+			"    Display information for port_id, or all.\n\n"
+
+			"clear port (info|stats|fdir|stat_qmap) (port_id|all)\n"
+			"    Clear information for port_id, or all.\n\n"
+
+			"show config (rxtx|cores|fwd)\n"
+			"    Display the given configuration.\n\n"
+
+			"read rxd (port_id) (queue_id) (rxd_id)\n"
+			"    Display an RX descriptor of a port RX queue.\n\n"
+
+			"read txd (port_id) (queue_id) (txd_id)\n"
+			"    Display a TX descriptor of a port TX queue.\n\n"
+		);
+	}
+
+	if (show_all || !strcmp(res->section, "config")) {
+		cmdline_printf(
+			cl,
+			"\n"
+			"Configuration:\n"
+			"--------------\n"
+			"Configuration changes only become active when"
+			" forwarding is started/restarted.\n\n"
+
+			"set default\n"
+			"    Reset forwarding to the default configuration.\n\n"
+
+			"set verbose (level)\n"
+			"    Set the debug verbosity level X.\n\n"
+
+			"set nbport (num)\n"
+			"    Set number of ports.\n\n"
+
+			"set nbcore (num)\n"
+			"    Set number of cores.\n\n"
+
+			"set coremask (mask)\n"
+			"    Set the forwarding cores hexadecimal mask.\n\n"
+
+			"set portmask (mask)\n"
+			"    Set the forwarding ports hexadecimal mask.\n\n"
+
+			"set burst (num)\n"
+			"    Set number of packets per burst.\n\n"
+
+			"set txpkts (x[,y]*)\n"
+			"    Set the length of each segment of TXONLY"
+			" packets.\n\n"
+
+			"set corelist (x[,y]*)\n"
+			"    Set the list of forwarding cores.\n\n"
+
+			"set portlist (x[,y]*)\n"
+			"    Set the list of forwarding ports.\n\n"
+
+			"vlan set strip (on|off) (port_id)\n"
+			"    Set the VLAN strip on a port.\n\n"
+
+			"vlan set filter (on|off) (port_id)\n"
+			"    Set the VLAN filter on a port.\n\n"
+
+			"vlan set qinq (on|off) (port_id)\n"
+			"    Set the VLAN QinQ (extended queue in queue)"
+			" on a port.\n\n"
+
+			"vlan set tpid (value) (port_id)\n"
+			"    Set the outer VLAN TPID for Packet Filtering on"
+			" a port\n\n"
+
+			"rx_vlan add (vlan_id|all) (port_id)\n"
+			"    Add a vlan_id, or all identifiers, to the set"
+			" of VLAN identifiers filtered by port_id.\n\n"
+
+			"rx_vlan rm (vlan_id|all) (port_id)\n"
+			"    Remove a vlan_id, or all identifiers, from the set"
+			" of VLAN identifiers filtered by port_id.\n\n"
+
+			"rx_vlan add (vlan_id) port (port_id) vf (vf_mask)\n"
+			"    Add a vlan_id, to the set of VLAN identifiers"
+			"filtered for VF(s) from port_id.\n\n"
+			
+			"rx_vlan rm (vlan_id) port (port_id) vf (vf_mask)\n"
+			"    Remove a vlan_id, to the set of VLAN identifiers"
+			"filtered for VF(s) from port_id.\n\n"			
+
+			"rx_vlan set tpid (value) (port_id)\n"
+			"    Set the outer VLAN TPID for Packet Filtering on"
+			" a port\n\n"
+
+			"tx_vlan set vlan_id (port_id)\n"
+			"    Set hardware insertion of VLAN ID in packets sent"
+			" on a port.\n\n"
+
+			"tx_vlan reset (port_id)\n"
+			"    Disable hardware insertion of a VLAN header in"
+			" packets sent on a port.\n\n"
+
+			"tx_checksum set mask (port_id)\n"
+			"    Enable hardware insertion of checksum offload with"
+			" the 4-bit mask, 0~0xf, in packets sent on a port.\n"
+			"        bit 0 - insert ip   checksum offload if set\n"
+			"        bit 1 - insert udp  checksum offload if set\n"
+			"        bit 2 - insert tcp  checksum offload if set\n"
+			"        bit 3 - insert sctp checksum offload if set\n"
+			"    Please check the NIC datasheet for HW limits.\n\n"
+
+#ifdef RTE_LIBRTE_IEEE1588
+			"set fwd (io|mac|rxonly|txonly|csum|ieee1588)\n"
+			"    Set IO, MAC, RXONLY, CSUM or TXONLY or ieee1588"
+			" packet forwarding mode.\n\n"
+
+#else
+			"set fwd (io|mac|rxonly|txonly|csum)\n"
+			"    Set IO, MAC, RXONLY, CSUM or TXONLY packet"
+			" forwarding mode.\n\n"
+
+#endif
+			"mac_addr add (port_id) (XX:XX:XX:XX:XX:XX)\n"
+			"    Add a MAC address on port_id.\n\n"
+
+			"mac_addr remove (port_id) (XX:XX:XX:XX:XX:XX)\n"
+			"    Remove a MAC address from port_id.\n\n"
+
+			"mac_addr add port (port_id) vf (vf_id) (mac_address)\n"
+			"    Add a MAC address for a VF on the port.\n\n"
+			
+			"set port (port_id) uta (mac_address|all) (on|off)\n"
+			"    Add/Remove a or all unicast hash filter(s)" 
+			"from port X.\n\n"
+
+			"set promisc (port_id|all) (on|off)\n"
+			"    Set the promiscuous mode on port_id, or all.\n\n"
+
+			"set allmulti (port_id|all) (on|off)\n"
+			"    Set the allmulti mode on port_id, or all.\n\n"
+
+			"set flow_ctrl rx (on|off) tx (on|off) (high_water)"
+			" (low_water) (pause_time) (send_xon) (port_id)\n"
+			"    Set the link flow control parameter on a port.\n\n"
+
+			"set pfc_ctrl rx (on|off) tx (on|off) (high_water)"
+			" (low_water) (pause_time) (priority) (port_id)\n"
+			"    Set the priority flow control parameter on a"
+			" port.\n\n"
+
+			"set stat_qmap (tx|rx) (port_id) (queue_id) (qmapping)\n"
+			"    Set statistics mapping (qmapping 0..15) for RX/TX"
+			" queue on port.\n"
+			"    e.g., 'set stat_qmap rx 0 2 5' sets rx queue 2"
+			" on port 0 to mapping 5.\n\n"
+
+			"set port (port_id) vf (vf_id) rx|tx on|off \n"
+			"    Enable/Disable a VF receive/tranmit from a port\n\n"
+
+			"set port (port_id) vf (vf_id) rxmode (AUPE|ROPE|BAM"
+			"|MPE) (on|off)\n"
+			"    AUPE:accepts untagged VLAN;"
+			"ROPE:accept unicast hash\n\n"
+			"    BAM:accepts broadcast packets;"
+			"MPE:accepts all multicast packets\n\n"
+			"    Enable/Disable a VF receive mode of a port\n\n"
+			
+			"set port (port_id) mirror-rule (rule_id)" 
+			"(pool-mirror|vlan-mirror)\n"
+			" (poolmask|vlanid[,vlanid]*) dst-pool (pool_id) (on|off)\n"
+			"   Set pool or vlan type mirror rule on a port.\n"
+			"   e.g., 'set port 0 mirror-rule 0 vlan-mirror 0,1"
+			" dst-pool 0 on' enable mirror traffic with vlan 0,1"
+			" to pool 0.\n\n"
+
+			"set port (port_id) mirror-rule (rule_id)"
+			"(uplink-mirror|downlink-mirror) dst-pool"
+			"(pool_id) (on|off)\n"
+			"   Set uplink or downlink type mirror rule on a port.\n"
+			"   e.g., 'set port 0 mirror-rule 0 uplink-mirror dst-pool"
+			" 0 on' enable mirror income traffic to pool 0.\n\n"
+
+			"reset port (port_id) mirror-rule (rule_id)\n"
+			"   Reset a mirror rule.\n\n"
+
+			""
+		);
+	}
+
+
+	if (show_all || !strcmp(res->section, "flowdir")) {
+
+		cmdline_printf(
+			cl,
+			"\n"
+			"Flow director mode:\n"
+			"-------------------\n\n"
+
+			"add_signature_filter (port_id) (ip|udp|tcp|sctp)"
+			" src (src_ip_address) (src_port)"
+			" dst (dst_ip_address) (dst_port)"
+			" flexbytes (flexbytes_values) vlan (vlan_id)"
+			" queue (queue_id)\n"
+			"    Add a signature filter.\n\n"
+
+			"upd_signature_filter (port_id) (ip|udp|tcp|sctp)"
+			" src (src_ip_address) (src_port)"
+			" dst (dst_ip_address) (dst_port)"
+			" flexbytes (flexbytes_values) vlan (vlan_id)"
+			" queue (queue_id)\n"
+			"    Update a signature filter.\n\n"
+
+			"rm_signature_filter (port_id) (ip|udp|tcp|sctp)"
+			" src (src_ip_address) (src_port)"
+			" dst (dst_ip_address) (dst_port)"
+			" flexbytes (flexbytes_values) vlan (vlan_id)\n"
+			"    Remove a signature filter.\n\n"
+
+			"add_perfect_filter (port_id) (ip|udp|tcp|sctp)"
+			" src (src_ip_address) (src_port)"
+			" dst (dst_ip_address) (dst_port)"
+			" flexbytes (flexbytes_values) vlan (vlan_id)"
+			" queue (queue_id) soft (soft_id)\n"
+			"    Add a perfect filter.\n\n"
+
+			"upd_perfect_filter (port_id) (ip|udp|tcp|sctp)"
+			" src (src_ip_address) (src_port)"
+			" dst (dst_ip_address) (dst_port)"
+			" flexbytes (flexbytes_values) vlan (vlan_id)"
+			" queue (queue_id)\n"
+			"    Update a perfect filter.\n\n"
+
+			"rm_perfect_filter (port_id) (ip|udp|tcp|sctp)"
+			" src (src_ip_address) (src_port)"
+			" dst (dst_ip_address) (dst_port)"
+			" flexbytes (flexbytes_values) vlan (vlan_id)"
+			" soft (soft_id)\n"
+			"    Remove a perfect filter.\n\n"
+
+			"set_masks_filter (port_id) only_ip_flow (0|1)"
+			" src_mask (ip_src_mask) (src_port_mask)"
+			" dst_mask (ip_dst_mask) (dst_port_mask)"
+			" flexbytes (0|1) vlan_id (0|1) vlan_prio (0|1)\n"
+			"    Set IPv4 filter masks.\n\n"
+
+			"set_ipv6_masks_filter (port_id) only_ip_flow (0|1)"
+			" src_mask (ip_src_mask) (src_port_mask)"
+			" dst_mask (ip_dst_mask) (dst_port_mask)"
+			" flexbytes (0|1) vlan_id (0|1) vlan_prio (0|1)"
+			" compare_dst (0|1)\n"
+			"    Set IPv6 filter masks.\n\n"
+		);
+	}
+
+	if (show_all || !strcmp(res->section, "ports")) {
+
+		cmdline_printf(
+			cl,
+			"\n"
+			"Port Operations:\n"
+			"----------------\n\n"
+
+			"port start (port_id|all)\n"
+			"    Start all ports or port_id.\n\n"
+
+			"port stop (port_id|all)\n"
+			"    Stop all ports or port_id.\n\n"
+
+			"port close (port_id|all)\n"
+			"    Close all ports or port_id.\n\n"
+
+			"port config (port_id|all) speed (10|100|1000|10000|auto)"
+			" duplex (half|full|auto)\n"
+			"    Set speed and duplex for all ports or port_id\n\n"
+
+			"port config all (rxq|txq|rxd|txd) (value)\n"
+			"    Set number for rxq/txq/rxd/txd.\n\n"
+
+			"port config all max-pkt-len (value)\n"
+			"    Set the max packet length.\n\n"
+
+			"port config all (crc-strip|rx-cksum|hw-vlan|drop-en)"
+			" (on|off)\n"
+			"    Set crc-strip/rx-checksum/hardware-vlan/drop_en"
+			" for ports.\n\n"
+
+			"port config all rss (ip|udp|none)\n"
+			"    Set the RSS mode.\n\n"
+
+			"port config port-id rss reta (hash,queue)[,(hash,queue)]\n"
+			"    Set the RSS redirection table.\n\n"
+
+			"port config (port_id) dcb vt (on|off) (traffic_class)"
+			" pfc (on|off)\n"
+			"    Set the DCB mode.\n\n"
+
+			"port config all burst (value)\n"
+			"    Set the number of packets per burst.\n\n"
+
+			"port config all (txpt|txht|txwt|rxpt|rxht|rxwt)"
+			" (value)\n"
+			"    Set the ring prefetch/host/writeback threshold"
+			" for tx/rx queue.\n\n"
+
+			"port config all (txfreet|txrst|rxfreet) (value)\n"
+			"    Set free threshold for rx/tx, or set"
+			" tx rs bit threshold.\n\n"
+		);
+	}
+
+	if (show_all || !strcmp(res->section, "registers")) {
+
+		cmdline_printf(
+			cl,
+			"\n"
+			"Registers:\n"
+			"----------\n\n"
+
+			"read reg (port_id) (address)\n"
+			"    Display value of a port register.\n\n"
+
+			"read regfield (port_id) (address) (bit_x) (bit_y)\n"
+			"    Display a port register bit field.\n\n"
+
+			"read regbit (port_id) (address) (bit_x)\n"
+			"    Display a single port register bit.\n\n"
+
+			"write reg (port_id) (address) (value)\n"
+			"    Set value of a port register.\n\n"
+
+			"write regfield (port_id) (address) (bit_x) (bit_y)"
+			" (value)\n"
+			"    Set bit field of a port register.\n\n"
+
+			"write regbit (port_id) (address) (bit_x) (value)\n"
+			"    Set single bit value of a port register.\n\n"
+		);
+	}
+}
+
+cmdline_parse_token_string_t cmd_help_long_help =
+	TOKEN_STRING_INITIALIZER(struct cmd_help_long_result, help, "help");
+
+cmdline_parse_token_string_t cmd_help_long_section =
+	TOKEN_STRING_INITIALIZER(struct cmd_help_long_result, section,
+			"all#control#display#config#flowdir#"
+			"ports#registers");
+
+cmdline_parse_inst_t cmd_help_long = {
+	.f = cmd_help_long_parsed,
+	.data = NULL,
+	.help_str = "show help",
+	.tokens = {
+		(void *)&cmd_help_long_help,
+		(void *)&cmd_help_long_section,
+		NULL,
+	},
+};
+
 
 /* *** start/stop/close all ports *** */
 struct cmd_operate_port_result {
@@ -884,15 +1131,191 @@ cmdline_parse_inst_t cmd_config_rss = {
 	},
 };
 
+/* *** Configure RSS RETA *** */
+struct cmd_config_rss_reta {
+	cmdline_fixed_string_t port;
+	cmdline_fixed_string_t keyword;
+	uint8_t port_id;
+	cmdline_fixed_string_t name;
+	cmdline_fixed_string_t list_name;
+	cmdline_fixed_string_t list_of_items;
+};
+
+static int
+parse_reta_config(const char *str, struct rte_eth_rss_reta *reta_conf)
+{
+	int i;
+	unsigned size;
+	uint8_t hash_index;
+	uint8_t nb_queue;
+	char s[256];
+	const char *p, *p0 = str;
+	char *end;
+	enum fieldnames {
+		FLD_HASH_INDEX = 0,
+		FLD_QUEUE,
+		_NUM_FLD
+	};
+	unsigned long int_fld[_NUM_FLD];
+	char *str_fld[_NUM_FLD];
+
+	while ((p = strchr(p0,'(')) != NULL) {
+		++p;
+		if((p0 = strchr(p,')')) == NULL)
+			return -1;
+
+		size = p0 - p;
+		if(size >= sizeof(s))
+			return -1;
+
+		rte_snprintf(s, sizeof(s), "%.*s", size, p);
+		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
+			return -1;
+		for (i = 0; i < _NUM_FLD; i++) {
+			errno = 0;
+			int_fld[i] = strtoul(str_fld[i], &end, 0);
+			if (errno != 0 || end == str_fld[i] || int_fld[i] > 255)
+				return -1;
+		}
+
+		hash_index = (uint8_t)int_fld[FLD_HASH_INDEX];
+		nb_queue = (uint8_t)int_fld[FLD_QUEUE];
+
+		if (hash_index >= ETH_RSS_RETA_NUM_ENTRIES) {
+			printf("Invalid RETA hash index=%d",hash_index);
+			return -1;
+		}
+
+		if (hash_index < ETH_RSS_RETA_NUM_ENTRIES/2)
+			reta_conf->mask_lo |= (1ULL << hash_index);
+		else
+			reta_conf->mask_hi |= (1ULL << (hash_index - ETH_RSS_RETA_NUM_ENTRIES/2));
+
+		reta_conf->reta[hash_index] = nb_queue;
+	}
+
+	return 0;
+}
+
+static void
+cmd_set_rss_reta_parsed(void *parsed_result,
+				__attribute__((unused)) struct cmdline *cl,
+				__attribute__((unused)) void *data)
+{
+	int ret;
+	struct rte_eth_rss_reta reta_conf;
+	struct cmd_config_rss_reta *res = parsed_result;
+
+	memset(&reta_conf,0,sizeof(struct rte_eth_rss_reta));
+	if (!strcmp(res->list_name, "reta")) {
+		if (parse_reta_config(res->list_of_items, &reta_conf)) {
+			printf("Invalid RSS Redirection Table config entered\n");
+			return;
+		}
+		ret = rte_eth_dev_rss_reta_update(res->port_id, &reta_conf);
+		if (ret != 0)
+			printf("Bad redirection table parameter, return code = %d \n",ret);
+	}
+}
+
+cmdline_parse_token_string_t cmd_config_rss_reta_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, port, "port");
+cmdline_parse_token_string_t cmd_config_rss_reta_keyword =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, keyword, "config");
+cmdline_parse_token_num_t cmd_config_rss_reta_port_id =
+	TOKEN_NUM_INITIALIZER(struct cmd_config_rss_reta, port_id, UINT8);
+cmdline_parse_token_string_t cmd_config_rss_reta_name =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, name, "rss");
+cmdline_parse_token_string_t cmd_config_rss_reta_list_name =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, list_name, "reta");
+cmdline_parse_token_string_t cmd_config_rss_reta_list_of_items =
+        TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, list_of_items,
+                                 NULL);
+cmdline_parse_inst_t cmd_config_rss_reta = {
+	.f = cmd_set_rss_reta_parsed,
+	.data = NULL,
+	.help_str = "port config X rss reta (hash,queue)[,(hash,queue)]",
+	.tokens = {
+		(void *)&cmd_config_rss_reta_port,
+		(void *)&cmd_config_rss_reta_keyword,
+		(void *)&cmd_config_rss_reta_port_id,
+		(void *)&cmd_config_rss_reta_name,
+		(void *)&cmd_config_rss_reta_list_name,
+		(void *)&cmd_config_rss_reta_list_of_items,
+		NULL,
+	},
+};
+
+/* *** SHOW PORT INFO *** */
+struct cmd_showport_reta {
+	cmdline_fixed_string_t show;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t rss;
+	cmdline_fixed_string_t reta;
+	uint64_t mask_lo;
+	uint64_t mask_hi;
+};
+
+static void cmd_showport_reta_parsed(void *parsed_result,
+				__attribute__((unused)) struct cmdline *cl,
+				__attribute__((unused)) void *data)
+{
+	struct cmd_showport_reta *res = parsed_result;
+	struct rte_eth_rss_reta reta_conf;
+
+	if ((res->mask_lo == 0) && (res->mask_hi == 0)) {
+		printf("Invalid RSS Redirection Table config entered\n");
+		return;
+	}
+
+	reta_conf.mask_lo = res->mask_lo;
+	reta_conf.mask_hi = res->mask_hi;
+
+	port_rss_reta_info(res->port_id,&reta_conf);
+}
+
+cmdline_parse_token_string_t cmd_showport_reta_show =
+        TOKEN_STRING_INITIALIZER(struct  cmd_showport_reta, show, "show");
+cmdline_parse_token_string_t cmd_showport_reta_port =
+        TOKEN_STRING_INITIALIZER(struct  cmd_showport_reta, port, "port");
+cmdline_parse_token_num_t cmd_showport_reta_port_id =
+        TOKEN_NUM_INITIALIZER(struct cmd_showport_reta, port_id, UINT8);
+cmdline_parse_token_string_t cmd_showport_reta_rss =
+        TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, rss, "rss");
+cmdline_parse_token_string_t cmd_showport_reta_reta =
+        TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, reta, "reta");
+cmdline_parse_token_num_t cmd_showport_reta_mask_lo =
+        TOKEN_NUM_INITIALIZER(struct cmd_showport_reta,mask_lo,UINT64);
+cmdline_parse_token_num_t cmd_showport_reta_mask_hi =
+	TOKEN_NUM_INITIALIZER(struct cmd_showport_reta,mask_hi,UINT64);
+
+cmdline_parse_inst_t cmd_showport_reta = {
+	.f = cmd_showport_reta_parsed,
+	.data = NULL,
+	.help_str = "show port X rss reta mask_lo mask_hi (X = port number)\n\
+			(mask_lo and mask_hi is UINT64)",
+	.tokens = {
+		(void *)&cmd_showport_reta_show,
+		(void *)&cmd_showport_reta_port,
+		(void *)&cmd_showport_reta_port_id,
+		(void *)&cmd_showport_reta_rss,
+		(void *)&cmd_showport_reta_reta,
+		(void *)&cmd_showport_reta_mask_lo,
+		(void *)&cmd_showport_reta_mask_hi,
+		NULL,
+	},
+};
+
 /* *** Configure DCB *** */
 struct cmd_config_dcb {
 	cmdline_fixed_string_t port;
 	cmdline_fixed_string_t config;
-	uint8_t port_id; 
+	uint8_t port_id;
 	cmdline_fixed_string_t dcb;
 	cmdline_fixed_string_t vt;
 	cmdline_fixed_string_t vt_en;
-	uint8_t num_tcs; 
+	uint8_t num_tcs;
 	cmdline_fixed_string_t pfc;
 	cmdline_fixed_string_t pfc_en;
 };
@@ -906,14 +1329,14 @@ cmd_config_dcb_parsed(void *parsed_result,
 	struct dcb_config dcb_conf;
 	portid_t port_id = res->port_id;
 	struct rte_port *port;
-	
+
 	port = &ports[port_id];
 	/** Check if the port is not started **/
 	if (port->port_status != RTE_PORT_STOPPED) {
 		printf("Please stop port %d first\n",port_id);
 		return;
 	}
-		
+
 	dcb_conf.num_tcs = (enum rte_eth_nb_tcs) res->num_tcs;
 	if ((dcb_conf.num_tcs != ETH_4_TCS) && (dcb_conf.num_tcs != ETH_8_TCS)){
 		printf("The invalid number of traffic class,only 4 or 8 allowed\n");
@@ -921,8 +1344,8 @@ cmd_config_dcb_parsed(void *parsed_result,
 	}
 
 	/* DCB in VT mode */
-	if (!strncmp(res->vt_en, "on",2)) 
-		dcb_conf.dcb_mode = DCB_VT_ENABLED;	
+	if (!strncmp(res->vt_en, "on",2))
+		dcb_conf.dcb_mode = DCB_VT_ENABLED;
 	else
 		dcb_conf.dcb_mode = DCB_ENABLED;
 
@@ -939,7 +1362,7 @@ cmd_config_dcb_parsed(void *parsed_result,
 
 	cmd_reconfig_device_queue(port_id, 1, 1);
 }
- 
+
 cmdline_parse_token_string_t cmd_config_dcb_port =
         TOKEN_STRING_INITIALIZER(struct cmd_config_dcb, port, "port");
 cmdline_parse_token_string_t cmd_config_dcb_config =
@@ -1513,12 +1936,12 @@ cmd_vlan_offload_parsed(void *parsed_result,
 			  __attribute__((unused)) void *data)
 {
 	int on;
-	struct cmd_vlan_offload_result *res = parsed_result;	
+	struct cmd_vlan_offload_result *res = parsed_result;
 	char *str;
 	int i, len = 0;
 	portid_t port_id = 0;
 	unsigned int tmp;
-	
+
 	str = res->port_id;
 	len = strnlen(str, STR_TOKEN_SIZE);
 	i = 0;
@@ -1526,13 +1949,13 @@ cmd_vlan_offload_parsed(void *parsed_result,
 	while(i < len){
 		if(str[i] == ',')
 			break;
-		
+
 		i++;
 	}
 	str[i]='\0';
 	tmp = strtoul(str, NULL, 0);
 	/* If port_id greater that what portid_t can represent, return */
-	if(tmp > 255)
+	if(tmp >= RTE_MAX_ETHPORTS)
 		return;
 	port_id = (portid_t)tmp;
 
@@ -1553,7 +1976,7 @@ cmd_vlan_offload_parsed(void *parsed_result,
 		/* If queue_id greater that what 16-bits can represent, return */
 		if(tmp > 0xffff)
 			return;
-		
+
 		queue_id = (uint16_t)tmp;
 		rx_vlan_strip_set_on_queue(port_id, queue_id, on);
 	}
@@ -1820,6 +2243,45 @@ cmdline_parse_inst_t cmd_tx_cksum_set = {
 		(void *)&cmd_tx_cksum_set_set,
 		(void *)&cmd_tx_cksum_set_cksum_mask,
 		(void *)&cmd_tx_cksum_set_portid,
+		NULL,
+	},
+};
+
+/* *** ENABLE/DISABLE FLUSH ON RX STREAMS *** */
+struct cmd_set_flush_rx {
+	cmdline_fixed_string_t set;
+	cmdline_fixed_string_t flush_rx;
+	cmdline_fixed_string_t mode;
+};
+
+static void
+cmd_set_flush_rx_parsed(void *parsed_result,
+		__attribute__((unused)) struct cmdline *cl,
+		__attribute__((unused)) void *data)
+{
+	struct cmd_set_flush_rx *res = parsed_result;
+	no_flush_rx = (uint8_t)((strcmp(res->mode, "on") == 0) ? 0 : 1);
+}
+
+cmdline_parse_token_string_t cmd_setflushrx_set =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_flush_rx,
+			set, "set");
+cmdline_parse_token_string_t cmd_setflushrx_flush_rx =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_flush_rx,
+			flush_rx, "flush_rx");
+cmdline_parse_token_string_t cmd_setflushrx_mode =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_flush_rx,
+			mode, "on#off");
+
+
+cmdline_parse_inst_t cmd_set_flush_rx = {
+	.f = cmd_set_flush_rx_parsed,
+	.help_str = "set flush_rx on|off: enable/disable flush on rx streams",
+	.data = NULL,
+	.tokens = {
+		(void *)&cmd_setflushrx_set,
+		(void *)&cmd_setflushrx_flush_rx,
+		(void *)&cmd_setflushrx_mode,
 		NULL,
 	},
 };
@@ -3438,11 +3900,658 @@ cmdline_parse_inst_t cmd_set_qmap = {
 	},
 };
 
+/* *** CONFIGURE UNICAST HASH TABLE *** */
+struct cmd_set_uc_hash_table {
+	cmdline_fixed_string_t set;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t what;
+	struct ether_addr address;
+	cmdline_fixed_string_t mode;
+};
+
+static void
+cmd_set_uc_hash_parsed(void *parsed_result,
+		       __attribute__((unused)) struct cmdline *cl,
+		       __attribute__((unused)) void *data)
+{
+	int ret=0;
+	struct cmd_set_uc_hash_table *res = parsed_result;
+	
+	int is_on = (strcmp(res->mode, "on") == 0) ? 1 : 0;
+	
+	if (strcmp(res->what, "uta") == 0)
+		ret = rte_eth_dev_uc_hash_table_set(res->port_id, 
+						&res->address,(uint8_t)is_on);
+	if (ret < 0)
+		printf("bad unicast hash table parameter, return code = %d \n", ret);
+	
+}
+
+cmdline_parse_token_string_t cmd_set_uc_hash_set =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_hash_table,
+				 set, "set");
+cmdline_parse_token_string_t cmd_set_uc_hash_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_hash_table,
+				 port, "port");
+cmdline_parse_token_num_t cmd_set_uc_hash_portid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_uc_hash_table,
+			      port_id, UINT8);
+cmdline_parse_token_string_t cmd_set_uc_hash_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_hash_table,
+				 what, "uta");
+cmdline_parse_token_etheraddr_t cmd_set_uc_hash_mac =
+	TOKEN_ETHERADDR_INITIALIZER(struct cmd_set_uc_hash_table, 
+				address);
+cmdline_parse_token_string_t cmd_set_uc_hash_mode =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_hash_table,
+				 mode, "on#off");
+
+cmdline_parse_inst_t cmd_set_uc_hash_filter = {
+	.f = cmd_set_uc_hash_parsed,
+	.data = NULL,
+	.help_str = "set port X uta Y on|off(X = port number,Y = MAC address)",
+	.tokens = {
+		(void *)&cmd_set_uc_hash_set,
+		(void *)&cmd_set_uc_hash_port,
+		(void *)&cmd_set_uc_hash_portid,
+		(void *)&cmd_set_uc_hash_what,
+		(void *)&cmd_set_uc_hash_mac,
+		(void *)&cmd_set_uc_hash_mode,
+		NULL,
+	},
+};
+
+struct cmd_set_uc_all_hash_table {
+	cmdline_fixed_string_t set;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t what;
+	cmdline_fixed_string_t value;
+	cmdline_fixed_string_t mode;
+};
+
+static void
+cmd_set_uc_all_hash_parsed(void *parsed_result,
+		       __attribute__((unused)) struct cmdline *cl,
+		       __attribute__((unused)) void *data)
+{
+	int ret=0;
+	struct cmd_set_uc_all_hash_table *res = parsed_result;
+	
+	int is_on = (strcmp(res->mode, "on") == 0) ? 1 : 0;
+	
+	if ((strcmp(res->what, "uta") == 0) && 
+		(strcmp(res->value, "all") == 0))
+		ret = rte_eth_dev_uc_all_hash_table_set(res->port_id,(uint8_t) is_on);
+	if (ret < 0)
+		printf("bad unicast hash table parameter," 
+			"return code = %d \n", ret);
+}
+
+cmdline_parse_token_string_t cmd_set_uc_all_hash_set =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_all_hash_table,
+				 set, "set");
+cmdline_parse_token_string_t cmd_set_uc_all_hash_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_all_hash_table,
+				 port, "port");
+cmdline_parse_token_num_t cmd_set_uc_all_hash_portid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_uc_all_hash_table,
+			      port_id, UINT8);
+cmdline_parse_token_string_t cmd_set_uc_all_hash_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_all_hash_table,
+				 what, "uta");
+cmdline_parse_token_string_t cmd_set_uc_all_hash_value =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_all_hash_table, 
+				value,"all");
+cmdline_parse_token_string_t cmd_set_uc_all_hash_mode =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_uc_all_hash_table,
+				 mode, "on#off");
+
+cmdline_parse_inst_t cmd_set_uc_all_hash_filter = {
+	.f = cmd_set_uc_all_hash_parsed,
+	.data = NULL,
+	.help_str = "set port X uta all on|off (X = port number)",
+	.tokens = {
+		(void *)&cmd_set_uc_all_hash_set,
+		(void *)&cmd_set_uc_all_hash_port,
+		(void *)&cmd_set_uc_all_hash_portid,
+		(void *)&cmd_set_uc_all_hash_what,
+		(void *)&cmd_set_uc_all_hash_value,
+		(void *)&cmd_set_uc_all_hash_mode,
+		NULL,
+	},
+};
+
+/* *** CONFIGURE VF TRAFFIC CONTROL *** */
+struct cmd_set_vf_traffic {
+	cmdline_fixed_string_t set;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t vf;
+	uint8_t vf_id;
+	cmdline_fixed_string_t what;
+	cmdline_fixed_string_t mode;
+};
+
+static void
+cmd_set_vf_traffic_parsed(void *parsed_result,
+		       __attribute__((unused)) struct cmdline *cl,
+		       __attribute__((unused)) void *data)
+{
+	struct cmd_set_vf_traffic *res = parsed_result;
+	int is_rx = (strcmp(res->what, "rx") == 0) ? 1 : 0;
+	int is_on = (strcmp(res->mode, "on") == 0) ? 1 : 0;
+
+	set_vf_traffic(res->port_id, (uint8_t)is_rx, res->vf_id,(uint8_t) is_on);
+}
+
+cmdline_parse_token_string_t cmd_setvf_traffic_set =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_traffic,
+				 set, "set");
+cmdline_parse_token_string_t cmd_setvf_traffic_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_traffic,
+				 port, "port");
+cmdline_parse_token_num_t cmd_setvf_traffic_portid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_vf_traffic,
+			      port_id, UINT8);
+cmdline_parse_token_string_t cmd_setvf_traffic_vf =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_traffic,
+				 vf, "vf");
+cmdline_parse_token_num_t cmd_setvf_traffic_vfid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_vf_traffic,
+			      vf_id, UINT8);
+cmdline_parse_token_string_t cmd_setvf_traffic_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_traffic,
+				 what, "tx#rx");
+cmdline_parse_token_string_t cmd_setvf_traffic_mode =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_traffic,
+				 mode, "on#off");
+
+cmdline_parse_inst_t cmd_set_vf_traffic = {
+	.f = cmd_set_vf_traffic_parsed,
+	.data = NULL,
+	.help_str = "set port X vf Y rx|tx on|off (X = port number,Y = vf id)",
+	.tokens = {
+		(void *)&cmd_setvf_traffic_set,
+		(void *)&cmd_setvf_traffic_port,
+		(void *)&cmd_setvf_traffic_portid,
+		(void *)&cmd_setvf_traffic_vf,
+		(void *)&cmd_setvf_traffic_vfid,
+		(void *)&cmd_setvf_traffic_what,
+		(void *)&cmd_setvf_traffic_mode,
+		NULL,
+	},
+};
+
+/* *** CONFIGURE VF RECEIVE MODE *** */
+struct cmd_set_vf_rxmode {
+	cmdline_fixed_string_t set;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t vf;
+	uint8_t vf_id;
+	cmdline_fixed_string_t what;
+	cmdline_fixed_string_t mode;
+	cmdline_fixed_string_t on;
+};
+
+static void
+cmd_set_vf_rxmode_parsed(void *parsed_result,
+		       __attribute__((unused)) struct cmdline *cl,
+		       __attribute__((unused)) void *data)
+{
+	int ret;
+	uint16_t rx_mode = 0;
+	struct cmd_set_vf_rxmode *res = parsed_result;
+	
+	int is_on = (strcmp(res->on, "on") == 0) ? 1 : 0;
+	if (!strcmp(res->what,"rxmode")) {
+		if (!strcmp(res->mode, "AUPE"))
+			rx_mode |= ETH_VMDQ_ACCEPT_UNTAG;
+		else if (!strcmp(res->mode, "ROPE"))
+			rx_mode |= ETH_VMDQ_ACCEPT_HASH_UC;
+		else if (!strcmp(res->mode, "BAM"))
+			rx_mode |= ETH_VMDQ_ACCEPT_BROADCAST;
+		else if (!strncmp(res->mode, "MPE",3))
+			rx_mode |= ETH_VMDQ_ACCEPT_MULTICAST;
+	}
+
+	ret = rte_eth_dev_set_vf_rxmode(res->port_id,res->vf_id,rx_mode,(uint8_t)is_on);
+	if (ret < 0)
+		printf("bad VF receive mode parameter, return code = %d \n",
+		ret);
+}
+
+cmdline_parse_token_string_t cmd_set_vf_rxmode_set =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_rxmode,
+				 set, "set");
+cmdline_parse_token_string_t cmd_set_vf_rxmode_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_rxmode,
+				 port, "port");
+cmdline_parse_token_num_t cmd_set_vf_rxmode_portid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_vf_rxmode,
+			      port_id, UINT8);
+cmdline_parse_token_string_t cmd_set_vf_rxmode_vf =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_rxmode,
+				 vf, "vf");
+cmdline_parse_token_num_t cmd_set_vf_rxmode_vfid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_vf_rxmode,
+			      vf_id, UINT8);
+cmdline_parse_token_string_t cmd_set_vf_rxmode_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_rxmode,
+				 what, "rxmode");
+cmdline_parse_token_string_t cmd_set_vf_rxmode_mode =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_rxmode,
+				 mode, "AUPE#ROPE#BAM#MPE");
+cmdline_parse_token_string_t cmd_set_vf_rxmode_on =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_vf_rxmode,
+				 on, "on#off");
+
+cmdline_parse_inst_t cmd_set_vf_rxmode = {
+	.f = cmd_set_vf_rxmode_parsed,
+	.data = NULL,
+	.help_str = "set port X vf Y rxmode AUPE|ROPE|BAM|MPE on|off",
+	.tokens = {
+		(void *)&cmd_set_vf_rxmode_set,
+		(void *)&cmd_set_vf_rxmode_port,
+		(void *)&cmd_set_vf_rxmode_portid,
+		(void *)&cmd_set_vf_rxmode_vf,
+		(void *)&cmd_set_vf_rxmode_vfid,
+		(void *)&cmd_set_vf_rxmode_what,
+		(void *)&cmd_set_vf_rxmode_mode,
+		(void *)&cmd_set_vf_rxmode_on,
+		NULL,
+	},
+};
+
+/* *** ADD MAC ADDRESS FILTER FOR A VF OF A PORT *** */
+struct cmd_vf_mac_addr_result {
+	cmdline_fixed_string_t mac_addr_cmd;
+	cmdline_fixed_string_t what;
+	cmdline_fixed_string_t port;
+	uint8_t port_num;
+	cmdline_fixed_string_t vf;
+	uint8_t vf_num;
+	struct ether_addr address;
+};
+
+static void cmd_vf_mac_addr_parsed(void *parsed_result,
+		__attribute__((unused)) struct cmdline *cl,
+		__attribute__((unused)) void *data)
+{
+	struct cmd_vf_mac_addr_result *res = parsed_result;
+	int ret = 0;
+
+	if (strcmp(res->what, "add") == 0)
+		ret = rte_eth_dev_mac_addr_add(res->port_num, 
+					&res->address, res->vf_num);
+	if(ret < 0)
+		printf("vf_mac_addr_cmd error: (%s)\n", strerror(-ret));
+
+}
+
+cmdline_parse_token_string_t cmd_vf_mac_addr_cmd =
+	TOKEN_STRING_INITIALIZER(struct cmd_vf_mac_addr_result,
+				mac_addr_cmd,"mac_addr");
+cmdline_parse_token_string_t cmd_vf_mac_addr_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_vf_mac_addr_result, 
+				what,"add");
+cmdline_parse_token_string_t cmd_vf_mac_addr_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_vf_mac_addr_result, 
+				port,"port");
+cmdline_parse_token_num_t cmd_vf_mac_addr_portnum =
+	TOKEN_NUM_INITIALIZER(struct cmd_vf_mac_addr_result, 
+				port_num, UINT8);
+cmdline_parse_token_string_t cmd_vf_mac_addr_vf =
+	TOKEN_STRING_INITIALIZER(struct cmd_vf_mac_addr_result, 
+				vf,"vf");
+cmdline_parse_token_num_t cmd_vf_mac_addr_vfnum =
+	TOKEN_NUM_INITIALIZER(struct cmd_vf_mac_addr_result,
+				vf_num, UINT8);
+cmdline_parse_token_etheraddr_t cmd_vf_mac_addr_addr =
+	TOKEN_ETHERADDR_INITIALIZER(struct cmd_vf_mac_addr_result, 
+				address);
+
+cmdline_parse_inst_t cmd_vf_mac_addr_filter = {
+	.f = cmd_vf_mac_addr_parsed,
+	.data = (void *)0,
+	.help_str = "mac_addr add port X vf Y ethaddr:(X = port number,"
+	"Y = VF number)add MAC address filtering for a VF on port X",
+	.tokens = {
+		(void *)&cmd_vf_mac_addr_cmd,
+		(void *)&cmd_vf_mac_addr_what,
+		(void *)&cmd_vf_mac_addr_port,
+		(void *)&cmd_vf_mac_addr_portnum,
+		(void *)&cmd_vf_mac_addr_vf,
+		(void *)&cmd_vf_mac_addr_vfnum,
+		(void *)&cmd_vf_mac_addr_addr,
+		NULL,
+	},
+};
+
+/* *** ADD/REMOVE A VLAN IDENTIFIER TO/FROM A PORT VLAN RX FILTER *** */
+struct cmd_vf_rx_vlan_filter {
+	cmdline_fixed_string_t rx_vlan;
+	cmdline_fixed_string_t what;
+	uint16_t vlan_id;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t vf;
+	uint64_t vf_mask;
+};
+
+static void
+cmd_vf_rx_vlan_filter_parsed(void *parsed_result,
+			  __attribute__((unused)) struct cmdline *cl,
+			  __attribute__((unused)) void *data)
+{
+	struct cmd_vf_rx_vlan_filter *res = parsed_result;
+
+	if (!strcmp(res->what, "add"))
+		set_vf_rx_vlan(res->port_id, res->vlan_id,res->vf_mask, 1);
+	else
+		set_vf_rx_vlan(res->port_id, res->vlan_id,res->vf_mask, 0);
+}
+
+cmdline_parse_token_string_t cmd_vf_rx_vlan_filter_rx_vlan =
+	TOKEN_STRING_INITIALIZER(struct cmd_vf_rx_vlan_filter,
+				 rx_vlan, "rx_vlan");
+cmdline_parse_token_string_t cmd_vf_rx_vlan_filter_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_vf_rx_vlan_filter,
+				 what, "add#rm");
+cmdline_parse_token_num_t cmd_vf_rx_vlan_filter_vlanid =
+	TOKEN_NUM_INITIALIZER(struct cmd_vf_rx_vlan_filter,
+			      vlan_id, UINT16);
+cmdline_parse_token_string_t cmd_vf_rx_vlan_filter_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_vf_rx_vlan_filter,
+				 port, "port");
+cmdline_parse_token_num_t cmd_vf_rx_vlan_filter_portid =
+	TOKEN_NUM_INITIALIZER(struct cmd_vf_rx_vlan_filter,
+			      port_id, UINT8);
+cmdline_parse_token_string_t cmd_vf_rx_vlan_filter_vf =
+	TOKEN_STRING_INITIALIZER(struct cmd_vf_rx_vlan_filter,
+				 vf, "vf");
+cmdline_parse_token_num_t cmd_vf_rx_vlan_filter_vf_mask =
+	TOKEN_NUM_INITIALIZER(struct cmd_vf_rx_vlan_filter,
+			      vf_mask, UINT64);
+
+cmdline_parse_inst_t cmd_vf_rxvlan_filter = {
+	.f = cmd_vf_rx_vlan_filter_parsed,
+	.data = NULL,
+	.help_str = "rx_vlan add|rm X port Y vf Z (X = VLAN ID,"
+		"Y = port number,Z = hexadecimal VF mask)",
+	.tokens = {
+		(void *)&cmd_vf_rx_vlan_filter_rx_vlan,
+		(void *)&cmd_vf_rx_vlan_filter_what,
+		(void *)&cmd_vf_rx_vlan_filter_vlanid,
+		(void *)&cmd_vf_rx_vlan_filter_port,
+		(void *)&cmd_vf_rx_vlan_filter_portid,
+		(void *)&cmd_vf_rx_vlan_filter_vf,
+		(void *)&cmd_vf_rx_vlan_filter_vf_mask,
+		NULL,
+	},
+};
+
+/* *** CONFIGURE VM MIRROR VLAN/POOL RULE *** */
+struct cmd_set_mirror_mask_result {
+	cmdline_fixed_string_t set;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t mirror;
+	uint8_t rule_id;
+	cmdline_fixed_string_t what;
+	cmdline_fixed_string_t value;
+	cmdline_fixed_string_t dstpool;
+	uint8_t dstpool_id;
+	cmdline_fixed_string_t on;
+};
+
+cmdline_parse_token_string_t cmd_mirror_mask_set =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_mask_result,
+				set, "set");
+cmdline_parse_token_string_t cmd_mirror_mask_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_mask_result,
+				port, "port");
+cmdline_parse_token_string_t cmd_mirror_mask_portid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_mirror_mask_result,
+				port_id, UINT8);
+cmdline_parse_token_string_t cmd_mirror_mask_mirror =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_mask_result,
+				mirror, "mirror-rule");
+cmdline_parse_token_num_t cmd_mirror_mask_ruleid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_mirror_mask_result,
+				rule_id, UINT8);
+cmdline_parse_token_string_t cmd_mirror_mask_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_mask_result,
+				what, "pool-mirror#vlan-mirror");
+cmdline_parse_token_string_t cmd_mirror_mask_value =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_mask_result,
+				value, NULL);
+cmdline_parse_token_string_t cmd_mirror_mask_dstpool =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_mask_result,
+				dstpool, "dst-pool");
+cmdline_parse_token_num_t cmd_mirror_mask_poolid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_mirror_mask_result,
+				dstpool_id, UINT8);
+cmdline_parse_token_string_t cmd_mirror_mask_on =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_mask_result,
+				on, "on#off");
+
+static void
+cmd_set_mirror_mask_parsed(void *parsed_result,
+		       __attribute__((unused)) struct cmdline *cl,
+		       __attribute__((unused)) void *data)
+{
+	int ret,nb_item,i;
+	struct cmd_set_mirror_mask_result *res = parsed_result;
+	struct rte_eth_vmdq_mirror_conf mr_conf;
+
+	memset(&mr_conf,0,sizeof(struct rte_eth_vmdq_mirror_conf));
+
+	unsigned int vlan_list[ETH_VMDQ_MAX_VLAN_FILTERS];
+
+	mr_conf.dst_pool = res->dstpool_id;
+
+	if (!strcmp(res->what, "pool-mirror")) {
+		mr_conf.pool_mask = strtoull(res->value,NULL,16);
+		mr_conf.rule_type_mask = ETH_VMDQ_POOL_MIRROR;
+	} else if(!strcmp(res->what, "vlan-mirror")) {
+		mr_conf.rule_type_mask = ETH_VMDQ_VLAN_MIRROR;
+		nb_item = parse_item_list(res->value, "core",
+					ETH_VMDQ_MAX_VLAN_FILTERS,vlan_list,1);
+		if (nb_item <= 0)
+			return;
+
+		for(i=0; i < nb_item; i++) {
+			if (vlan_list[i] > ETHER_MAX_VLAN_ID) {
+				printf("Invalid vlan_id: must be < 4096\n");
+				return;
+			}
+
+			mr_conf.vlan.vlan_id[i] = (uint16_t)vlan_list[i];
+			mr_conf.vlan.vlan_mask |= 1ULL << i;
+		}
+	}
+
+	if(!strcmp(res->on, "on"))
+		ret = rte_eth_mirror_rule_set(res->port_id,&mr_conf,
+						res->rule_id, 1);
+	else
+		ret = rte_eth_mirror_rule_set(res->port_id,&mr_conf,
+						res->rule_id, 0);
+	if(ret < 0)
+		printf("mirror rule add error: (%s)\n", strerror(-ret));
+}
+
+cmdline_parse_inst_t cmd_set_mirror_mask = {
+		.f = cmd_set_mirror_mask_parsed,
+		.data = NULL,
+		.help_str = "set port X mirror-rule Y pool-mirror|vlan-mirror " 
+				"pool_mask|vlan_id[,vlan_id]* dst-pool Z on|off",
+		.tokens = {
+			(void *)&cmd_mirror_mask_set,
+			(void *)&cmd_mirror_mask_port,
+			(void *)&cmd_mirror_mask_portid,
+			(void *)&cmd_mirror_mask_mirror,
+			(void *)&cmd_mirror_mask_ruleid,
+			(void *)&cmd_mirror_mask_what,
+			(void *)&cmd_mirror_mask_value,
+			(void *)&cmd_mirror_mask_dstpool,
+			(void *)&cmd_mirror_mask_poolid,
+			(void *)&cmd_mirror_mask_on,
+			NULL,
+		},
+};
+
+/* *** CONFIGURE VM MIRROR UDLINK/DOWNLINK RULE *** */
+struct cmd_set_mirror_link_result {
+	cmdline_fixed_string_t set;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t mirror;
+	uint8_t rule_id;
+	cmdline_fixed_string_t what;
+	cmdline_fixed_string_t dstpool;
+	uint8_t dstpool_id;
+	cmdline_fixed_string_t on;
+};
+
+cmdline_parse_token_string_t cmd_mirror_link_set =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_link_result,
+				 set, "set");
+cmdline_parse_token_string_t cmd_mirror_link_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_link_result,
+				port, "port");
+cmdline_parse_token_string_t cmd_mirror_link_portid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_mirror_link_result,
+				port_id, UINT8);
+cmdline_parse_token_string_t cmd_mirror_link_mirror =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_link_result,
+				mirror, "mirror-rule");
+cmdline_parse_token_num_t cmd_mirror_link_ruleid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_mirror_link_result,
+			    rule_id, UINT8);
+cmdline_parse_token_string_t cmd_mirror_link_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_link_result,
+				what, "uplink-mirror#downlink-mirror");
+cmdline_parse_token_string_t cmd_mirror_link_dstpool =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_link_result,
+				dstpool, "dst-pool");
+cmdline_parse_token_num_t cmd_mirror_link_poolid =
+	TOKEN_NUM_INITIALIZER(struct cmd_set_mirror_link_result,
+				dstpool_id, UINT8);
+cmdline_parse_token_string_t cmd_mirror_link_on =
+	TOKEN_STRING_INITIALIZER(struct cmd_set_mirror_link_result,
+				on, "on#off");
+
+static void
+cmd_set_mirror_link_parsed(void *parsed_result,
+		       __attribute__((unused)) struct cmdline *cl,
+		       __attribute__((unused)) void *data)
+{
+	int ret;
+	struct cmd_set_mirror_link_result *res = parsed_result;
+	struct rte_eth_vmdq_mirror_conf mr_conf;
+
+	memset(&mr_conf,0,sizeof(struct rte_eth_vmdq_mirror_conf));
+	if(!strcmp(res->what, "uplink-mirror")) {
+		mr_conf.rule_type_mask = ETH_VMDQ_UPLINK_MIRROR;
+	}else if(!strcmp(res->what, "downlink-mirror"))
+		mr_conf.rule_type_mask = ETH_VMDQ_DOWNLIN_MIRROR;
+
+	mr_conf.dst_pool = res->dstpool_id;
+
+	if(!strcmp(res->on, "on"))
+		ret = rte_eth_mirror_rule_set(res->port_id,&mr_conf,
+						res->rule_id, 1);
+	else
+		ret = rte_eth_mirror_rule_set(res->port_id,&mr_conf,
+						res->rule_id, 0);
+
+	/* check the return value and print it if is < 0 */
+	if(ret < 0)
+		printf("mirror rule add error: (%s)\n", strerror(-ret));
+
+}
+
+cmdline_parse_inst_t cmd_set_mirror_link = {
+		.f = cmd_set_mirror_link_parsed,
+		.data = NULL,
+		.help_str = "set port X mirror-rule Y uplink-mirror|"
+			"downlink-mirror dst-pool Z on|off",
+		.tokens = {
+			(void *)&cmd_mirror_link_set,
+			(void *)&cmd_mirror_link_port,
+			(void *)&cmd_mirror_link_portid,
+			(void *)&cmd_mirror_link_mirror,
+			(void *)&cmd_mirror_link_ruleid,
+			(void *)&cmd_mirror_link_what,
+			(void *)&cmd_mirror_link_dstpool,
+			(void *)&cmd_mirror_link_poolid,
+			(void *)&cmd_mirror_link_on,
+			NULL,
+		},
+};
+
+/* *** RESET VM MIRROR RULE *** */
+struct cmd_rm_mirror_rule_result {
+	cmdline_fixed_string_t reset;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t mirror;
+	uint8_t rule_id;
+};
+
+cmdline_parse_token_string_t cmd_rm_mirror_rule_reset =
+	TOKEN_STRING_INITIALIZER(struct cmd_rm_mirror_rule_result,
+				 reset, "reset");
+cmdline_parse_token_string_t cmd_rm_mirror_rule_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_rm_mirror_rule_result,
+				port, "port");
+cmdline_parse_token_string_t cmd_rm_mirror_rule_portid =
+	TOKEN_NUM_INITIALIZER(struct cmd_rm_mirror_rule_result,
+				port_id, UINT8);
+cmdline_parse_token_string_t cmd_rm_mirror_rule_mirror =
+	TOKEN_STRING_INITIALIZER(struct cmd_rm_mirror_rule_result,
+				mirror, "mirror-rule");
+cmdline_parse_token_num_t cmd_rm_mirror_rule_ruleid =
+	TOKEN_NUM_INITIALIZER(struct cmd_rm_mirror_rule_result,
+				rule_id, UINT8);
+
+static void
+cmd_reset_mirror_rule_parsed(void *parsed_result,
+		       __attribute__((unused)) struct cmdline *cl,
+		       __attribute__((unused)) void *data)
+{
+	int ret;
+	struct cmd_set_mirror_link_result *res = parsed_result;
+        /* check rule_id */
+	ret = rte_eth_mirror_rule_reset(res->port_id,res->rule_id);
+	if(ret < 0)
+		printf("mirror rule remove error: (%s)\n", strerror(-ret));
+}
+
+cmdline_parse_inst_t cmd_reset_mirror_rule = {
+		.f = cmd_reset_mirror_rule_parsed,
+		.data = NULL,
+		.help_str = "reset port X mirror-rule Y",
+		.tokens = {
+			(void *)&cmd_rm_mirror_rule_reset,
+			(void *)&cmd_rm_mirror_rule_port,
+			(void *)&cmd_rm_mirror_rule_portid,
+			(void *)&cmd_rm_mirror_rule_mirror,
+			(void *)&cmd_rm_mirror_rule_ruleid,
+			NULL,
+		},
+};
+
 /* ******************************************************************************** */
 
 /* list of instructions */
 cmdline_parse_ctx_t main_ctx[] = {
-	(cmdline_parse_inst_t *)&cmd_help,
+	(cmdline_parse_inst_t *)&cmd_help_brief,
+	(cmdline_parse_inst_t *)&cmd_help_long,
 	(cmdline_parse_inst_t *)&cmd_quit,
 	(cmdline_parse_inst_t *)&cmd_showport,
 	(cmdline_parse_inst_t *)&cmd_showportall,
@@ -3459,6 +4568,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *)&cmd_set_promisc_mode_all,
 	(cmdline_parse_inst_t *)&cmd_set_allmulti_mode_one,
 	(cmdline_parse_inst_t *)&cmd_set_allmulti_mode_all,
+	(cmdline_parse_inst_t *)&cmd_set_flush_rx,
 	(cmdline_parse_inst_t *)&cmd_vlan_offload,
 	(cmdline_parse_inst_t *)&cmd_vlan_tpid,
 	(cmdline_parse_inst_t *)&cmd_rx_vlan_filter_all,
@@ -3495,9 +4605,20 @@ cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *)&cmd_config_max_pkt_len,
 	(cmdline_parse_inst_t *)&cmd_config_rx_mode_flag,
 	(cmdline_parse_inst_t *)&cmd_config_rss,
+	(cmdline_parse_inst_t *)&cmd_config_rss_reta,
+	(cmdline_parse_inst_t *)&cmd_showport_reta,
 	(cmdline_parse_inst_t *)&cmd_config_burst,
 	(cmdline_parse_inst_t *)&cmd_config_thresh,
 	(cmdline_parse_inst_t *)&cmd_config_threshold,
+	(cmdline_parse_inst_t *)&cmd_set_vf_rxmode,
+	(cmdline_parse_inst_t *)&cmd_set_uc_hash_filter,
+	(cmdline_parse_inst_t *)&cmd_set_uc_all_hash_filter,
+	(cmdline_parse_inst_t *)&cmd_vf_mac_addr_filter ,
+	(cmdline_parse_inst_t *)&cmd_set_vf_traffic,
+	(cmdline_parse_inst_t *)&cmd_vf_rxvlan_filter,
+	(cmdline_parse_inst_t *)&cmd_set_mirror_mask,
+	(cmdline_parse_inst_t *)&cmd_set_mirror_link,
+	(cmdline_parse_inst_t *)&cmd_reset_mirror_rule,
 	NULL,
 };
 

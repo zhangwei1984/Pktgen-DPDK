@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _RTE_KNI_H_
@@ -47,7 +46,10 @@
  * and burst transmit packets to KNI interfaces.
  */
 
+#include <rte_pci.h>
 #include <rte_mbuf.h>
+
+#include <exec-env/rte_kni_common.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +61,8 @@ struct rte_kni;
  * Structure which has the function pointers for KNI interface.
  */
 struct rte_kni_ops {
+	uint8_t port_id; /* Port ID */
+
 	/* Pointer to function of changing MTU */
 	int (*change_mtu)(uint8_t port_id, unsigned new_mtu);
 
@@ -67,33 +71,105 @@ struct rte_kni_ops {
 };
 
 /**
- * Create kni interface according to the port id. It will create a paired KNI
- * interface in the kernel space for each NIC port. The KNI interface created
+ * Structure for configuring KNI device.
+ */
+struct rte_kni_conf {
+	/*
+	 * KNI name which will be used in relevant network device.
+	 * Let the name as short as possible, as it will be part of
+	 * memzone name.
+	 */
+	char name[RTE_KNI_NAMESIZE];
+	uint32_t core_id;   /* Core ID to bind kernel thread on */
+	uint16_t group_id;  /* Group ID */
+	unsigned mbuf_size; /* mbuf size */
+	struct rte_pci_addr addr;
+	struct rte_pci_id id;
+
+	uint8_t force_bind : 1; /* Flag to bind kernel thread */
+};
+
+/**
+ * Allocate KNI interface according to the port id, mbuf size, mbuf pool,
+ * configurations and callbacks for kernel requests.The KNI interface created
  * in the kernel space is the net interface the traditional Linux application
  * talking to.
  *
- * @param port_id
- *  The port id.
  * @param pktmbuf_pool
  *  The mempool for allocting mbufs for packets.
- * @param mbuf_size
- *  The mbuf size to store a packet.
+ * @param conf
+ *  The pointer to the configurations of the KNI device.
+ * @param ops
+ *  The pointer to the callbacks for the KNI kernel requests.
  *
  * @return
- *  - The pointer to the context of a kni interface.
+ *  - The pointer to the context of a KNI interface.
  *  - NULL indicate error.
  */
-extern struct rte_kni *rte_kni_create(uint8_t port_id, unsigned mbuf_size,
-		struct rte_mempool *pktmbuf_pool, struct rte_kni_ops *ops);
+extern struct rte_kni *rte_kni_alloc(struct rte_mempool *pktmbuf_pool,
+				     const struct rte_kni_conf *conf,
+				     struct rte_kni_ops *ops);
 
 /**
- * Retrieve a burst of packets from a kni interface. The retrieved packets are
- * stored in rte_mbuf structures whose pointers are supplied in the array of
- * mbufs, and the maximum number is indicated by num. It handles the freeing of
- * the mbufs in the free queue of kni interface.
+ * It create a KNI device for specific port.
+ *
+ * Note: It is deprecated and just for backward compatibility.
+ *
+ * @param port_id
+ *  Port ID.
+ * @param mbuf_size
+ *  mbuf size.
+ * @param pktmbuf_pool
+ *  The mempool for allocting mbufs for packets.
+ * @param ops
+ *  The pointer to the callbacks for the KNI kernel requests.
+ *
+ * @return
+ *  - The pointer to the context of a KNI interface.
+ *  - NULL indicate error.
+ */
+extern struct rte_kni *rte_kni_create(uint8_t port_id,
+				      unsigned mbuf_size,
+				      struct rte_mempool *pktmbuf_pool,
+				      struct rte_kni_ops *ops) \
+				      __attribute__ ((deprecated));
+
+/**
+ * Release KNI interface according to the context. It will also release the
+ * paired KNI interface in kernel space. All processing on the specific KNI
+ * context need to be stopped before calling this interface.
  *
  * @param kni
- *  The kni interface context.
+ *  The pointer to the context of an existant KNI interface.
+ *
+ * @return
+ *  - 0 indicates success.
+ *  - negative value indicates failure.
+ */
+extern int rte_kni_release(struct rte_kni *kni);
+
+/**
+ * It is used to handle the request mbufs sent from kernel space. 
+ * Then analyzes it and calls the specific actions for the specific requests.
+ * Finally constructs the response mbuf and puts it back to the resp_q.
+ *
+ * @param kni
+ *  The pointer to the context of an existant KNI interface.
+ *
+ * @return
+ *  - 0 
+ *  - negative value indicates failure.
+ */
+extern int rte_kni_handle_request(struct rte_kni *kni);
+
+/**
+ * Retrieve a burst of packets from a KNI interface. The retrieved packets are
+ * stored in rte_mbuf structures whose pointers are supplied in the array of
+ * mbufs, and the maximum number is indicated by num. It handles the freeing of
+ * the mbufs in the free queue of KNI interface.
+ *
+ * @param kni
+ *  The KNI interface context.
  * @param mbufs
  *  The array to store the pointers of mbufs.
  * @param num
@@ -106,13 +182,13 @@ extern unsigned rte_kni_rx_burst(struct rte_kni *kni,
 		struct rte_mbuf **mbufs, unsigned num);
 
 /**
- * Send a burst of packets to a kni interface. The packets to be sent out are
+ * Send a burst of packets to a KNI interface. The packets to be sent out are
  * stored in rte_mbuf structures whose pointers are supplied in the array of
  * mbufs, and the maximum number is indicated by num. It handles allocating
- * the mbufs for kni interface alloc queue.
+ * the mbufs for KNI interface alloc queue.
  *
  * @param kni
- *  The kni interface context.
+ *  The KNI interface context.
  * @param mbufs
  *  The array to store the pointers of mbufs.
  * @param num
@@ -125,16 +201,74 @@ extern unsigned rte_kni_tx_burst(struct rte_kni *kni,
 		struct rte_mbuf **mbufs, unsigned num);
 
 /**
- * Get the port id from kni interface.
+ * Get the port id from KNI interface.
+ *
+ * Note: It is deprecated and just for backward compatibility.
  *
  * @param kni
- *  The kni interface context.
+ *  The KNI interface context.
  *
  * @return
  *  On success: The port id.
  *  On failure: ~0x0
  */
-extern uint8_t rte_kni_get_port_id(struct rte_kni *kni);
+extern uint8_t rte_kni_get_port_id(struct rte_kni *kni) \
+				__attribute__ ((deprecated));
+
+/**
+ * Get the KNI context of its name.
+ *
+ * @param name
+ *  pointer to the KNI device name.
+ *
+ * @return
+ *  On success: Pointer to KNI interface.
+ *  On failure: NULL.
+ */
+extern struct rte_kni *rte_kni_get(const char *name);
+
+/**
+ * Get the KNI context of the specific port.
+ *
+ * Note: It is deprecated and just for backward compatibility.
+ *
+ * @param port_id
+ *  the port id.
+ *
+ * @return 
+ *  On success: Pointer to KNI interface.
+ *  On failure: NULL
+ */
+extern struct rte_kni *rte_kni_info_get(uint8_t port_id) \
+				__attribute__ ((deprecated));
+
+/**
+ * Register KNI request handling for a specified port,and it can
+ * be called by master process or slave process.
+ *
+ * @param kni 
+ *  pointer to struct rte_kni. 
+ * @param ops 
+ *  ponter to struct rte_kni_ops.
+ *
+ * @return
+ *  On success: 0
+ *  On failure: -1
+ */
+extern int rte_kni_register_handlers(struct rte_kni *kni,
+			struct rte_kni_ops *ops);
+
+/**
+ *  Unregister KNI request handling for a specified port.
+ * 
+ *  @param kni 
+ *   pointer to struct rte_kni. 
+ *
+ *  @return
+ *   On success: 0
+ *   On failure: -1
+ */
+extern int rte_kni_unregister_handlers(struct rte_kni *kni);
 
 #ifdef __cplusplus
 }

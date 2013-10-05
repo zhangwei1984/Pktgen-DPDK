@@ -1,26 +1,25 @@
 /*-
  * GPL LICENSE SUMMARY
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  * 
- *   This program is free software; you can redistribute it and/or modify 
+ *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of version 2 of the GNU General Public License as
  *   published by the Free Software Foundation.
  * 
- *   This program is distributed in the hope that it will be useful, but 
- *   WITHOUT ANY WARRANTY; without even the implied warranty of 
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ *   This program is distributed in the hope that it will be useful, but
+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *   General Public License for more details.
  * 
- *   You should have received a copy of the GNU General Public License 
- *   along with this program; if not, write to the Free Software 
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
- *   The full GNU General Public License is included in this distribution 
+ *   The full GNU General Public License is included in this distribution
  *   in the file called LICENSE.GPL.
  * 
  *   Contact Information:
  *   Intel Corporation
- * 
  */
 
 #include <linux/device.h>
@@ -76,6 +75,7 @@ static struct pci_device_id igbuio_pci_ids[] = {
 #define RTE_PCI_DEV_ID_DECL_IGBVF(vend, dev) {PCI_DEVICE(vend, dev)},
 #define RTE_PCI_DEV_ID_DECL_IXGBE(vend, dev) {PCI_DEVICE(vend, dev)},
 #define RTE_PCI_DEV_ID_DECL_IXGBEVF(vend, dev) {PCI_DEVICE(vend, dev)},
+#define RTE_PCI_DEV_ID_DECL_VIRTIO(vend, dev) {PCI_DEVICE(vend, dev)},
 #include <rte_pci_dev_ids.h>
 { 0, },
 };
@@ -87,6 +87,68 @@ igbuio_get_uio_pci_dev(struct uio_info *info)
 {
 	return container_of(info, struct rte_uio_pci_dev, info);
 }
+
+/* sriov sysfs */
+int local_pci_num_vf(struct pci_dev *dev)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,34)
+	struct iov {
+		int pos;
+		int nres;
+		u32 cap;
+		u16 ctrl;
+		u16 total;
+		u16 initial;
+		u16 nr_virtfn;
+	} *iov = (struct iov*)dev->sriov;
+
+	if (!dev->is_physfn)
+		return 0;
+	
+	return iov->nr_virtfn;
+#else
+	return pci_num_vf(dev);
+#endif
+}
+
+static ssize_t
+show_max_vfs(struct device *dev, struct device_attribute *attr,
+	     char *buf)
+{
+	return snprintf(buf, 10, "%u\n", local_pci_num_vf(
+				container_of(dev, struct pci_dev, dev)));
+}
+
+static ssize_t
+store_max_vfs(struct device *dev, struct device_attribute *attr,
+	      const char *buf, size_t count)
+{
+	int err = 0;
+	unsigned long max_vfs;
+	struct pci_dev *pdev = container_of(dev, struct pci_dev, dev);
+
+	if (0 != strict_strtoul(buf, 0, &max_vfs))
+		return -EINVAL;
+
+	if (0 == max_vfs)
+		pci_disable_sriov(pdev);
+	else if (0 == local_pci_num_vf(pdev))
+		err = pci_enable_sriov(pdev, max_vfs);
+	else /* do nothing if change max_vfs number */
+		err = -EINVAL;
+
+	return err ? err : count;							
+}
+
+static DEVICE_ATTR(max_vfs, S_IRUGO | S_IWUSR, show_max_vfs, store_max_vfs);
+static struct attribute *dev_attrs[] = {
+	&dev_attr_max_vfs.attr,
+        NULL,
+};
+
+static const struct attribute_group dev_attr_grp = {
+	.attrs = dev_attrs,
+};
 
 static inline int
 pci_lock(struct pci_dev * pdev)
@@ -258,6 +320,9 @@ igbuio_pci_setup_iomem(struct pci_dev *dev, struct uio_info *info,
 	unsigned long addr, len;
 	void *internal_addr;
 
+	if (sizeof(info->mem) / sizeof (info->mem[0]) <= n)  
+		return (EINVAL);
+
 	addr = pci_resource_start(dev, pci_bar);
 	len = pci_resource_len(dev, pci_bar);
 	if (addr == 0 || len == 0)
@@ -273,6 +338,29 @@ igbuio_pci_setup_iomem(struct pci_dev *dev, struct uio_info *info,
 	return 0;
 }
 
+/* Get pci port io resources described by bar #pci_bar in uio resource n. */
+static int
+igbuio_pci_setup_ioport(struct pci_dev *dev, struct uio_info *info,
+		int n, int pci_bar, const char *name)
+{
+	unsigned long addr, len;
+
+	if (sizeof(info->port) / sizeof (info->port[0]) <= n)  
+		return (EINVAL);
+
+	addr = pci_resource_start(dev, pci_bar);
+	len = pci_resource_len(dev, pci_bar);
+	if (addr == 0 || len == 0)
+		return (-1);
+
+	info->port[n].name = name;
+	info->port[n].start = addr;
+	info->port[n].size = len;
+	info->port[n].porttype = UIO_PORT_X86;
+
+	return (0);
+}
+
 /* Unmap previously ioremap'd resources */
 static void
 igbuio_pci_release_iomem(struct uio_info *info)
@@ -284,7 +372,49 @@ igbuio_pci_release_iomem(struct uio_info *info)
 	}
 }
 
+static int
+igbuio_setup_bars(struct pci_dev *dev, struct uio_info *info)
+{
+	int i, iom, iop, ret;
+	unsigned long flags;
+	static const char *bar_names[PCI_STD_RESOURCE_END + 1]  = {
+		"BAR0",
+		"BAR1",
+		"BAR2",
+		"BAR3",
+		"BAR4",
+		"BAR5",
+	};
+
+	iom = 0;
+	iop = 0;
+
+	for (i = 0; i != sizeof(bar_names) / sizeof(bar_names[0]); i++) {
+		if (pci_resource_len(dev, i) != 0 &&
+				pci_resource_start(dev, i) != 0) {
+			flags = pci_resource_flags(dev, i);
+			if (flags & IORESOURCE_MEM) {
+				if ((ret = igbuio_pci_setup_iomem(dev, info,
+						iom, i, bar_names[i])) != 0)
+					return (ret);
+				iom++;
+			} else if (flags & IORESOURCE_IO) {
+				if ((ret = igbuio_pci_setup_ioport(dev, info,
+						iop, i, bar_names[i])) != 0)
+					return (ret);
+				iop++;
+			}
+		}
+	}
+
+	return ((iom != 0) ? ret : ENOENT);
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)
 static int __devinit
+#else
+static int
+#endif
 igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 {
 	struct rte_uio_pci_dev *udev;
@@ -302,13 +432,6 @@ igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 		goto fail_free;
 	}
 
-	/* XXX should we use 64 bits ? */
-	/* set 32-bit DMA mask */
-	if (pci_set_dma_mask(dev,(uint64_t)0xffffffff)) {
-		printk(KERN_ERR "Cannot set DMA mask\n");
-		goto fail_disable;
-	}
-
 	/*
 	 * reserve device's PCI memory regions for use by this
 	 * module
@@ -322,8 +445,17 @@ igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 	pci_set_master(dev);
 
 	/* remap IO memory */
-	if (igbuio_pci_setup_iomem(dev, &udev->info, 0, 0, "config"))
-		goto fail_release_regions;
+	if (igbuio_setup_bars(dev, &udev->info))
+		goto fail_release_iomem;
+
+	/* set 64-bit DMA mask */
+	if (pci_set_dma_mask(dev,  DMA_BIT_MASK(64))) {
+		printk(KERN_ERR "Cannot set DMA mask\n");
+		goto fail_release_iomem;
+	} else if (pci_set_consistent_dma_mask(dev, DMA_BIT_MASK(64))) {
+		printk(KERN_ERR "Cannot set consistent DMA mask\n");
+		goto fail_release_iomem;
+	}
 
 	/* fill uio infos */
 	udev->info.name = "Intel IGB UIO";
@@ -368,6 +500,9 @@ igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 	pci_set_drvdata(dev, udev);
 	igbuio_pci_irqcontrol(&udev->info, 0);
 
+	if (sysfs_create_group(&dev->dev.kobj, &dev_attr_grp))
+		goto fail_release_iomem;
+
 	/* register uio driver */
 	if (uio_register_device(&dev->dev, &udev->info))
 		goto fail_release_iomem;
@@ -377,10 +512,10 @@ igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 	return 0;
 
 fail_release_iomem:
+	sysfs_remove_group(&dev->dev.kobj, &dev_attr_grp);
 	igbuio_pci_release_iomem(&udev->info);
 	if (udev->mode == IGBUIO_MSIX_INTR_MODE)
 		pci_disable_msix(udev->pdev);
-fail_release_regions:
 	pci_release_regions(dev);
 fail_disable:
 	pci_disable_device(dev);
@@ -400,6 +535,7 @@ igbuio_pci_remove(struct pci_dev *dev)
 		return;
 	}
 
+	sysfs_remove_group(&dev->dev.kobj, &dev_attr_grp);
 	uio_unregister_device(info);
 	igbuio_pci_release_iomem(info);
 	if (((struct rte_uio_pci_dev *)info->priv)->mode ==

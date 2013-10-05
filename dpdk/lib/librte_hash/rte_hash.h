@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _RTE_HASH_H_
@@ -58,7 +57,8 @@ extern "C" {
 #define RTE_HASH_KEY_LENGTH_MAX			64
 
 /** Max number of keys that can be searched for using rte_hash_lookup_multi. */
-#define RTE_HASH_LOOKUP_MULTI_MAX		16
+#define RTE_HASH_LOOKUP_BULK_MAX		16
+#define RTE_HASH_LOOKUP_MULTI_MAX		RTE_HASH_LOOKUP_BULK_MAX
 
 /** Max number of characters in hash name.*/
 #define RTE_HASH_NAMESIZE			32
@@ -169,6 +169,26 @@ int32_t
 rte_hash_add_key(const struct rte_hash *h, const void *key);
 
 /**
+ * Add a key to an existing hash table. This operation is not multi-thread safe
+ * and should only be called from one thread.
+ *
+ * @param h
+ *   Hash table to add the key to.
+ * @param key
+ *   Key to add to the hash table.
+ * @param sig
+ *   Hash value to add to the hash table.
+ * @return
+ *   - -EINVAL if the parameters are invalid.
+ *   - -ENOSPC if there is no space in the hash for this key.
+ *   - A positive value that can be used by the caller as an offset into an
+ *     array of user data. This value is unique for this key.
+ */
+int32_t
+rte_hash_add_key_with_hash(const struct rte_hash *h, 
+				const void *key, hash_sig_t sig);
+
+/**
  * Remove a key from an existing hash table. This operation is not multi-thread
  * safe and should only be called from one thread.
  *
@@ -185,6 +205,28 @@ rte_hash_add_key(const struct rte_hash *h, const void *key);
  */
 int32_t
 rte_hash_del_key(const struct rte_hash *h, const void *key);
+
+/**
+ * Remove a key from an existing hash table. This operation is not multi-thread
+ * safe and should only be called from one thread.
+ *
+ * @param h
+ *   Hash table to remove the key from.
+ * @param key
+ *   Key to remove from the hash table.
+ * @param sig
+ *   Hash value to remove from the hash table.
+ * @return
+ *   - -EINVAL if the parameters are invalid.
+ *   - -ENOENT if the key is not found.
+ *   - A positive value that can be used by the caller as an offset into an
+ *     array of user data. This value is unique for this key, and is the same
+ *     value that was returned when the key was added.
+ */
+int32_t
+rte_hash_del_key_with_hash(const struct rte_hash *h, 
+				const void *key, hash_sig_t sig);
+
 
 /**
  * Find a key in the hash table. This operation is multi-thread safe.
@@ -204,6 +246,45 @@ int32_t
 rte_hash_lookup(const struct rte_hash *h, const void *key);
 
 /**
+ * Find a key in the hash table. This operation is multi-thread safe.
+ *
+ * @param h
+ *   Hash table to look in.
+ * @param key
+ *   Key to find.
+ * @param sig
+ *   Hash value to find.
+ * @return
+ *   - -EINVAL if the parameters are invalid.
+ *   - -ENOENT if the key is not found.
+ *   - A positive value that can be used by the caller as an offset into an
+ *     array of user data. This value is unique for this key, and is the same
+ *     value that was returned when the key was added.
+ */
+int32_t
+rte_hash_lookup_with_hash(const struct rte_hash *h, 
+				const void *key, hash_sig_t sig);
+
+
+/**
+ * Calc a hash value by key. This operation is not multi-process safe.
+ *
+ * @param h
+ *   Hash table to look in.
+ * @param key
+ *   Key to find.
+ * @return
+ *   - hash value
+ */
+static inline hash_sig_t
+rte_hash_hash(const struct rte_hash *h, const void *key)
+{
+	/* calc hash result by key */
+	return h->hash_func(key, h->key_len, h->hash_func_init_val);
+}
+
+#define rte_hash_lookup_multi rte_hash_lookup_bulk
+/**
  * Find multiple keys in the hash table. This operation is multi-thread safe.
  *
  * @param h
@@ -211,7 +292,7 @@ rte_hash_lookup(const struct rte_hash *h, const void *key);
  * @param keys
  *   A pointer to a list of keys to look for.
  * @param num_keys
- *   How many keys are in the keys list (less than RTE_HASH_LOOKUP_MULTI_MAX).
+ *   How many keys are in the keys list (less than RTE_HASH_LOOKUP_BULK_MAX).
  * @param positions
  *   Output containing a list of values, corresponding to the list of keys that
  *   can be used by the caller as an offset into an array of user data. These
@@ -222,14 +303,8 @@ rte_hash_lookup(const struct rte_hash *h, const void *key);
  *   -EINVAL if there's an error, otherwise 0.
  */
 int
-rte_hash_lookup_multi(const struct rte_hash *h, const void **keys,
+rte_hash_lookup_bulk(const struct rte_hash *h, const void **keys,
 		      uint32_t num_keys, int32_t *positions);
-
-static __inline__ int rte_hash_lookup_bulk(const struct rte_hash *h, const void **keys,
-		      uint32_t num_keys, int32_t *positions) {
-	return rte_hash_lookup_multi(h, keys, num_keys, positions);
-}
-
 #ifdef __cplusplus
 }
 #endif

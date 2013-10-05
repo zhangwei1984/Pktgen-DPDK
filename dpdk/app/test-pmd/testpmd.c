@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdarg.h>
@@ -89,6 +88,12 @@ uint8_t interactive = 0;
  * Otherwise, all memory is allocated from CPU socket 0.
  */
 uint8_t numa_support = 0; /**< No numa support by default */
+
+/*
+ * In UMA mode,all memory is allocated from socket 0 if --socket-num is 
+ * not configured.
+ */
+uint8_t socket_num = UMA_NO_CONFIG; 
 
 /*
  * Record the Ethernet address of peer target ports to which packets are
@@ -238,6 +243,12 @@ uint16_t rss_hf = ETH_RSS_IPV4 | ETH_RSS_IPV6; /* RSS IP by default. */
  */
 uint16_t port_topology = PORT_TOPOLOGY_PAIRED; /* Ports are paired by default */
 
+
+/*
+ * Avoids to flush all the RX streams before starts forwarding.
+ */
+uint8_t no_flush_rx = 0; /* flush by default */
+
 /*
  * Ethernet device configuration.
  */
@@ -359,6 +370,7 @@ testpmd_mbuf_ctor(struct rte_mempool *mp,
 	mb_ctor_arg = (struct mbuf_ctor_arg *) opaque_arg;
 	mb = (struct rte_mbuf *) raw_mbuf;
 
+	mb->type         = RTE_MBUF_PKT;
 	mb->pool         = mp;
 	mb->buf_addr     = (void *) ((char *)mb + mb_ctor_arg->seg_buf_offset);
 	mb->buf_physaddr = (uint64_t) (rte_mempool_virt2phy(mp, mb) +
@@ -428,7 +440,9 @@ init_config(void)
 	struct rte_mempool *mbp;
 	unsigned int nb_mbuf_per_pool;
 	lcoreid_t  lc_id;
+	uint8_t port_per_socket[MAX_SOCKET];
 
+	memset(port_per_socket,0,MAX_SOCKET);
 	/* Configuration of logical cores. */
 	fwd_lcores = rte_zmalloc("testpmd: fwd_lcores",
 				sizeof(struct fwd_lcore *) * nb_lcores,
@@ -451,27 +465,29 @@ init_config(void)
 	/*
 	 * Create pools of mbuf.
 	 * If NUMA support is disabled, create a single pool of mbuf in
-	 * socket 0 memory.
+	 * socket 0 memory by default.
 	 * Otherwise, create a pool of mbuf in the memory of sockets 0 and 1.
 	 *
 	 * Use the maximum value of nb_rxd and nb_txd here, then nb_rxd and
 	 * nb_txd can be configured at run time.
 	 */
-	if (param_total_num_mbufs)
+	if (param_total_num_mbufs) 
 		nb_mbuf_per_pool = param_total_num_mbufs;
 	else {
 		nb_mbuf_per_pool = RTE_TEST_RX_DESC_MAX + (nb_lcores * mb_mempool_cache)
 				+ RTE_TEST_TX_DESC_MAX + MAX_PKT_BURST;
-		nb_mbuf_per_pool = (nb_mbuf_per_pool * nb_ports);
-	}
-	if (numa_support) {
-		nb_mbuf_per_pool /= 2;
-		mbuf_pool_create(mbuf_data_size, nb_mbuf_per_pool, 0);
-		mbuf_pool_create(mbuf_data_size, nb_mbuf_per_pool, 1);
-	} else {
-		mbuf_pool_create(mbuf_data_size, nb_mbuf_per_pool, 0);
+		
+		if (!numa_support) 
+			nb_mbuf_per_pool = (nb_mbuf_per_pool * nb_ports);
 	}
 
+	if (!numa_support) {
+		if (socket_num == UMA_NO_CONFIG)
+			mbuf_pool_create(mbuf_data_size, nb_mbuf_per_pool, 0);
+		else
+			mbuf_pool_create(mbuf_data_size, nb_mbuf_per_pool,
+						 socket_num);
+	}
 	/*
 	 * Records which Mbuf pool to use by each logical core, if needed.
 	 */
@@ -490,18 +506,41 @@ init_config(void)
 		rte_exit(EXIT_FAILURE, "rte_zmalloc(%d struct rte_port) "
 							"failed\n", nb_ports);
 	}
-
+	
 	for (pid = 0; pid < nb_ports; pid++) {
 		port = &ports[pid];
 		rte_eth_dev_info_get(pid, &port->dev_info);
+
+		if (numa_support) {
+			if (port_numa[pid] != NUMA_NO_CONFIG) 
+				port_per_socket[port_numa[pid]]++;
+			else {
+				uint32_t socket_id = rte_eth_dev_socket_id(pid);
+				port_per_socket[socket_id]++; 
+			}
+		}
 
 		/* set flag to initialize port/queue */
 		port->need_reconfig = 1;
 		port->need_reconfig_queues = 1;
 	}
 
-	init_port_config();
+	if (numa_support) {
+		uint8_t i;
+		unsigned int nb_mbuf;
 
+		if (param_total_num_mbufs)
+			nb_mbuf_per_pool = nb_mbuf_per_pool/nb_ports;
+
+		for (i = 0; i < MAX_SOCKET; i++) {
+			nb_mbuf = (nb_mbuf_per_pool * 
+						port_per_socket[i]);
+			if (nb_mbuf) 
+				mbuf_pool_create(mbuf_data_size,
+						nb_mbuf,i);
+		}
+	}
+	init_port_config();
 	/* Configuration of packet forwarding streams. */
 	if (init_fwd_streams() < 0)
 		rte_exit(EXIT_FAILURE, "FAIL from init_fwd_streams()\n");
@@ -529,10 +568,14 @@ init_fwd_streams(void)
 				port->dev_info.max_tx_queues);
 			return -1;
 		}
-		if (numa_support)
-			port->socket_id = (pid < (nb_ports >> 1)) ? 0 : 1;
-		else
-			port->socket_id = 0;
+		if (numa_support) 
+			port->socket_id = rte_eth_dev_socket_id(pid);
+		else {
+			if (socket_num == UMA_NO_CONFIG)	 
+				port->socket_id = 0;
+			else 
+				port->socket_id = socket_num;	
+		}
 	}
 
 	nb_fwd_streams_new = (streamid_t)(nb_ports * nb_rxq);
@@ -739,20 +782,22 @@ fwd_stream_stats_display(streamid_t stream_id)
 }
 
 static void
-flush_all_rx_queues(void)
+flush_fwd_rx_queues(void)
 {
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
 	portid_t  rxp;
+	portid_t port_id;
 	queueid_t rxq;
 	uint16_t  nb_rx;
 	uint16_t  i;
 	uint8_t   j;
 
 	for (j = 0; j < 2; j++) {
-		for (rxp = 0; rxp < nb_ports; rxp++) {
+		for (rxp = 0; rxp < cur_fwd_config.nb_fwd_ports; rxp++) {
 			for (rxq = 0; rxq < nb_rxq; rxq++) {
+				port_id = fwd_ports_ids[rxp];
 				do {
-					nb_rx = rte_eth_rx_burst(rxp, rxq,
+					nb_rx = rte_eth_rx_burst(port_id, rxq,
 						pkts_burst, MAX_PKT_BURST);
 					for (i = 0; i < nb_rx; i++)
 						rte_pktmbuf_free(pkts_burst[i]);
@@ -855,12 +900,27 @@ start_packet_forwarding(int with_tx_first)
 		printf("Packet forwarding already started\n");
 		return;
 	}
-	if((dcb_test) && (nb_fwd_lcores == 1)) {
-		printf("In DCB mode,the nb forwarding cores should be larger than 1.\n");
-		return;
+	if(dcb_test) {
+		for (i = 0; i < nb_fwd_ports; i++) {
+			pt_id = fwd_ports_ids[i];
+			port = &ports[pt_id];
+			if (!port->dcb_flag) {
+				printf("In DCB mode, all forwarding ports must "
+                                       "be configured in this mode.\n");
+				return;
+			}
+		}
+		if (nb_fwd_lcores == 1) {
+			printf("In DCB mode,the nb forwarding cores "
+                               "should be larger than 1.\n");
+			return;
+		}
 	}
 	test_done = 0;
-	flush_all_rx_queues();
+
+	if(!no_flush_rx)
+		flush_fwd_rx_queues();
+
 	fwd_config_setup();
 	rxtx_config_display();
 
@@ -993,7 +1053,7 @@ stop_packet_forwarding(void)
 	total_rx_dropped = 0;
 	total_tx_dropped = 0;
 	total_rx_nombuf  = 0;
-	for (i = 0; i < ((cur_fwd_config.nb_fwd_ports + 1) & ~0x1); i++) {
+	for (i = 0; i < cur_fwd_config.nb_fwd_ports; i++) {
 		pt_id = fwd_ports_ids[i];
 
 		port = &ports[pt_id];
@@ -1101,7 +1161,8 @@ start_port(portid_t pid)
 		if (port->need_reconfig > 0) {
 			port->need_reconfig = 0;
 
-			printf("Configuring Port %d\n", pi);
+			printf("Configuring Port %d (socket %d)\n", pi,
+					rte_eth_dev_socket_id(pi));
 			/* configure port */
 			diag = rte_eth_dev_configure(pi, nb_rxq, nb_txq,
 						&(port->dev_conf));
@@ -1116,14 +1177,20 @@ start_port(portid_t pid)
 				return;
 			}
 		}
-
 		if (port->need_reconfig_queues > 0) {
 			port->need_reconfig_queues = 0;
-
 			/* setup tx queues */
 			for (qi = 0; qi < nb_txq; qi++) {
-				diag = rte_eth_tx_queue_setup(pi, qi, nb_txd,
-					port->socket_id, &(port->tx_conf));
+				if ((numa_support) &&
+					(txring_numa[pi] != NUMA_NO_CONFIG)) 
+					diag = rte_eth_tx_queue_setup(pi, qi,
+						nb_txd,txring_numa[pi],
+						&(port->tx_conf));
+				else
+					diag = rte_eth_tx_queue_setup(pi, qi, 
+						nb_txd,port->socket_id,
+						&(port->tx_conf));
+					
 				if (diag == 0)
 					continue;
 
@@ -1140,11 +1207,31 @@ start_port(portid_t pid)
 			}
 			/* setup rx queues */
 			for (qi = 0; qi < nb_rxq; qi++) {
-				diag = rte_eth_rx_queue_setup(pi, qi, nb_rxd,
-					port->socket_id, &(port->rx_conf),
-					mbuf_pool_find(port->socket_id));
+				if ((numa_support) && 
+					(rxring_numa[pi] != NUMA_NO_CONFIG)) {
+					struct rte_mempool * mp = 
+						mbuf_pool_find(rxring_numa[pi]);
+					if (mp == NULL) {
+						printf("Failed to setup RX queue:"
+							"No mempool allocation"
+							"on the socket %d\n",
+							rxring_numa[pi]);
+						return;
+					}
+					
+					diag = rte_eth_rx_queue_setup(pi, qi,
+					     nb_rxd,rxring_numa[pi],
+					     &(port->rx_conf),mp);
+				}
+				else
+					diag = rte_eth_rx_queue_setup(pi, qi, 
+					     nb_rxd,port->socket_id,
+					     &(port->rx_conf),
+				             mbuf_pool_find(port->socket_id));
+
 				if (diag == 0)
 					continue;
+
 
 				/* Fail to setup rx queue, return */
 				if (rte_atomic16_cmpset(&(port->port_status),
@@ -1158,7 +1245,6 @@ start_port(portid_t pid)
 				return;
 			}
 		}
-
 		/* start port */
 		if (rte_eth_dev_start(pi) < 0) {
 			printf("Fail to start port %d\n", pi);
@@ -1498,8 +1584,8 @@ get_eth_dcb_conf(struct rte_eth_conf *eth_conf, struct dcb_config *dcb_conf)
 		}
  
 		/*set DCB mode of RX and TX of multiple queues*/
-		eth_conf->rxmode.mq_mode = ETH_VMDQ_DCB;
-		eth_conf->txmode.mq_mode = ETH_VMDQ_DCB_TX;
+		eth_conf->rxmode.mq_mode = ETH_MQ_RX_VMDQ_DCB;
+		eth_conf->txmode.mq_mode = ETH_MQ_TX_VMDQ_DCB;
 		if (dcb_conf->pfc_en)
 			eth_conf->dcb_capability_en = ETH_DCB_PG_SUPPORT|ETH_DCB_PFC_SUPPORT;
 		else
@@ -1527,8 +1613,8 @@ get_eth_dcb_conf(struct rte_eth_conf *eth_conf, struct dcb_config *dcb_conf)
 			rx_conf.dcb_queue[i] = i;
 			tx_conf.dcb_queue[i] = i;
 		}
-		eth_conf->rxmode.mq_mode = ETH_DCB_RX;
-		eth_conf->txmode.mq_mode = ETH_DCB_TX;
+		eth_conf->rxmode.mq_mode = ETH_MQ_RX_DCB;
+		eth_conf->txmode.mq_mode = ETH_MQ_TX_DCB;
 		if (dcb_conf->pfc_en)
 			eth_conf->dcb_capability_en = ETH_DCB_PG_SUPPORT|ETH_DCB_PFC_SUPPORT;
 		else
@@ -1583,6 +1669,8 @@ init_port_dcb_config(portid_t pid,struct dcb_config *dcb_conf)
  
 	rte_eth_macaddr_get(pid, &rte_port->eth_addr);
 	map_port_queue_stats_mapping_registers(pid, rte_port);
+
+	rte_port->dcb_flag = 1;
  
 	return 0;
 }

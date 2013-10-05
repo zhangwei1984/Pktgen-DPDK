@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -96,9 +95,7 @@
 #define TX_WTHRESH 0  /**< Default values of TX write-back threshold reg. */
 
 #define MAX_PKT_BURST 32
-#define BURST_TX_DRAIN 200000ULL /* around 100us at 2 Ghz */
-
-#define SOCKET0 0
+#define BURST_TX_DRAIN_US 100 /* TX drain every ~100us */
 
 #define TX_QUEUE_FLUSH_MASK 0xFFFFFFFF
 #define TSC_COUNT_LIMIT 1000
@@ -120,6 +117,9 @@ static struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 /* mask of enabled ports */
 static unsigned enabled_port_mask = 0;
 static int promiscuous_on = 1; /**< Ports set in promiscuous mode on by default. */
+
+/* list of enabled ports */
+static uint32_t dst_ports[RTE_MAX_ETHPORTS];
 
 struct mbuf_table {
 	uint16_t len;
@@ -173,7 +173,7 @@ static struct rte_eth_conf port_conf = {
 		},
 	},
 	.txmode = {
-		.mq_mode = ETH_DCB_NONE,
+		.mq_mode = ETH_MQ_TX_NONE,
 	},
 };
 
@@ -316,19 +316,13 @@ nic_tx_send_packet(struct rte_mbuf *pkt, uint8_t port)
 	qconf->tx_mbufs[port].len = len;
 }
 
-static inline uint8_t
-get_output_port(uint8_t input_port)
-{
-	RTE_BUILD_BUG_ON((RTE_MAX_ETHPORTS & 1) != 0);
-	return (uint8_t)(input_port ^ 1);
-}
-
 /* main processing loop */
 static __attribute__((noreturn)) int
 main_loop(__attribute__((unused)) void *dummy)
 {
 	uint32_t lcoreid;
 	struct lcore_conf *qconf;
+	const uint64_t drain_tsc = (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
 	lcoreid = rte_lcore_id();
 	qconf = &lcore_conf[lcoreid];
@@ -348,7 +342,7 @@ main_loop(__attribute__((unused)) void *dummy)
 			tsc = rte_rdtsc();
 
 			diff_tsc = tsc - qconf->tsc;
-			if (unlikely(diff_tsc > BURST_TX_DRAIN)) {
+			if (unlikely(diff_tsc > drain_tsc)) {
 				nic_tx_flush_queues(qconf);
 				crypto_flush_tx_queue(lcoreid);
 				qconf->tsc = tsc;
@@ -389,10 +383,10 @@ main_loop(__attribute__((unused)) void *dummy)
 			}
 		}
 
-		port = get_output_port(pkt->pkt.in_port);
+		port = dst_ports[pkt->pkt.in_port];
 
 		/* Transmit the packet */
-		nic_tx_send_packet(pkt, port);
+		nic_tx_send_packet(pkt, (uint8_t)port);
 	}
 }
 
@@ -686,7 +680,8 @@ MAIN(int argc, char **argv)
 	uint16_t queueid;
 	unsigned lcoreid;
 	uint32_t nb_tx_queue;
-	uint8_t portid, nb_rx_queue, queue, socketid;
+	uint8_t portid, nb_rx_queue, queue, socketid, last_port;
+        unsigned nb_ports_in_mask = 0;
 
 	/* init EAL */
 	ret = rte_eal_init(argc, argv);
@@ -730,6 +725,33 @@ MAIN(int argc, char **argv)
 
 	if (check_port_config(nb_ports) < 0)
 		rte_panic("check_port_config failed\n");
+
+        /* reset dst_ports */
+        for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++)
+                dst_ports[portid] = 0;
+        last_port = 0;
+
+        /*
+         * Each logical core is assigned a dedicated TX queue on each port.
+         */
+        for (portid = 0; portid < nb_ports; portid++) {
+                /* skip ports that are not enabled */
+                if ((enabled_port_mask & (1 << portid)) == 0)
+                        continue;
+
+                if (nb_ports_in_mask % 2) {
+                        dst_ports[portid] = last_port;
+                        dst_ports[last_port] = portid;
+                }
+                else
+                        last_port = portid;
+
+                nb_ports_in_mask++;
+        }
+        if (nb_ports_in_mask % 2) {
+                printf("Notice: odd number of ports in portmask.\n");
+                dst_ports[last_port] = last_port;
+        }
 
 	/* initialize all ports */
 	for (portid = 0; portid < nb_ports; portid++) {

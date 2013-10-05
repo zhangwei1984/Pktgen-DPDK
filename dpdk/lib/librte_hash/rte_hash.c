@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <string.h>
@@ -261,18 +260,17 @@ rte_hash_free(struct rte_hash *h)
 	rte_free(h);
 }
 
-int32_t
-rte_hash_add_key(const struct rte_hash *h, const void *key)
+static inline int32_t
+__rte_hash_add_key_with_hash(const struct rte_hash *h, 
+				const void *key, hash_sig_t sig)
 {
-	hash_sig_t sig, *sig_bucket;
+	hash_sig_t *sig_bucket;
 	uint8_t *key_bucket;
 	uint32_t bucket_index, i;
 	int32_t pos;
 
-	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
-
 	/* Get the hash signature and bucket index */
-	sig = h->hash_func(key, h->key_len, h->hash_func_init_val) | h->sig_msb;
+	sig |= h->sig_msb;
 	bucket_index = sig & h->bucket_bitmask;
 	sig_bucket = get_sig_tbl_bucket(h, bucket_index);
 	key_bucket = get_key_tbl_bucket(h, bucket_index);
@@ -299,16 +297,30 @@ rte_hash_add_key(const struct rte_hash *h, const void *key)
 }
 
 int32_t
-rte_hash_del_key(const struct rte_hash *h, const void *key)
+rte_hash_add_key_with_hash(const struct rte_hash *h, 
+				const void *key, hash_sig_t sig)
 {
-	hash_sig_t sig, *sig_bucket;
+	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
+	return __rte_hash_add_key_with_hash(h, key, sig);
+}
+
+int32_t
+rte_hash_add_key(const struct rte_hash *h, const void *key)
+{
+	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
+	return __rte_hash_add_key_with_hash(h, key, rte_hash_hash(h, key));
+}
+
+static inline int32_t
+__rte_hash_del_key_with_hash(const struct rte_hash *h, 
+				const void *key, hash_sig_t sig)
+{
+	hash_sig_t *sig_bucket;
 	uint8_t *key_bucket;
 	uint32_t bucket_index, i;
 
-	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
-
 	/* Get the hash signature and bucket index */
-	sig = h->hash_func(key, h->key_len, h->hash_func_init_val) | h->sig_msb;
+	sig = sig | h->sig_msb;
 	bucket_index = sig & h->bucket_bitmask;
 	sig_bucket = get_sig_tbl_bucket(h, bucket_index);
 	key_bucket = get_key_tbl_bucket(h, bucket_index);
@@ -327,16 +339,30 @@ rte_hash_del_key(const struct rte_hash *h, const void *key)
 }
 
 int32_t
-rte_hash_lookup(const struct rte_hash *h, const void *key)
+rte_hash_del_key_with_hash(const struct rte_hash *h, 
+				const void *key, hash_sig_t sig)
 {
-	hash_sig_t sig, *sig_bucket;
+	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
+	return __rte_hash_del_key_with_hash(h, key, sig);
+}
+
+int32_t
+rte_hash_del_key(const struct rte_hash *h, const void *key)
+{
+	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
+	return __rte_hash_del_key_with_hash(h, key, rte_hash_hash(h, key));
+}
+
+static inline int32_t
+__rte_hash_lookup_with_hash(const struct rte_hash *h, 
+			const void *key, hash_sig_t sig)
+{
+	hash_sig_t *sig_bucket;
 	uint8_t *key_bucket;
 	uint32_t bucket_index, i;
 
-	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
-
 	/* Get the hash signature and bucket index */
-	sig = h->hash_func(key, h->key_len, h->hash_func_init_val) | h->sig_msb;
+	sig |= h->sig_msb;
 	bucket_index = sig & h->bucket_bitmask;
 	sig_bucket = get_sig_tbl_bucket(h, bucket_index);
 	key_bucket = get_key_tbl_bucket(h, bucket_index);
@@ -353,15 +379,30 @@ rte_hash_lookup(const struct rte_hash *h, const void *key)
 	return -ENOENT;
 }
 
+int32_t
+rte_hash_lookup_with_hash(const struct rte_hash *h, 
+			const void *key, hash_sig_t sig)
+{
+	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
+	return __rte_hash_lookup_with_hash(h, key, sig);
+}
+
+int32_t
+rte_hash_lookup(const struct rte_hash *h, const void *key)
+{
+	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
+	return __rte_hash_lookup_with_hash(h, key, rte_hash_hash(h, key));
+}
+
 int
-rte_hash_lookup_multi(const struct rte_hash *h, const void **keys,
+rte_hash_lookup_bulk(const struct rte_hash *h, const void **keys,
 		      uint32_t num_keys, int32_t *positions)
 {
 	uint32_t i, j, bucket_index;
-	hash_sig_t sigs[RTE_HASH_LOOKUP_MULTI_MAX];
+	hash_sig_t sigs[RTE_HASH_LOOKUP_BULK_MAX];
 
 	RETURN_IF_TRUE(((h == NULL) || (keys == NULL) || (num_keys == 0) ||
-			(num_keys > RTE_HASH_LOOKUP_MULTI_MAX) ||
+			(num_keys > RTE_HASH_LOOKUP_BULK_MAX) ||
 			(positions == NULL)), -EINVAL);
 
 	/* Get the hash signature and bucket index */

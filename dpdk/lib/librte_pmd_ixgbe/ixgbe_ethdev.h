@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _IXGBE_ETHDEV_H_
@@ -40,6 +39,7 @@
 
 /* need update link, bit flag */
 #define IXGBE_FLAG_NEED_LINK_UPDATE (uint32_t)(1 << 0)
+#define IXGBE_FLAG_MAILBOX          (uint32_t)(1 << 1)
 
 /*
  * Defines that were not part of ixgbe_type.h as they are not used by the
@@ -54,7 +54,7 @@
 #define IXGBE_NB_STAT_MAPPING_REGS  32
 #define IXGBE_EXTENDED_VLAN	  (uint32_t)(1 << 26) /* EXTENDED VLAN ENABLE */
 #define IXGBE_VFTA_SIZE 128
-#define IXGBE_RX_BUF_THRESHOLD 4
+#define IXGBE_VLAN_TAG_SIZE 4
 #define IXGBE_MAX_RX_QUEUE_NUM	128
 #ifndef NBBY
 #define NBBY	8	/* number of bits in a byte */
@@ -79,6 +79,7 @@ struct ixgbe_hw_fdir_info {
 /* structure for interrupt relative data */
 struct ixgbe_interrupt {
 	uint32_t flags;
+	uint32_t mask;
 };
 
 struct ixgbe_stat_mapping_registers {
@@ -95,6 +96,36 @@ struct ixgbe_hwstrip {
 };
 
 /*
+ * VF data which used by PF host only
+ */
+#define IXGBE_MAX_VF_MC_ENTRIES		30
+#define IXGBE_MAX_MR_RULE_ENTRIES	4 /* number of mirroring rules supported */
+#define IXGBE_MAX_UTA                   128	
+
+struct ixgbe_uta_info {
+	uint8_t  uc_filter_type;
+	uint16_t uta_in_use;
+	uint32_t uta_shadow[IXGBE_MAX_UTA];
+};
+
+struct ixgbe_mirror_info {
+	struct rte_eth_vmdq_mirror_conf mr_conf[ETH_VMDQ_NUM_MIRROR_RULE]; 
+	/**< store PF mirror rules configuration*/
+};
+
+struct ixgbe_vf_info {
+	uint8_t vf_mac_addresses[ETHER_ADDR_LEN];
+	uint16_t vf_mc_hashes[IXGBE_MAX_VF_MC_ENTRIES];
+	uint16_t num_vf_mc_hashes;
+	uint16_t default_vf_vlan_id;
+	uint16_t vlans_enabled;
+	bool clear_to_send;
+	uint16_t tx_rate;
+	uint16_t vlan_count;
+	uint8_t spoofchk_enabled;
+};
+
+/*
  * Structure to store private data for each driver instance (for each port).
  */
 struct ixgbe_adapter {
@@ -106,6 +137,9 @@ struct ixgbe_adapter {
 	struct ixgbe_vfta           shadow_vfta;
 	struct ixgbe_hwstrip		hwstrip;
 	struct ixgbe_dcb_config     dcb_config;
+	struct ixgbe_mirror_info    mr_data;
+	struct ixgbe_vf_info        *vfdata;
+	struct ixgbe_uta_info       uta_info;
 };
 
 #define IXGBE_DEV_PRIVATE_TO_HW(adapter)\
@@ -132,6 +166,15 @@ struct ixgbe_adapter {
 #define IXGBE_DEV_PRIVATE_TO_DCB_CFG(adapter) \
 	(&((struct ixgbe_adapter *)adapter)->dcb_config)
 
+#define IXGBE_DEV_PRIVATE_TO_P_VFDATA(adapter) \
+	(&((struct ixgbe_adapter *)adapter)->vfdata)
+
+#define IXGBE_DEV_PRIVATE_TO_PFDATA(adapter) \
+	(&((struct ixgbe_adapter *)adapter)->mr_data)
+
+#define IXGBE_DEV_PRIVATE_TO_UTA(adapter) \
+	(&((struct ixgbe_adapter *)adapter)->uta_info)
+
 /*
  * RX/TX function prototypes
  */
@@ -149,6 +192,11 @@ int  ixgbe_dev_rx_queue_setup(struct rte_eth_dev *dev, uint16_t rx_queue_id,
 int  ixgbe_dev_tx_queue_setup(struct rte_eth_dev *dev, uint16_t tx_queue_id,
 		uint16_t nb_tx_desc, unsigned int socket_id,
 		const struct rte_eth_txconf *tx_conf);
+
+uint32_t ixgbe_dev_rx_queue_count(struct rte_eth_dev *dev, 
+		uint16_t rx_queue_id);
+
+int ixgbe_dev_rx_descriptor_done(void *rx_queue, uint16_t offset);
 
 int ixgbe_dev_rx_init(struct rte_eth_dev *dev);
 
@@ -211,5 +259,22 @@ int ixgbe_fdir_set_masks(struct rte_eth_dev *dev,
 		struct rte_fdir_masks *fdir_masks);
 
 void ixgbe_configure_dcb(struct rte_eth_dev *dev);
+
+/*
+ * misc function prototypes
+ */
+void ixgbe_vlan_hw_filter_enable(struct rte_eth_dev *dev);
+
+void ixgbe_vlan_hw_filter_disable(struct rte_eth_dev *dev);
+
+void ixgbe_vlan_hw_strip_enable_all(struct rte_eth_dev *dev);
+
+void ixgbe_vlan_hw_strip_disable_all(struct rte_eth_dev *dev);
+
+void ixgbe_pf_host_init(struct rte_eth_dev *eth_dev);
+
+void ixgbe_pf_mbx_process(struct rte_eth_dev *eth_dev);
+
+int ixgbe_pf_host_configure(struct rte_eth_dev *eth_dev);
 
 #endif /* _IXGBE_ETHDEV_H_ */

@@ -1,34 +1,33 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
-#   Redistribution and use in source and binary forms, with or without 
-#   modification, are permitted provided that the following conditions 
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions
 #   are met:
 # 
-#     * Redistributions of source code must retain the above copyright 
+#     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright 
-#       notice, this list of conditions and the following disclaimer in 
-#       the documentation and/or other materials provided with the 
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in
+#       the documentation and/or other materials provided with the
 #       distribution.
-#     * Neither the name of Intel Corporation nor the names of its 
-#       contributors may be used to endorse or promote products derived 
+#     * Neither the name of Intel Corporation nor the names of its
+#       contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 # 
-#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-#   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
-#   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
-#   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+#   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# 
 
 include $(RTE_SDK)/mk/internal/rte.compile-pre.mk
 include $(RTE_SDK)/mk/internal/rte.install-pre.mk
@@ -73,8 +72,8 @@ ifeq ($(CONFIG_RTE_LIBRTE_IXGBE_PMD),y)
 LDLIBS += -lrte_pmd_ixgbe
 endif
 
-ifeq ($(CONFIG_RTE_LIBRTE_MBUF),y)
-LDLIBS += -lrte_mbuf
+ifeq ($(CONFIG_RTE_LIBRTE_VIRTIO_PMD),y)
+LDLIBS += -lrte_pmd_virtio
 endif
 
 ifeq ($(CONFIG_RTE_LIBRTE_CMDLINE),y)
@@ -93,10 +92,36 @@ ifeq ($(CONFIG_RTE_LIBRTE_LPM),y)
 LDLIBS += -lrte_lpm
 endif
 
+ifeq ($(CONFIG_RTE_LIBRTE_POWER),y)
+LDLIBS += -lrte_power
+endif
+
+ifeq ($(CONFIG_RTE_LIBRTE_PMAC),y)
+LDLIBS += -lrte_pmac
+endif
+
+ifeq ($(CONFIG_RTE_LIBRTE_METER),y)
+LDLIBS += -lrte_meter
+endif
+
+ifeq ($(CONFIG_RTE_LIBRTE_SCHED),y)
+LDLIBS += -lrte_sched
+LDLIBS += -lm
+LDLIBS += -lrt
+endif
+
 LDLIBS += --start-group
+
+ifeq ($(CONFIG_RTE_LIBRTE_MBUF),y)
+LDLIBS += -lrte_mbuf
+endif
 
 ifeq ($(CONFIG_RTE_LIBRTE_ETHER),y)
 LDLIBS += -lethdev
+endif
+
+ifeq ($(CONFIG_RTE_LIBRTE_PMD_RING),y)
+LDLIBS += -lrte_pmd_ring
 endif
 
 ifeq ($(CONFIG_RTE_LIBRTE_MALLOC),y)
@@ -124,7 +149,7 @@ LDLIBS += -lwr_mcos
 endif
 
 ifeq ($(CONFIG_RTE_LIBWR_LUA),y)
-LDLIBS += -lwr_lua -lm -ldl
+LDLIBS += -lwr_lua -ldl
 endif
 
 ifeq ($(CONFIG_RTE_LIBWR_MSG),y)
@@ -133,6 +158,7 @@ endif
 
 ifeq ($(CONFIG_RTE_LIBC),y)
 LDLIBS += -lc
+LDLIBS += -lm
 endif
 
 ifeq ($(CONFIG_RTE_LIBGLOSS),y)
@@ -141,6 +167,10 @@ endif
 
 ifeq ($(CONFIG_RTE_LIBRTE_EAL),y)
 LDLIBS += -lrte_eal
+endif
+
+ifeq ($(CONFIG_RTE_LIBRTE_PMD_PCAP),y)
+LDLIBS += -lrte_pmd_pcap -lpcap
 endif
 
 LDLIBS += $(EXECENV_LDLIBS)
@@ -163,6 +193,10 @@ _postinstall: build
 build: _postbuild
 
 exe2cmd = $(strip $(call dotfile,$(patsubst %,%.cmd,$(1))))
+
+ifeq ($(RTE_BUILD_COMBINE_LIBS),y)
+LDLIBS += -l$(RTE_LIBNAME)
+endif
 
 ifeq ($(LINK_USING_CC),1)
 comma := ,

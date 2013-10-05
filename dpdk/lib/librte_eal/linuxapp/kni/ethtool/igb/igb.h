@@ -44,6 +44,7 @@
 #include <linux/ethtool.h>
 #endif
 
+#undef HAVE_HW_TIME_STAMP
 #ifdef HAVE_HW_TIME_STAMP
 #include <linux/clocksource.h>
 #include <linux/timecompare.h>
@@ -53,7 +54,7 @@
 struct igb_adapter;
 
 #if defined(CONFIG_DCA) || defined(CONFIG_DCA_MODULE)
-#define IGB_DCA
+//#define IGB_DCA
 #endif
 #ifdef IGB_DCA
 #include <linux/dca.h>

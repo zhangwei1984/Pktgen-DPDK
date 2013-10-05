@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _RTE_LOG_H_
@@ -70,7 +69,11 @@ extern struct rte_logs rte_logs;
 #define RTE_LOGTYPE_PMD     0x00000020 /**< Log related to poll mode driver. */
 #define RTE_LOGTYPE_HASH    0x00000040 /**< Log related to hash table. */
 #define RTE_LOGTYPE_LPM     0x00000080 /**< Log related to LPM. */
-#define RTE_LOGTYPE_KNI     0X00000100 /**< Log related to KNI. */
+#define RTE_LOGTYPE_KNI     0x00000100 /**< Log related to KNI. */
+#define RTE_LOGTYPE_PMAC    0x00000200 /**< Log related to PMAC. */
+#define RTE_LOGTYPE_POWER   0x00000400 /**< Log related to power. */
+#define RTE_LOGTYPE_METER   0x00000800 /**< Log related to QoS meter. */
+#define RTE_LOGTYPE_SCHED   0x00001000 /**< Log related to QoS port scheduler. */
 
 /* these log types can be used in an application */
 #define RTE_LOGTYPE_USER1   0x01000000 /**< User-defined log type 1. */
@@ -216,6 +219,7 @@ int rte_log_add_in_history(const char *buf, size_t size);
  *   - Negative on error.
  */
 int rte_log(uint32_t level, uint32_t logtype, const char *format, ...)
+	__attribute__((cold))
 	__attribute__((format(printf, 3, 4)));
 
 /**
@@ -274,14 +278,13 @@ int rte_vlog(uint32_t level, uint32_t logtype, const char *format, va_list ap);
  *   - 0: Success.
  *   - Negative on error.
  */
-#define RTE_LOG(l, t, fmt, args...) ({					\
-	if ((RTE_LOG_##l <= RTE_LOG_LEVEL) &&				\
-	    (RTE_LOG_##l <= rte_logs.level) &&				\
-	    (RTE_LOGTYPE_##t & rte_logs.type)) {			\
-		rte_log(RTE_LOG_##l, RTE_LOGTYPE_##t,			\
-			  #t ": " fmt, ## args);			\
-	}								\
-})
+#define RTE_LOG(l, t, ...)					\
+	(void)(((RTE_LOG_ ## l <= RTE_LOG_LEVEL) &&			\
+	  (RTE_LOG_ ## l <= rte_logs.level) &&			\
+	  (RTE_LOGTYPE_ ## t & rte_logs.type)) ?		\
+	 rte_log(RTE_LOG_ ## l,					\
+		 RTE_LOGTYPE_ ## t, # t ": " __VA_ARGS__) :	\
+	 0)
 
 #ifdef __cplusplus
 }

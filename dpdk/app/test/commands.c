@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -129,6 +128,8 @@ static void cmd_autotest_parsed(void *parsed_result,
 		ret |= test_hash_perf();
 	if (all || !strcmp(res->autotest, "lpm_autotest"))
 		ret |= test_lpm();
+	if (all || !strcmp(res->autotest, "lpm6_autotest"))
+		ret |= test_lpm6();
 	if (all || !strcmp(res->autotest, "cpuflags_autotest"))
 		ret |= test_cpuflags();
 	if (all || !strcmp(res->autotest, "cmdline_autotest"))
@@ -155,8 +156,12 @@ static void cmd_autotest_parsed(void *parsed_result,
 		ret |= test_cycles();
 	if (all || !strcmp(res->autotest, "ring_autotest"))
 		ret |= test_ring();
+	if (all || !strcmp(res->autotest, "ring_perf_autotest"))
+		ret |= test_ring_perf();
 	if (all || !strcmp(res->autotest, "timer_autotest"))
 		ret |= test_timer();
+	if (all || !strcmp(res->autotest, "timer_perf_autotest"))
+		ret |= test_timer_perf();
 	if (all || !strcmp(res->autotest, "mempool_autotest"))
 		ret |= test_mempool();
 	if (all || !strcmp(res->autotest, "mempool_perf_autotest"))
@@ -165,6 +170,20 @@ static void cmd_autotest_parsed(void *parsed_result,
 		ret |= test_memcpy_perf();
 	if (all || !strcmp(res->autotest, "func_reentrancy_autotest"))
 		ret |= test_func_reentrancy();
+	if (all || !strcmp(res->autotest, "red_autotest"))
+		ret |= test_red();
+	if (all || !strcmp(res->autotest, "sched_autotest"))
+		ret |= test_sched();
+	if (all || !strcmp(res->autotest, "meter_autotest"))
+		ret |= test_meter();
+	if (all || !strcmp(res->autotest, "kni_autotest"))
+		ret |= test_kni();
+	if (all || !strcmp(res->autotest, "acl_autotest"))
+		ret |= test_pmac_acl();
+	if (all || !strcmp(res->autotest, "power_autotest"))
+		ret |= test_power();
+	if (all || !strcmp(res->autotest, "common_autotest"))
+		ret |= test_common();
 
 	if (ret == 0)
 		printf("Test OK\n");
@@ -185,6 +204,7 @@ cmdline_parse_token_string_t cmd_autotest_autotest =
 			"timer_autotest#malloc_autotest#"
 			"memcpy_autotest#hash_autotest#"
 			"lpm_autotest#debug_autotest#"
+			"lpm6_autotest#debug_autotest#"
 			"errno_autotest#tailq_autotest#"
 			"string_autotest#multiprocess_autotest#"
 			"cpuflags_autotest#eal_flags_autotest#"
@@ -192,8 +212,12 @@ cmdline_parse_token_string_t cmd_autotest_autotest =
 			"version_autotest#eal_fs_autotest#"
 			"cmdline_autotest#func_reentrancy_autotest#"
 			"mempool_perf_autotest#hash_perf_autotest#"
-			"memcpy_perf_autotest#"
-			"all_autotests");
+			"memcpy_perf_autotest#ring_perf_autotest#"
+			"red_autotest#meter_autotest#sched_autotest#"
+			"memcpy_perf_autotest#kni_autotest#"
+			"pm_autotest#acl_autotest#power_autotest#"
+			"timer_perf_autotest#"
+			"common_autotest#all_autotests");
 
 cmdline_parse_inst_t cmd_autotest = {
 	.f = cmd_autotest_parsed,  /* function to call */

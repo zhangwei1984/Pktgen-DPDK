@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <string.h>
@@ -52,9 +51,13 @@
 #include <rte_tailq.h>
 #include <rte_eal.h>
 #include <rte_timer.h>
+#include <rte_cycles.h>
+#include <rte_log.h>
 #include <rte_string_fns.h>
 
 #include "test.h"
+
+#define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 
 const char *prgname; /* to be set to argv[0] */
 
@@ -76,6 +79,7 @@ do_recursive_call(void)
 			{ "test_missing_c_flag", no_action },
 			{ "test_missing_n_flag", no_action },
 			{ "test_no_hpet_flag", no_action },
+			{ "test_whitelist_flag", no_action },
 			{ "test_invalid_b_flag", no_action },
 			{ "test_invalid_r_flag", no_action },
 			{ "test_misc_flags", no_action },
@@ -90,6 +94,7 @@ do_recursive_call(void)
 		if (strcmp(actions[i].env_var, recursive_call) == 0)
 			return (actions[i].action_fn)();
 	}
+	printf("ERROR - missing action to take for %s\n", recursive_call);
 	return -1;
 }
 #endif
@@ -106,7 +111,6 @@ main(int argc, char **argv)
 
 	rte_timer_subsystem_init();
 
-	argc -= ret;
 	argv += ret;
 
 	prgname = argv[0];
@@ -115,6 +119,14 @@ main(int argc, char **argv)
 	if ((recursive_call = getenv(RECURSIVE_ENV_VAR)) != NULL)
 		return do_recursive_call();
 #endif
+
+#ifdef RTE_LIBEAL_USE_HPET
+	if (rte_eal_hpet_init(1) < 0)
+#endif
+		RTE_LOG(INFO, APP,
+				"HPET is not enabled, using TSC as default timer\n");
+
+
 
 	cl = cmdline_stdin_new(main_ctx, "RTE>>");
 	if (cl == NULL) {

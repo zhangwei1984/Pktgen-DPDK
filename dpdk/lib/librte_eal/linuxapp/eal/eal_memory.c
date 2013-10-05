@@ -1,8 +1,38 @@
 /*-
  *   BSD LICENSE
- *
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ * 
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
+ * 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
+ * 
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ * 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+/*   BSD LICENSE
+ *
+ *   Copyright(c) 2013 6WIND.
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -14,7 +44,7 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its
+ *     * Neither the name of 6WIND S.A. nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  *
@@ -29,7 +59,6 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 #include <errno.h>
@@ -50,7 +79,6 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include <sys/resource.h>
 
 #include <rte_log.h>
 #include <rte_memory.h>
@@ -115,44 +143,6 @@ aslr_enabled(void)
 }
 
 /*
- * Increase limit for open files for current process
- */
-static int
-increase_open_file_limit(void)
-{
-	struct rlimit limit;
-
-	/* read current limits */
-	if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
-		RTE_LOG(ERR, EAL, "Error reading resource limit: %s\n",
-				strerror(errno));
-		return -1;
-	}
-
-	/* check if current soft limit matches the hard limit */
-	if (limit.rlim_cur < limit.rlim_max) {
-		/* set soft limit to match hard limit */
-		limit.rlim_cur = limit.rlim_max;
-	}
-	else {
-		/* we can't increase the soft limit so now we try to increase
-		 * soft and hard limit. this might fail when run as non-root.
-		 */
-		limit.rlim_cur *= 2;
-		limit.rlim_max *= 2;
-	}
-
-	/* set current resource limit */
-	if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
-		RTE_LOG(ERR, EAL, "Error increasing open files limit: %s\n",
-				strerror(errno));
-		return -1;
-	}
-
-	return 0;
-}
-
-/*
  * Try to mmap *size bytes in /dev/zero. If it is succesful, return the
  * pointer to the mmap'd area and keep *size unmodified. Else, retry
  * with a smaller zone: decrease *size by hugepage_sz until it reaches
@@ -160,13 +150,13 @@ increase_open_file_limit(void)
  * which is a multiple of hugepage size.
  */
 static void *
-get_virtual_area(uint64_t *size, uint64_t hugepage_sz)
+get_virtual_area(size_t *size, size_t hugepage_sz)
 {
 	void *addr;
 	int fd;
 	long aligned_addr;
 
-	RTE_LOG(INFO, EAL, "Ask a virtual area of 0x%"PRIx64" bytes\n", *size);
+	RTE_LOG(INFO, EAL, "Ask a virtual area of 0x%zu bytes\n", *size);
 
 	fd = open("/dev/zero", O_RDONLY);
 	if (fd < 0){
@@ -194,7 +184,7 @@ get_virtual_area(uint64_t *size, uint64_t hugepage_sz)
 	aligned_addr &= (~(hugepage_sz - 1));
 	addr = (void *)(aligned_addr);
 
-	RTE_LOG(INFO, EAL, "Virtual area found at %p (size = 0x%"PRIx64")\n",
+	RTE_LOG(INFO, EAL, "Virtual area found at %p (size = 0x%zx)\n",
 		addr, *size);
 
 	return addr;
@@ -215,10 +205,10 @@ map_all_hugepages(struct hugepage *hugepg_tbl,
 	unsigned i;
 	void *virtaddr;
 	void *vma_addr = NULL;
-	uint64_t vma_len = 0;
+	size_t vma_len = 0;
 
 	for (i = 0; i < hpi->num_pages[0]; i++) {
-		uint64_t hugepage_sz = hpi->hugepage_sz;
+		size_t hugepage_sz = hpi->hugepage_sz;
 
 		if (orig) {
 			hugepg_tbl[i].file_id = i;
@@ -285,7 +275,14 @@ map_all_hugepages(struct hugepage *hugepg_tbl,
 			hugepg_tbl[i].final_va = virtaddr;
 		}
 
-		/* close the file descriptor, files will be locked later */
+		/* set shared flock on the file. */
+		if (flock(fd, LOCK_SH | LOCK_NB) == -1) {
+			RTE_LOG(ERR, EAL, "%s(): Locking file failed:%s \n",
+				__func__, strerror(errno));
+			close(fd);
+			return -1;
+		}
+
 		close(fd);
 
 		vma_addr = (char *)vma_addr + hugepage_sz;
@@ -336,7 +333,7 @@ find_physaddr(struct hugepage *hugepg_tbl, struct hugepage_info *hpi)
 		virt_pfn = (unsigned long)hugepg_tbl[i].orig_va /
 			page_size;
 		offset = sizeof(uint64_t) * virt_pfn;
-		if (lseek(fd, offset, SEEK_SET) != offset){
+		if (lseek(fd, offset, SEEK_SET) == (off_t) -1) {
 			RTE_LOG(ERR, EAL, "%s(): seek error in /proc/self/pagemap: %s\n",
 					__func__, strerror(errno));
 			close(fd);
@@ -539,7 +536,6 @@ unmap_unneeded_hugepages(struct hugepage *hugepg_tbl,
 {
 	unsigned socket, size;
 	int page, nrpages = 0;
-	int fd;
 
 	/* get total number of hugepages */
 	for (size = 0; size < num_hp_info; size++)
@@ -569,31 +565,9 @@ unmap_unneeded_hugepages(struct hugepage *hugepg_tbl,
 						hp->final_va = NULL;
 					}
 					/* lock the page and skip */
-					else {
-						/* try and open the hugepage file */
-						while ((fd = open(hp->filepath, O_CREAT | O_RDWR, 0755)) < 0) {
-							/* if we can't open due to resource limits */
-							if (errno == EMFILE) {
-								RTE_LOG(INFO, EAL, "Increasing open file limit\n");
-
-								/* if we manage to increase resource limit, try again */
-								if (increase_open_file_limit() == 0)
-									continue;
-							}
-							else
-								RTE_LOG(ERR, EAL, "%s(): open failed: %s\n", __func__,
-										strerror(errno));
-							return -1;
-						}
-						/* try and lock the hugepage */
-						if (flock(fd, LOCK_SH | LOCK_NB) == -1) {
-							RTE_LOG(ERR, EAL, "Locking hugepage file failed!\n");
-							close(fd);
-							return -1;
-						}
-						hp->page_lock = fd;
+					else
 						pages_found++;
-					}
+
 				} /* match page */
 			} /* foreach page */
 		} /* foreach socket */
@@ -946,6 +920,18 @@ rte_eal_hugepage_init(void)
 		hugepage[i].memseg_id = j;
 	}
 
+	if (i < nrpages) {
+		RTE_LOG(ERR, EAL, "Can only reserve %d pages "
+			"from %d requested\n"
+			"Current %s=%d is not enough\n"
+			"Please either increase it or request less amount "
+			"of memory.\n",
+			i, nrpages, RTE_STR(CONFIG_RTE_MAX_MEMSEG),
+			RTE_MAX_MEMSEG);
+		return (-ENOMEM);
+	}
+	
+
 	return 0;
 
 
@@ -1001,6 +987,40 @@ rte_eal_hugepage_attach(void)
 		goto error;
 	}
 
+	/* map all segments into memory to make sure we get the addrs */
+	for (s = 0; s < RTE_MAX_MEMSEG; ++s) {
+		void *base_addr;
+
+		/*
+		 * the first memory segment with len==0 is the one that
+		 * follows the last valid segment.
+		 */
+		if (mcfg->memseg[s].len == 0)
+			break;
+
+		/*
+		 * fdzero is mmapped to get a contiguous block of virtual
+		 * addresses of the appropriate memseg size.
+		 * use mmap to get identical addresses as the primary process.
+		 */
+		base_addr = mmap(mcfg->memseg[s].addr, mcfg->memseg[s].len,
+				 PROT_READ, MAP_PRIVATE, fd_zero, 0);
+		if (base_addr == MAP_FAILED ||
+		    base_addr != mcfg->memseg[s].addr) {
+			RTE_LOG(ERR, EAL, "Could not mmap %llu bytes "
+				"in /dev/zero to requested address [%p]\n",
+				(unsigned long long)mcfg->memseg[s].len,
+				mcfg->memseg[s].addr);
+			if (aslr_enabled() > 0) {
+				RTE_LOG(ERR, EAL, "It is recommended to "
+					"disable ASLR in the kernel "
+					"and retry running both primary "
+					"and secondary processes\n");
+			}
+			goto error;
+		}
+	}
+
 	size = getFileSize(fd_hugepage);
 	hp = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd_hugepage, 0);
 	if (hp == NULL) {
@@ -1011,27 +1031,16 @@ rte_eal_hugepage_attach(void)
 	num_hp = size / sizeof(struct hugepage);
 	RTE_LOG(DEBUG, EAL, "Analysing %u hugepages\n", num_hp);
 
+	s = 0;
 	while (s < RTE_MAX_MEMSEG && mcfg->memseg[s].len > 0){
 		void *addr, *base_addr;
 		uintptr_t offset = 0;
 
-		/* fdzero is mmapped to get a contiguous block of virtual addresses
-		 * get a block of free memory of the appropriate size -
-		 * use mmap to attempt to get an identical address as server.
+		/*
+		 * free previously mapped memory so we can map the
+		 * hugepages into the space
 		 */
-		base_addr = mmap(mcfg->memseg[s].addr, mcfg->memseg[s].len,
-				PROT_READ, MAP_PRIVATE, fd_zero, 0);
-		if (base_addr == MAP_FAILED || base_addr != mcfg->memseg[s].addr) {
-			RTE_LOG(ERR, EAL, "Could not mmap %llu bytes "
-				"in /dev/zero to requested address [%p]\n",
-				(unsigned long long)mcfg->memseg[s].len,
-				mcfg->memseg[s].addr);
-			if (aslr_enabled() > 0)
-				RTE_LOG(ERR, EAL, "It is recommended to disable ASLR in the kernel "
-						"and retry running both primary and secondary processes\n");
-			goto error;
-		}
-		/* free memory so we can map the hugepages into the space */
+		base_addr = mcfg->memseg[s].addr;
 		munmap(base_addr, mcfg->memseg[s].len);
 
 		/* find the hugepages for this segment and map them
@@ -1061,6 +1070,8 @@ rte_eal_hugepage_attach(void)
 				(unsigned long long)mcfg->memseg[s].len);
 		s++;
 	}
+	/* unmap the hugepage config file, since we are done using it */
+	munmap((void *)(uintptr_t)hp, size);
 	close(fd_zero);
 	close(fd_hugepage);
 	return 0;

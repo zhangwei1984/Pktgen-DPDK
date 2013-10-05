@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <string.h>
@@ -458,7 +457,59 @@ test_pktmbuf_pool(void)
 	return ret;
 }
 
+/*
+ * test that the pointer to the data on a packet mbuf is set properly
+ */
+static int
+test_pktmbuf_pool_ptr(void)
+{
+	unsigned i;
+	struct rte_mbuf *m[NB_MBUF];
+	int ret = 0;
+		
+	for (i=0; i<NB_MBUF; i++)
+		m[i] = NULL;
 
+	/* alloc NB_MBUF mbufs */
+	for (i=0; i<NB_MBUF; i++) {
+		m[i] = rte_pktmbuf_alloc(pktmbuf_pool);
+		if (m[i] == NULL) {
+			printf("rte_pktmbuf_alloc() failed (%u)\n", i);
+			ret = -1;
+		}
+		m[i]->pkt.data = RTE_PTR_ADD(m[i]->pkt.data, 64);
+	}
+
+	/* free them */
+	for (i=0; i<NB_MBUF; i++) {
+		if (m[i] != NULL)
+			rte_pktmbuf_free(m[i]);
+	}
+	
+	for (i=0; i<NB_MBUF; i++)
+		m[i] = NULL;
+		
+	/* alloc NB_MBUF mbufs */
+	for (i=0; i<NB_MBUF; i++) {
+		m[i] = rte_pktmbuf_alloc(pktmbuf_pool);
+		if (m[i] == NULL) {
+			printf("rte_pktmbuf_alloc() failed (%u)\n", i);
+			ret = -1;
+		}
+		if (m[i]->pkt.data != RTE_PTR_ADD(m[i]->buf_addr, RTE_PKTMBUF_HEADROOM)) {
+			printf ("pkt.data pointer not set properly\n");
+			ret = -1;
+		}
+	}
+
+	/* free them */
+	for (i=0; i<NB_MBUF; i++) {
+		if (m[i] != NULL)
+			rte_pktmbuf_free(m[i]);
+	}
+
+	return ret;
+}
 
 static int
 test_pktmbuf_free_segment(void)
@@ -810,6 +861,12 @@ test_mbuf(void)
 	/* do it another time to check that all mbufs were freed */
 	if (test_pktmbuf_pool() < 0) {
 		printf("test_mbuf_pool() failed (2)\n");
+		return -1;
+	}
+	
+	/* test that the pointer to the data on a packet mbuf is set properly */
+	if (test_pktmbuf_pool_ptr() < 0) {
+		printf("test_pktmbuf_pool_ptr() failed\n");
 		return -1;
 	}
 

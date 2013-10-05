@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <sys/queue.h>
@@ -117,6 +116,7 @@ struct igb_rx_queue {
 	volatile union e1000_adv_rx_desc *rx_ring; /**< RX ring virtual address. */
 	uint64_t            rx_ring_phys_addr; /**< RX ring DMA address. */
 	volatile uint32_t   *rdt_reg_addr; /**< RDT register address. */
+	volatile uint32_t   *rdh_reg_addr; /**< RDH register address. */
 	struct igb_rx_entry *sw_ring;   /**< address of RX software ring. */
 	struct rte_mbuf *pkt_first_seg; /**< First segment of current packet. */
 	struct rte_mbuf *pkt_last_seg;  /**< Last segment of current packet. */
@@ -125,6 +125,7 @@ struct igb_rx_queue {
 	uint16_t            nb_rx_hold; /**< number of held free RX desc. */
 	uint16_t            rx_free_thresh; /**< max free RX desc to hold. */
 	uint16_t            queue_id;   /**< RX queue index. */
+	uint16_t            reg_idx;    /**< RX queue register index. */
 	uint8_t             port_id;    /**< Device port identifier. */
 	uint8_t             pthresh;    /**< Prefetch threshold register. */
 	uint8_t             hthresh;    /**< Host threshold register. */
@@ -165,6 +166,7 @@ struct igb_tx_queue {
 	uint16_t               tx_head;
 	/**< Index of first used TX descriptor. */
 	uint16_t               queue_id; /**< TX queue index. */
+	uint16_t               reg_idx;  /**< TX queue register index. */
 	uint8_t                port_id;  /**< Device port identifier. */
 	uint8_t                pthresh;  /**< Prefetch threshold register. */
 	uint8_t                hthresh;  /**< Host threshold register. */
@@ -192,6 +194,11 @@ struct igb_tx_queue {
 #else
 #define rte_packet_prefetch(p)	do {} while(0)
 #endif
+
+/*
+ * Macro for VMDq feature for 1 GbE NIC.
+ */
+#define E1000_VMOLR_SIZE			(8)
 
 /*********************************************************************
  *
@@ -336,8 +343,8 @@ eth_igb_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 	uint16_t tx_last;
 	uint16_t nb_tx;
 	uint16_t tx_ol_req;
-	uint32_t new_ctx;
-	uint32_t ctx;
+	uint32_t new_ctx = 0;
+	uint32_t ctx = 0;
 	uint32_t vlan_macip_lens;
 
 	txq = tx_queue;
@@ -364,7 +371,7 @@ eth_igb_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 
 		ol_flags = tx_pkt->ol_flags;
 		vlan_macip_lens = tx_pkt->pkt.vlan_macip.data;
-		tx_ol_req = (ol_flags & PKT_TX_OFFLOAD_MASK);
+		tx_ol_req = (uint16_t)(ol_flags & PKT_TX_OFFLOAD_MASK);
 
 		/* If a Context Descriptor need be built . */
 		if (tx_ol_req) {
@@ -569,15 +576,15 @@ rx_desc_hlen_type_rss_to_pkt_flags(uint32_t hl_tp_rs)
 		0, 0, 0, 0,
 	};
 
-	pkt_flags = (uint16_t) (hl_tp_rs & E1000_RXDADV_PKTTYPE_ETQF) ?
+	pkt_flags = (uint16_t)((hl_tp_rs & E1000_RXDADV_PKTTYPE_ETQF) ?
 				ip_pkt_etqf_map[(hl_tp_rs >> 4) & 0x07] :
-				ip_pkt_types_map[(hl_tp_rs >> 4) & 0x0F];
+				ip_pkt_types_map[(hl_tp_rs >> 4) & 0x0F]);
 #else
-	pkt_flags = (uint16_t) (hl_tp_rs & E1000_RXDADV_PKTTYPE_ETQF) ? 0 :
-				ip_pkt_types_map[(hl_tp_rs >> 4) & 0x0F];
+	pkt_flags = (uint16_t)((hl_tp_rs & E1000_RXDADV_PKTTYPE_ETQF) ? 0 :
+				ip_pkt_types_map[(hl_tp_rs >> 4) & 0x0F]);
 #endif
-	return pkt_flags | (uint16_t) (((hl_tp_rs & 0x0F) == 0) ? 0 :
-					PKT_RX_RSS_HASH);
+	return (uint16_t)(pkt_flags | (((hl_tp_rs & 0x0F) == 0) ?
+						0 : PKT_RX_RSS_HASH));
 }
 
 static inline uint16_t
@@ -586,11 +593,12 @@ rx_desc_status_to_pkt_flags(uint32_t rx_status)
 	uint16_t pkt_flags;
 
 	/* Check if VLAN present */
-	pkt_flags = (uint16_t) (rx_status & E1000_RXD_STAT_VP) ? PKT_RX_VLAN_PKT : 0;
+	pkt_flags = (uint16_t)((rx_status & E1000_RXD_STAT_VP) ?
+						PKT_RX_VLAN_PKT : 0);
 
 #if defined(RTE_LIBRTE_IEEE1588)
 	if (rx_status & E1000_RXD_STAT_TMST)
-		pkt_flags = pkt_flags | PKT_RX_IEEE1588_TMST;
+		pkt_flags = (uint16_t)(pkt_flags | PKT_RX_IEEE1588_TMST);
 #endif
 	return pkt_flags;
 }
@@ -750,10 +758,10 @@ eth_igb_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 			rte_le_to_cpu_16(rxd.wb.upper.vlan);
 
 		pkt_flags = rx_desc_hlen_type_rss_to_pkt_flags(hlen_type_rss);
-		pkt_flags = (pkt_flags |
-					rx_desc_status_to_pkt_flags(staterr));
-		pkt_flags = (pkt_flags |
-					rx_desc_error_to_pkt_flags(staterr));
+		pkt_flags = (uint16_t)(pkt_flags |
+				rx_desc_status_to_pkt_flags(staterr));
+		pkt_flags = (uint16_t)(pkt_flags |
+				rx_desc_error_to_pkt_flags(staterr));
 		rxm->ol_flags = pkt_flags;
 
 		/*
@@ -987,8 +995,10 @@ eth_igb_recv_scattered_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 			rte_le_to_cpu_16(rxd.wb.upper.vlan);
 		hlen_type_rss = rte_le_to_cpu_32(rxd.wb.lower.lo_dword.data);
 		pkt_flags = rx_desc_hlen_type_rss_to_pkt_flags(hlen_type_rss);
-		pkt_flags = (pkt_flags | rx_desc_status_to_pkt_flags(staterr));
-		pkt_flags = (pkt_flags | rx_desc_error_to_pkt_flags(staterr));
+		pkt_flags = (uint16_t)(pkt_flags |
+				rx_desc_status_to_pkt_flags(staterr));
+		pkt_flags = (uint16_t)(pkt_flags |
+				rx_desc_error_to_pkt_flags(staterr));
 		first_seg->ol_flags = pkt_flags;
 
 		/* Prefetch data of first segment, if configured to do so. */
@@ -1076,7 +1086,7 @@ ring_dma_zone_reserve(struct rte_eth_dev *dev, const char *ring_name,
 	if (mz)
 		return mz;
 
-	return rte_memzone_reserve_aligned(z_name, (uint64_t)ring_size,
+	return rte_memzone_reserve_aligned(z_name, ring_size,
 			socket_id, 0, IGB_ALIGN);
 }
 
@@ -1137,7 +1147,7 @@ igb_reset_tx_queue(struct igb_tx_queue *txq, struct rte_eth_dev *dev)
 	}
 
 	/* Initialize ring entries */
-	prev = txq->nb_tx_desc - 1;
+	prev = (uint16_t)(txq->nb_tx_desc - 1);
 	for (i = 0; i < txq->nb_tx_desc; i++) {
 		volatile union e1000_adv_tx_desc *txd = &(txq->tx_ring[i]);
 
@@ -1225,13 +1235,13 @@ eth_igb_tx_queue_setup(struct rte_eth_dev *dev,
 	txq->hthresh = tx_conf->tx_thresh.hthresh;
 	txq->wthresh = tx_conf->tx_thresh.wthresh;
 	txq->queue_id = queue_idx;
+	txq->reg_idx = (uint16_t)((RTE_ETH_DEV_SRIOV(dev).active == 0) ?
+		queue_idx : RTE_ETH_DEV_SRIOV(dev).def_pool_q_idx + queue_idx);
 	txq->port_id = dev->data->port_id;
 
-	txq->tdt_reg_addr = E1000_PCI_REG_ADDR(hw, E1000_TDT(queue_idx));
+	txq->tdt_reg_addr = E1000_PCI_REG_ADDR(hw, E1000_TDT(txq->reg_idx));
 	txq->tx_ring_phys_addr = (uint64_t) tz->phys_addr;
 	txq->tx_ring = (union e1000_adv_tx_desc *) tz->addr;
-
-	size = sizeof(union e1000_adv_tx_desc) * nb_desc;
 
 	/* Allocate software ring */
 	txq->sw_ring = rte_zmalloc("txq->sw_ring",
@@ -1343,6 +1353,8 @@ eth_igb_rx_queue_setup(struct rte_eth_dev *dev,
 	rxq->drop_en = rx_conf->rx_drop_en;
 	rxq->rx_free_thresh = rx_conf->rx_free_thresh;
 	rxq->queue_id = queue_idx;
+	rxq->reg_idx = (uint16_t)((RTE_ETH_DEV_SRIOV(dev).active == 0) ?
+		queue_idx : RTE_ETH_DEV_SRIOV(dev).def_pool_q_idx + queue_idx);
 	rxq->port_id = dev->data->port_id;
 	rxq->crc_len = (uint8_t) ((dev->data->dev_conf.rxmode.hw_strip_crc) ? 0 :
 				  ETHER_CRC_LEN);
@@ -1358,7 +1370,8 @@ eth_igb_rx_queue_setup(struct rte_eth_dev *dev,
 		igb_rx_queue_release(rxq);
 		return (-ENOMEM);
 	}
-	rxq->rdt_reg_addr = E1000_PCI_REG_ADDR(hw, E1000_RDT(queue_idx));
+	rxq->rdt_reg_addr = E1000_PCI_REG_ADDR(hw, E1000_RDT(rxq->reg_idx));
+	rxq->rdh_reg_addr = E1000_PCI_REG_ADDR(hw, E1000_RDH(rxq->reg_idx));
 	rxq->rx_ring_phys_addr = (uint64_t) rz->phys_addr;
 	rxq->rx_ring = (union e1000_adv_rx_desc *) rz->addr;
 
@@ -1377,6 +1390,51 @@ eth_igb_rx_queue_setup(struct rte_eth_dev *dev,
 	igb_reset_rx_queue(rxq);
 
 	return 0;
+}
+
+uint32_t 
+eth_igb_rx_queue_count(struct rte_eth_dev *dev, uint16_t rx_queue_id)
+{
+#define IGB_RXQ_SCAN_INTERVAL 4
+	volatile union e1000_adv_rx_desc *rxdp;
+	struct igb_rx_queue *rxq;
+	uint32_t desc = 0;
+
+	if (rx_queue_id >= dev->data->nb_rx_queues) {
+		PMD_RX_LOG(ERR, "Invalid RX queue id=%d\n", rx_queue_id);
+		return 0;
+	}
+
+	rxq = dev->data->rx_queues[rx_queue_id];
+	rxdp = &(rxq->rx_ring[rxq->rx_tail]);
+
+	while ((desc < rxq->nb_rx_desc) &&
+		(rxdp->wb.upper.status_error & E1000_RXD_STAT_DD)) {
+		desc += IGB_RXQ_SCAN_INTERVAL;
+		rxdp += IGB_RXQ_SCAN_INTERVAL;
+		if (rxq->rx_tail + desc >= rxq->nb_rx_desc)
+			rxdp = &(rxq->rx_ring[rxq->rx_tail +
+				desc - rxq->nb_rx_desc]);
+	}
+
+	return 0;
+}
+
+int
+eth_igb_rx_descriptor_done(void *rx_queue, uint16_t offset)
+{
+	volatile union e1000_adv_rx_desc *rxdp;
+	struct igb_rx_queue *rxq = rx_queue;
+	uint32_t desc;
+
+	if (unlikely(offset >= rxq->nb_rx_desc))
+		return 0;
+	desc = rxq->rx_tail + offset;
+	if (desc >= rxq->nb_rx_desc)
+		desc -= rxq->nb_rx_desc;
+
+	rxdp = &rxq->rx_ring[desc];
+	return !!(rxdp->wb.upper.status_error & E1000_RXD_STAT_DD);
 }
 
 void
@@ -1515,6 +1573,118 @@ igb_rss_configure(struct rte_eth_dev *dev)
 	E1000_WRITE_REG(hw, E1000_MRQC, mrqc);
 }
 
+/*
+ * Check if the mac type support VMDq or not.
+ * Return 1 if it supports, otherwise, return 0.
+ */
+static int
+igb_is_vmdq_supported(const struct rte_eth_dev *dev)
+{
+	const struct e1000_hw *hw = E1000_DEV_PRIVATE_TO_HW(dev->data->dev_private);
+	
+	switch (hw->mac.type) { 
+	case e1000_82576: 
+	case e1000_82580: 
+	case e1000_i350: 
+		return 1;
+	case e1000_82540: 
+	case e1000_82541: 
+	case e1000_82542: 
+	case e1000_82543: 
+	case e1000_82544: 
+	case e1000_82545: 
+	case e1000_82546: 
+	case e1000_82547: 
+	case e1000_82571: 
+	case e1000_82572: 
+	case e1000_82573: 
+	case e1000_82574: 
+	case e1000_82583: 
+	case e1000_i210: 
+	case e1000_i211: 
+	default:
+		PMD_INIT_LOG(ERR, "Cannot support VMDq feature\n");
+		return 0;
+	}
+}
+
+static int
+igb_vmdq_rx_hw_configure(struct rte_eth_dev *dev)
+{
+	struct rte_eth_vmdq_rx_conf *cfg;
+	struct e1000_hw *hw;
+	uint32_t mrqc, vt_ctl, vmolr, rctl;
+	int i;
+ 
+ 	PMD_INIT_LOG(DEBUG, ">>");
+	hw = E1000_DEV_PRIVATE_TO_HW(dev->data->dev_private);
+	cfg = &dev->data->dev_conf.rx_adv_conf.vmdq_rx_conf;
+
+	/* Check if mac type can support VMDq, return value of 0 means NOT support */
+	if (igb_is_vmdq_supported(dev) == 0)
+		return -1;
+
+	igb_rss_disable(dev);
+	
+	/* RCTL: eanble VLAN filter */
+	rctl = E1000_READ_REG(hw, E1000_RCTL);
+	rctl |= E1000_RCTL_VFE;
+	E1000_WRITE_REG(hw, E1000_RCTL, rctl);
+
+	/* MRQC: enable vmdq */
+	mrqc = E1000_READ_REG(hw, E1000_MRQC);
+	mrqc |= E1000_MRQC_ENABLE_VMDQ; 
+	E1000_WRITE_REG(hw, E1000_MRQC, mrqc);
+ 
+	/* VTCTL:  pool selection according to VLAN tag */
+	vt_ctl = E1000_READ_REG(hw, E1000_VT_CTL);
+	if (cfg->enable_default_pool) 
+		vt_ctl |= (cfg->default_pool << E1000_VT_CTL_DEFAULT_POOL_SHIFT);
+	vt_ctl |= E1000_VT_CTL_IGNORE_MAC;
+	E1000_WRITE_REG(hw, E1000_VT_CTL, vt_ctl);
+	
+	/* 
+	 * VMOLR: set STRVLAN as 1 if IGMAC in VTCTL is set as 1
+ 	 * Both 82576 and 82580 support it 
+ 	 */
+	if (hw->mac.type != e1000_i350) {
+		for (i = 0; i < E1000_VMOLR_SIZE; i++) {
+			vmolr = E1000_READ_REG(hw, E1000_VMOLR(i));
+			vmolr |= E1000_VMOLR_STRVLAN;
+			E1000_WRITE_REG(hw, E1000_VMOLR(i), vmolr);
+		}
+	}
+
+	/* VFTA - enable all vlan filters */
+	for (i = 0; i < IGB_VFTA_SIZE; i++) 
+		E1000_WRITE_REG(hw, (E1000_VFTA+(i*4)), UINT32_MAX);
+	
+	/* VFRE: 8 pools enabling for rx, both 82576 and i350 support it */
+	if (hw->mac.type != e1000_82580)
+		E1000_WRITE_REG(hw, E1000_VFRE, E1000_MBVFICR_VFREQ_MASK);
+ 
+	/*
+	 * RAH/RAL - allow pools to read specific mac addresses
+	 * In this case, all pools should be able to read from mac addr 0
+	 */
+	E1000_WRITE_REG(hw, E1000_RAH(0), (E1000_RAH_AV | UINT16_MAX));
+	E1000_WRITE_REG(hw, E1000_RAL(0), UINT32_MAX);
+
+	/* VLVF: set up filters for vlan tags as configured */
+	for (i = 0; i < cfg->nb_pool_maps; i++) {
+		/* set vlan id in VF register and set the valid bit */
+		E1000_WRITE_REG(hw, E1000_VLVF(i), (E1000_VLVF_VLANID_ENABLE | \
+                        (cfg->pool_map[i].vlan_id & ETH_VLAN_ID_MAX) | \
+			((cfg->pool_map[i].pools << E1000_VLVF_POOLSEL_SHIFT ) & \
+			E1000_VLVF_POOLSEL_MASK)));
+	}
+
+	E1000_WRITE_FLUSH(hw);
+	
+	return 0;
+}
+
+
 /*********************************************************************
  *
  *  Enable receive unit.
@@ -1550,6 +1720,49 @@ igb_alloc_rx_queue_mbufs(struct igb_rx_queue *rxq)
 	return 0;
 }
 
+#define E1000_MRQC_DEF_Q_SHIFT               (3)
+static int
+igb_dev_mq_rx_configure(struct rte_eth_dev *dev)
+{
+	struct e1000_hw *hw =
+		E1000_DEV_PRIVATE_TO_HW(dev->data->dev_private);
+	uint32_t mrqc;
+ 
+	if (RTE_ETH_DEV_SRIOV(dev).active == ETH_8_POOLS) {
+		/*
+	 	* SRIOV active scheme
+	 	* FIXME if support RSS together with VMDq & SRIOV
+	 	*/
+		mrqc = E1000_MRQC_ENABLE_VMDQ;
+		/* 011b Def_Q ignore, according to VT_CTL.DEF_PL */
+		mrqc |= 0x3 << E1000_MRQC_DEF_Q_SHIFT;
+		E1000_WRITE_REG(hw, E1000_MRQC, mrqc);
+	} else if(RTE_ETH_DEV_SRIOV(dev).active == 0) { 
+		/*
+	 	* SRIOV inactive scheme
+	 	*/
+		if (dev->data->nb_rx_queues > 1)
+			switch (dev->data->dev_conf.rxmode.mq_mode) {
+			case ETH_MQ_RX_NONE:
+				/* if mq_mode not assign, we use rss mode.*/
+			case ETH_MQ_RX_RSS:
+				igb_rss_configure(dev);
+				break;
+			case ETH_MQ_RX_VMDQ_ONLY:
+				/*Configure general VMDQ only RX parameters*/
+				igb_vmdq_rx_hw_configure(dev); 
+				break;
+			default: 
+				igb_rss_disable(dev);
+				break;
+			}
+		else
+			igb_rss_disable(dev);
+	}
+ 
+	return 0;
+}
+ 
 int
 eth_igb_rx_init(struct rte_eth_dev *dev)
 {
@@ -1580,9 +1793,13 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 	if (dev->data->dev_conf.rxmode.jumbo_frame == 1) {
 		rctl |= E1000_RCTL_LPE;
 
-		/* Set maximum packet length. */
+		/*
+		 * Set maximum packet length by default, and might be updated
+		 * together with enabling/disabling dual VLAN.
+		 */
 		E1000_WRITE_REG(hw, E1000_RLPML,
-				dev->data->dev_conf.rxmode.max_rx_pkt_len);
+			dev->data->dev_conf.rxmode.max_rx_pkt_len +
+						VLAN_TAG_SIZE);
 	} else
 		rctl &= ~E1000_RCTL_LPE;
 
@@ -1609,12 +1826,12 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 							0 : ETHER_CRC_LEN);
 
 		bus_addr = rxq->rx_ring_phys_addr;
-		E1000_WRITE_REG(hw, E1000_RDLEN(i),
+		E1000_WRITE_REG(hw, E1000_RDLEN(rxq->reg_idx),
 				rxq->nb_rx_desc *
 				sizeof(union e1000_adv_rx_desc));
-		E1000_WRITE_REG(hw, E1000_RDBAH(i),
+		E1000_WRITE_REG(hw, E1000_RDBAH(rxq->reg_idx),
 				(uint32_t)(bus_addr >> 32));
-		E1000_WRITE_REG(hw, E1000_RDBAL(i), (uint32_t)bus_addr);
+		E1000_WRITE_REG(hw, E1000_RDBAL(rxq->reg_idx), (uint32_t)bus_addr);
 
 		srrctl = E1000_SRRCTL_DESCTYPE_ADV_ONEBUF;
 
@@ -1639,8 +1856,9 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 						E1000_SRRCTL_BSIZEPKT_MASK) <<
 					       E1000_SRRCTL_BSIZEPKT_SHIFT);
 
-			if (dev->data->dev_conf.rxmode.max_rx_pkt_len + VLAN_TAG_SIZE
-					> buf_size){
+			/* It adds dual VLAN length for supporting dual VLAN */
+			if ((dev->data->dev_conf.rxmode.max_rx_pkt_len +
+						2 * VLAN_TAG_SIZE) > buf_size){
 				dev->rx_pkt_burst = eth_igb_recv_scattered_pkts;
 				dev->data->scattered_rx = 1;
 			}
@@ -1658,16 +1876,16 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 		if (rxq->drop_en)
 			srrctl |= E1000_SRRCTL_DROP_EN;
 
-		E1000_WRITE_REG(hw, E1000_SRRCTL(i), srrctl);
+		E1000_WRITE_REG(hw, E1000_SRRCTL(rxq->reg_idx), srrctl);
 
 		/* Enable this RX queue. */
-		rxdctl = E1000_READ_REG(hw, E1000_RXDCTL(i));
+		rxdctl = E1000_READ_REG(hw, E1000_RXDCTL(rxq->reg_idx));
 		rxdctl |= E1000_RXDCTL_QUEUE_ENABLE;
 		rxdctl &= 0xFFF00000;
 		rxdctl |= (rxq->pthresh & 0x1F);
 		rxdctl |= ((rxq->hthresh & 0x1F) << 8);
 		rxdctl |= ((rxq->wthresh & 0x1F) << 16);
-		E1000_WRITE_REG(hw, E1000_RXDCTL(i), rxdctl);
+		E1000_WRITE_REG(hw, E1000_RXDCTL(rxq->reg_idx), rxdctl);
 	}
 
 	/*
@@ -1694,10 +1912,10 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 	/*
 	 * Configure RSS if device configured with multiple RX queues.
 	 */
-	if (dev->data->nb_rx_queues > 1)
-		igb_rss_configure(dev);
-	else
-		igb_rss_disable(dev);
+	igb_dev_mq_rx_configure(dev);
+
+	/* Update the rctl since igb_dev_mq_rx_configure may change its value */
+	rctl |= E1000_READ_REG(hw, E1000_RCTL);
 
 	/*
 	 * Setup the Checksum Register.
@@ -1717,25 +1935,27 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 	if (dev->data->dev_conf.rxmode.hw_strip_crc) {
 		rctl |= E1000_RCTL_SECRC; /* Strip Ethernet CRC. */
 
-		/* set STRCRC bit in all queues for Powerville */
-		if (hw->mac.type == e1000_i350) {
+		/* set STRCRC bit in all queues for Powerville/Springville */
+		if (hw->mac.type == e1000_i350 || hw->mac.type == e1000_i210) {
 			for (i = 0; i < dev->data->nb_rx_queues; i++) {
+				rxq = dev->data->rx_queues[i];
 				uint32_t dvmolr = E1000_READ_REG(hw,
-					E1000_DVMOLR(i));
+					E1000_DVMOLR(rxq->reg_idx));
 				dvmolr |= E1000_DVMOLR_STRCRC;
-				E1000_WRITE_REG(hw, E1000_DVMOLR(i), dvmolr);
+				E1000_WRITE_REG(hw, E1000_DVMOLR(rxq->reg_idx), dvmolr);
 			}
 		}
 	} else {
 		rctl &= ~E1000_RCTL_SECRC; /* Do not Strip Ethernet CRC. */
 
-		/* clear STRCRC bit in all queues for Powerville */
-		if (hw->mac.type == e1000_i350) {
+		/* clear STRCRC bit in all queues for Powerville/Springville */
+		if (hw->mac.type == e1000_i350 || hw->mac.type == e1000_i210) {
 			for (i = 0; i < dev->data->nb_rx_queues; i++) {
+				rxq = dev->data->rx_queues[i];
 				uint32_t dvmolr = E1000_READ_REG(hw,
-					E1000_DVMOLR(i));
+					E1000_DVMOLR(rxq->reg_idx));
 				dvmolr &= ~E1000_DVMOLR_STRCRC;
-				E1000_WRITE_REG(hw, E1000_DVMOLR(i), dvmolr);
+				E1000_WRITE_REG(hw, E1000_DVMOLR(rxq->reg_idx), dvmolr);
 			}
 		}
 	}
@@ -1746,7 +1966,8 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 		(hw->mac.mc_filter_type << E1000_RCTL_MO_SHIFT);
 
 	/* Make sure VLAN Filters are off. */
-	rctl &= ~E1000_RCTL_VFE;
+	if (dev->data->dev_conf.rxmode.mq_mode != ETH_MQ_RX_VMDQ_ONLY)
+		rctl &= ~E1000_RCTL_VFE;
 	/* Don't store bad packets. */
 	rctl &= ~E1000_RCTL_SBP;
 
@@ -1759,8 +1980,8 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 	 */
 	for (i = 0; i < dev->data->nb_rx_queues; i++) {
 		rxq = dev->data->rx_queues[i];
-		E1000_WRITE_REG(hw, E1000_RDH(i), 0);
-		E1000_WRITE_REG(hw, E1000_RDT(i), rxq->nb_rx_desc - 1);
+		E1000_WRITE_REG(hw, E1000_RDH(rxq->reg_idx), 0);
+		E1000_WRITE_REG(hw, E1000_RDT(rxq->reg_idx), rxq->nb_rx_desc - 1);
 	}
 
 	return 0;
@@ -1788,24 +2009,24 @@ eth_igb_tx_init(struct rte_eth_dev *dev)
 		txq = dev->data->tx_queues[i];
 		bus_addr = txq->tx_ring_phys_addr;
 
-		E1000_WRITE_REG(hw, E1000_TDLEN(i),
+		E1000_WRITE_REG(hw, E1000_TDLEN(txq->reg_idx),
 				txq->nb_tx_desc *
 				sizeof(union e1000_adv_tx_desc));
-		E1000_WRITE_REG(hw, E1000_TDBAH(i),
+		E1000_WRITE_REG(hw, E1000_TDBAH(txq->reg_idx),
 				(uint32_t)(bus_addr >> 32));
-		E1000_WRITE_REG(hw, E1000_TDBAL(i), (uint32_t)bus_addr);
+		E1000_WRITE_REG(hw, E1000_TDBAL(txq->reg_idx), (uint32_t)bus_addr);
 
 		/* Setup the HW Tx Head and Tail descriptor pointers. */
-		E1000_WRITE_REG(hw, E1000_TDT(i), 0);
-		E1000_WRITE_REG(hw, E1000_TDH(i), 0);
+		E1000_WRITE_REG(hw, E1000_TDT(txq->reg_idx), 0);
+		E1000_WRITE_REG(hw, E1000_TDH(txq->reg_idx), 0);
 
 		/* Setup Transmit threshold registers. */
-		txdctl = E1000_READ_REG(hw, E1000_TXDCTL(i));
+		txdctl = E1000_READ_REG(hw, E1000_TXDCTL(txq->reg_idx));
 		txdctl |= txq->pthresh & 0x1F;
 		txdctl |= ((txq->hthresh & 0x1F) << 8);
 		txdctl |= ((txq->wthresh & 0x1F) << 16);
 		txdctl |= E1000_TXDCTL_QUEUE_ENABLE;
-		E1000_WRITE_REG(hw, E1000_TXDCTL(i), txdctl);
+		E1000_WRITE_REG(hw, E1000_TXDCTL(txq->reg_idx), txdctl);
 	}
 
 	/* Program the Transmit Control Register. */
@@ -1884,7 +2105,9 @@ eth_igbvf_rx_init(struct rte_eth_dev *dev)
 						E1000_SRRCTL_BSIZEPKT_MASK) <<
 					       E1000_SRRCTL_BSIZEPKT_SHIFT);
 
-			if (dev->data->dev_conf.rxmode.max_rx_pkt_len > buf_size){
+			/* It adds dual VLAN length for supporting dual VLAN */
+			if ((dev->data->dev_conf.rxmode.max_rx_pkt_len +
+						2 * VLAN_TAG_SIZE) > buf_size){
 				dev->rx_pkt_burst = eth_igb_recv_scattered_pkts;
 				dev->data->scattered_rx = 1;
 			}

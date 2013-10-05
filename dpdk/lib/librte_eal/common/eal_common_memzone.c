@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdlib.h>
@@ -83,7 +82,7 @@ memzone_lookup_thread_unsafe(const char *name)
  * allocation cannot be done, return NULL.
  */
 const struct rte_memzone *
-rte_memzone_reserve(const char *name, uint64_t len, int socket_id,
+rte_memzone_reserve(const char *name, size_t len, int socket_id,
 		      unsigned flags)
 {
 	return rte_memzone_reserve_aligned(name,
@@ -91,14 +90,15 @@ rte_memzone_reserve(const char *name, uint64_t len, int socket_id,
 }
 
 static const struct rte_memzone *
-memzone_reserve_aligned_thread_unsafe(const char *name, uint64_t len,
+memzone_reserve_aligned_thread_unsafe(const char *name, size_t len,
 		int socket_id, unsigned flags, unsigned align)
 {
 	struct rte_mem_config *mcfg;
 	unsigned i = 0;
 	int memseg_idx = -1;
-	uint64_t addr_offset, requested_len;
-	uint64_t memseg_len = 0;
+	uint64_t addr_offset;
+	size_t requested_len;
+	size_t memseg_len = 0;
 	phys_addr_t memseg_physaddr;
 	void *memseg_addr;
 
@@ -120,9 +120,13 @@ memzone_reserve_aligned_thread_unsafe(const char *name, uint64_t len,
 		return NULL;
 	}
 
-	/* align length on cache boundary */
+	/* align length on cache boundary. Check for overflow before doing so */
+	if (len > SIZE_MAX - CACHE_LINE_MASK) {
+		rte_errno = EINVAL; /* requested size too big */
+		return NULL;
+	}
 	len += CACHE_LINE_MASK;
-	len &= ~((uint64_t) CACHE_LINE_MASK);
+	len &= ~((size_t) CACHE_LINE_MASK);
 
 	/* save original length */
 	requested_len = len;
@@ -198,7 +202,9 @@ memzone_reserve_aligned_thread_unsafe(const char *name, uint64_t len,
 			return memzone_reserve_aligned_thread_unsafe(name, len - align,
 					socket_id, 0, align);
 
-		RTE_LOG(ERR, EAL, "%s(): No appropriate segment found\n", __func__);
+		RTE_LOG(ERR, EAL, "%s(%s, %zu, %d): "
+			"No appropriate segment found\n",
+			__func__, name, requested_len, socket_id);
 		rte_errno = ENOMEM;
 		return NULL;
 	}
@@ -209,14 +215,15 @@ memzone_reserve_aligned_thread_unsafe(const char *name, uint64_t len,
 
 	/* save aligned physical and virtual addresses */
 	memseg_physaddr = free_memseg[memseg_idx].phys_addr + addr_offset;
-	memseg_addr = RTE_PTR_ADD(free_memseg[memseg_idx].addr, (uintptr_t) addr_offset);
+	memseg_addr = RTE_PTR_ADD(free_memseg[memseg_idx].addr,
+			(uintptr_t) addr_offset);
 
 	/* if we are looking for a biggest memzone */
 	if (requested_len == 0)
 		requested_len = memseg_len - addr_offset;
 
 	/* set length to correct value */
-	len = addr_offset + requested_len;
+	len = (size_t)addr_offset + requested_len;
 
 	/* update our internal state */
 	free_memseg[memseg_idx].len -= len;
@@ -242,7 +249,7 @@ memzone_reserve_aligned_thread_unsafe(const char *name, uint64_t len,
  * specified alignment). If the allocation cannot be done, return NULL.
  */
 const struct rte_memzone *
-rte_memzone_reserve_aligned(const char *name, uint64_t len,
+rte_memzone_reserve_aligned(const char *name, size_t len,
 		int socket_id, unsigned flags, unsigned align)
 {
 	struct rte_mem_config *mcfg;
@@ -314,7 +321,7 @@ rte_memzone_dump(void)
 	for (i=0; i<RTE_MAX_MEMZONE; i++) {
 		if (mcfg->memzone[i].addr == NULL)
 			break;
-		printf("Zone %o: name:<%s>, phys:0x%"PRIx64", len:0x%"PRIx64""
+		printf("Zone %o: name:<%s>, phys:0x%"PRIx64", len:0x%zx"
 		       ", virt:%p, socket_id:%"PRId32", flags:%"PRIx32"\n", i,
 		       mcfg->memzone[i].name,
 		       mcfg->memzone[i].phys_addr,

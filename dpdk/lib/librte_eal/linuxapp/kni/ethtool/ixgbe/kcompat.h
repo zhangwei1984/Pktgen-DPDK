@@ -318,8 +318,10 @@ struct _kc_vlan_hdr {
 	__be16		h_vlan_encapsulated_proto;
 };
 #define vlan_hdr _kc_vlan_hdr
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0) )
 #define vlan_tx_tag_present(_skb) 0
 #define vlan_tx_tag_get(_skb) 0
+#endif
 #endif
 
 #ifndef VLAN_PRIO_SHIFT
@@ -2947,6 +2949,7 @@ extern u8 _kc_netdev_get_prio_tc_map(struct net_device *dev, u8 up);
  * updated the kernel version to 2.6.40.x and they back-ported 3.0 features
  * like set_phys_id for ethtool.
  */
+#undef ETHTOOL_GRXRINGS
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,40) )
 #ifdef ETHTOOL_GRXRINGS
 #ifndef FLOW_EXT
@@ -3105,4 +3108,12 @@ typedef u32 netdev_features_t;
 #else
 #define HAVE_FDB_OPS
 #endif /* < 3.5.0 */
+
+/*****************************************************************************/
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0) )
+#define NETIF_F_HW_VLAN_TX     NETIF_F_HW_VLAN_CTAG_TX
+#define NETIF_F_HW_VLAN_RX     NETIF_F_HW_VLAN_CTAG_RX
+#define NETIF_F_HW_VLAN_FILTER NETIF_F_HW_VLAN_CTAG_FILTER
+#endif /* >= 3.10.0 */
+
 #endif /* _KCOMPAT_H_ */

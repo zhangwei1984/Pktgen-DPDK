@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -76,8 +75,6 @@
 
 #define RTE_LOGTYPE_LSI RTE_LOGTYPE_USER1
 
-#define LSI_MAX_PORTS 32
-
 #define MBUF_SIZE (2048 + sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
 #define NB_MBUF   8192
 
@@ -101,9 +98,7 @@
 #define TX_WTHRESH 0  /**< Default values of TX write-back threshold reg. */
 
 #define MAX_PKT_BURST 32
-#define BURST_TX_DRAIN 200000ULL /* around 100us at 2 Ghz */
-
-#define SOCKET0 0
+#define BURST_TX_DRAIN_US 100 /* TX drain every ~100us */
 
 /*
  * Configurable number of RX/TX ring descriptors
@@ -114,7 +109,7 @@ static uint16_t nb_rxd = RTE_TEST_RX_DESC_DEFAULT;
 static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 
 /* ethernet addresses of ports */
-static struct ether_addr lsi_ports_eth_addr[LSI_MAX_PORTS];
+static struct ether_addr lsi_ports_eth_addr[RTE_MAX_ETHPORTS];
 
 /* mask of enabled ports */
 static uint32_t lsi_enabled_port_mask = 0;
@@ -122,7 +117,7 @@ static uint32_t lsi_enabled_port_mask = 0;
 static unsigned int lsi_rx_queue_per_lcore = 1;
 
 /* destination port for L2 forwarding */
-static unsigned lsi_dst_ports[LSI_MAX_PORTS] = {0};
+static unsigned lsi_dst_ports[RTE_MAX_ETHPORTS] = {0};
 
 #define MAX_PKT_BURST 32
 struct mbuf_table {
@@ -136,7 +131,7 @@ struct lcore_queue_conf {
 	unsigned n_rx_port;
 	unsigned rx_port_list[MAX_RX_QUEUE_PER_LCORE];
 	unsigned tx_queue_id;
-	struct mbuf_table tx_mbufs[LSI_MAX_PORTS];
+	struct mbuf_table tx_mbufs[RTE_MAX_ETHPORTS];
 
 } __rte_cache_aligned;
 struct lcore_queue_conf lcore_queue_conf[RTE_MAX_LCORE];
@@ -151,7 +146,7 @@ static const struct rte_eth_conf port_conf = {
 		.hw_strip_crc   = 0, /**< CRC stripped by hardware */
 	},
 	.txmode = {
-		.mq_mode = ETH_DCB_NONE,
+		.mq_mode = ETH_MQ_TX_NONE,
 	},
 	.intr_conf = {
 		.lsc = 1, /**< lsc interrupt feature enabled */
@@ -184,7 +179,7 @@ struct lsi_port_statistics {
 	uint64_t rx;
 	uint64_t dropped;
 } __rte_cache_aligned;
-struct lsi_port_statistics port_statistics[LSI_MAX_PORTS];
+struct lsi_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
 /* A tsc-based timer responsible for triggering statistics printout */
 #define TIMER_MILLISECOND 2000000ULL /* around 1ms at 2 Ghz */
@@ -211,7 +206,7 @@ print_stats(void)
 
 	printf("\nPort statistics ====================================");
 
-	for (portid = 0; portid < LSI_MAX_PORTS; portid++) {
+	for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
 		/* skip ports that are not enabled */
 		if ((lsi_enabled_port_mask & (1 << portid)) == 0)
 			continue;
@@ -321,11 +316,12 @@ lsi_main_loop(void)
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
 	struct rte_mbuf *m;
 	unsigned lcore_id;
-	uint64_t prev_tsc = 0;
-	uint64_t diff_tsc, cur_tsc, timer_tsc;
+	uint64_t prev_tsc, diff_tsc, cur_tsc, timer_tsc;
 	unsigned i, j, portid, nb_rx;
 	struct lcore_queue_conf *qconf;
+	const uint64_t drain_tsc = (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
+	prev_tsc = 0;
 	timer_tsc = 0;
 
 	lcore_id = rte_lcore_id();
@@ -333,7 +329,7 @@ lsi_main_loop(void)
 
 	if (qconf->n_rx_port == 0) {
 		RTE_LOG(INFO, LSI, "lcore %u has nothing to do\n", lcore_id);
-		while(1);
+		return;
 	}
 
 	RTE_LOG(INFO, LSI, "entering main loop on lcore %u\n", lcore_id);
@@ -353,11 +349,11 @@ lsi_main_loop(void)
 		 * TX burst queue drain
 		 */
 		diff_tsc = cur_tsc - prev_tsc;
-		if (unlikely(diff_tsc > BURST_TX_DRAIN)) {
+		if (unlikely(diff_tsc > drain_tsc)) {
 
 			/* this could be optimized (use queueid instead of
 			 * portid), but it is not called so often */
-			for (portid = 0; portid < LSI_MAX_PORTS; portid++) {
+			for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
 				if (qconf->tx_mbufs[portid].len == 0)
 					continue;
 				lsi_send_burst(&lcore_queue_conf[lcore_id],
@@ -639,8 +635,8 @@ MAIN(int argc, char **argv)
 	struct lcore_queue_conf *qconf;
 	struct rte_eth_dev_info dev_info;
 	int ret;
-	unsigned int nb_ports;
-	unsigned portid, portid_last = 0;
+	uint8_t nb_ports;
+	uint8_t portid, portid_last = 0;
 	unsigned lcore_id, rx_lcore_id;
 	unsigned nb_ports_in_mask = 0;
 
@@ -663,7 +659,7 @@ MAIN(int argc, char **argv)
 				   sizeof(struct rte_pktmbuf_pool_private),
 				   rte_pktmbuf_pool_init, NULL,
 				   rte_pktmbuf_init, NULL,
-				   SOCKET0, 0);
+				   rte_socket_id(), 0);
 	if (lsi_pktmbuf_pool == NULL)
 		rte_panic("Cannot init mbuf pool\n");
 
@@ -678,8 +674,8 @@ MAIN(int argc, char **argv)
 	if (nb_ports == 0)
 		rte_panic("No Ethernet port - bye\n");
 
-	if (nb_ports > LSI_MAX_PORTS)
-		nb_ports = LSI_MAX_PORTS;
+	if (nb_ports > RTE_MAX_ETHPORTS)
+		nb_ports = RTE_MAX_ETHPORTS;
 
 	/*
 	 * Each logical core is assigned a dedicated TX queue on each port.
@@ -699,7 +695,7 @@ MAIN(int argc, char **argv)
 
 		nb_ports_in_mask++;
 
-		rte_eth_dev_info_get((uint8_t) portid, &dev_info);
+		rte_eth_dev_info_get(portid, &dev_info);
 	}
 	if (nb_ports_in_mask < 2 || nb_ports_in_mask % 2)
 		rte_exit(EXIT_FAILURE, "Current enabled port number is %u, "
@@ -730,61 +726,61 @@ MAIN(int argc, char **argv)
 
 		qconf->rx_port_list[qconf->n_rx_port] = portid;
 		qconf->n_rx_port++;
-		printf("Lcore %u: RX port %u\n",rx_lcore_id, portid);
+		printf("Lcore %u: RX port %u\n",rx_lcore_id, (unsigned) portid);
 	}
 
 	/* Initialise each port */
 	for (portid = 0; portid < nb_ports; portid++) {
 		/* skip ports that are not enabled */
 		if ((lsi_enabled_port_mask & (1 << portid)) == 0) {
-			printf("Skipping disabled port %u\n", portid);
+			printf("Skipping disabled port %u\n", (unsigned) portid);
 			continue;
 		}
 		/* init port */
-		printf("Initializing port %u... ", portid);
+		printf("Initializing port %u... ", (unsigned) portid);
 		fflush(stdout);
-		ret = rte_eth_dev_configure((uint8_t) portid, 1, 1, &port_conf);
+		ret = rte_eth_dev_configure(portid, 1, 1, &port_conf);
 		if (ret < 0)
 			rte_exit(EXIT_FAILURE, "Cannot configure device: err=%d, port=%u\n",
-				  ret, portid);
+				  ret, (unsigned) portid);
 
 		/* register lsi interrupt callback, need to be after
 		 * rte_eth_dev_configure(). if (intr_conf.lsc == 0), no
 		 * lsc interrupt will be present, and below callback to
 		 * be registered will never be called.
 		 */
-		rte_eth_dev_callback_register((uint8_t)portid,
+		rte_eth_dev_callback_register(portid,
 			RTE_ETH_EVENT_INTR_LSC, lsi_event_callback, NULL);
 
-		rte_eth_macaddr_get((uint8_t) portid,
+		rte_eth_macaddr_get(portid,
 				    &lsi_ports_eth_addr[portid]);
 
 		/* init one RX queue */
 		fflush(stdout);
-		ret = rte_eth_rx_queue_setup((uint8_t) portid, 0, nb_rxd,
-					     SOCKET0, &rx_conf,
+		ret = rte_eth_rx_queue_setup(portid, 0, nb_rxd,
+					     rte_eth_dev_socket_id(portid), &rx_conf,
 					     lsi_pktmbuf_pool);
 		if (ret < 0)
-			rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: err=%d, port=%u\n",
-				  ret, portid);
+			rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup: err=%d, port=%u\n",
+				  ret, (unsigned) portid);
 
 		/* init one TX queue logical core on each port */
 		fflush(stdout);
-		ret = rte_eth_tx_queue_setup((uint8_t) portid, 0, nb_txd,
-				SOCKET0, &tx_conf);
+		ret = rte_eth_tx_queue_setup(portid, 0, nb_txd,
+				rte_eth_dev_socket_id(portid), &tx_conf);
 		if (ret < 0)
 			rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: err=%d,port=%u\n",
-				  ret, portid);
+				  ret, (unsigned) portid);
 
 		/* Start device */
-		ret = rte_eth_dev_start((uint8_t) portid);
+		ret = rte_eth_dev_start(portid);
 		if (ret < 0)
 			rte_exit(EXIT_FAILURE, "rte_eth_dev_start: err=%d, port=%u\n",
-				  ret, portid);
+				  ret, (unsigned) portid);
 		printf("done:\n");
 
 		printf("Port %u, MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
-				portid,
+				(unsigned) portid,
 				lsi_ports_eth_addr[portid].addr_bytes[0],
 				lsi_ports_eth_addr[portid].addr_bytes[1],
 				lsi_ports_eth_addr[portid].addr_bytes[2],
@@ -796,7 +792,7 @@ MAIN(int argc, char **argv)
 		memset(&port_statistics, 0, sizeof(port_statistics));
 	}
 
-	check_all_ports_link_status((uint8_t)nb_ports, lsi_enabled_port_mask);
+	check_all_ports_link_status(nb_ports, lsi_enabled_port_mask);
 
 	/* launch per-lcore init on every lcore */
 	rte_eal_mp_remote_launch(lsi_launch_one_lcore, NULL, CALL_MASTER);

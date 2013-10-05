@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _RTE_ETHDEV_H_
@@ -247,20 +246,42 @@ struct rte_eth_thresh {
  *  packets to multiple queues.
  */
 enum rte_eth_rx_mq_mode {
-	ETH_RSS     = 0,     /**< Default to RSS mode */
-	ETH_VMDQ_DCB,        /**< Use VMDQ+DCB to route traffic to queues */
-	ETH_DCB_RX           /**< For RX side,only DCB is on. */
+	ETH_MQ_RX_NONE = 0,  /**< None of DCB,RSS or VMDQ mode */
+
+	ETH_MQ_RX_RSS,       /**< For RX side, only RSS is on */
+	ETH_MQ_RX_DCB,       /**< For RX side,only DCB is on. */
+	ETH_MQ_RX_DCB_RSS,   /**< Both DCB and RSS enable */
+
+	ETH_MQ_RX_VMDQ_ONLY, /**< Only VMDQ, no RSS nor DCB */
+	ETH_MQ_RX_VMDQ_RSS,  /**< RSS mode with VMDQ */
+	ETH_MQ_RX_VMDQ_DCB,  /**< Use VMDQ+DCB to route traffic to queues */
+	ETH_MQ_RX_VMDQ_DCB_RSS, /**< Enable both VMDQ and DCB in VMDq */
 };
+
+/**
+ * for rx mq mode backward compatible 
+ */
+#define ETH_RSS                       ETH_MQ_RX_RSS
+#define VMDQ_DCB                      ETH_MQ_RX_VMDQ_DCB
+#define ETH_DCB_RX                    ETH_MQ_RX_DCB
 
 /**
  * A set of values to identify what method is to be used to transmit 
  * packets using multi-TCs.
  */
 enum rte_eth_tx_mq_mode {
-	ETH_DCB_NONE    = 0, 	/**< It is not in DCB mode. */
-	ETH_VMDQ_DCB_TX,	/**< For TX side,both DCB and VT is on. */
-	ETH_DCB_TX           	/**< For TX side,only DCB is on. */
+	ETH_MQ_TX_NONE    = 0, 	/**< It is in neither DCB nor VT mode. */
+	ETH_MQ_TX_DCB,         	/**< For TX side,only DCB is on. */
+	ETH_MQ_TX_VMDQ_DCB,	/**< For TX side,both DCB and VT is on. */
+	ETH_MQ_TX_VMDQ_ONLY,    /**< Only VT on, no DCB */
 };
+
+/**
+ * for tx mq mode backward compatible 
+ */
+#define ETH_DCB_NONE                ETH_MQ_TX_NONE
+#define ETH_VMDQ_DCB_TX             ETH_MQ_TX_VMDQ_DCB
+#define ETH_DCB_TX                  ETH_MQ_TX_DCB
 
 /**
  * A structure used to configure the RX features of an Ethernet port.
@@ -306,6 +327,9 @@ struct rte_eth_rss_conf {
 #define ETH_RSS_IPV4_UDP    0x0040 /**< IPv4/UDP packet. */
 #define ETH_RSS_IPV6_UDP    0x0080 /**< IPv6/UDP packet. */
 #define ETH_RSS_IPV6_UDP_EX 0x0100 /**< IPv6/UDP with extension headers. */
+/* Definitions used for redirection table entry size */
+#define ETH_RSS_RETA_NUM_ENTRIES 128
+#define ETH_RSS_RETA_MAX_QUEUE   16  
 
 /* Definitions used for VMDQ and DCB functionality */
 #define ETH_VMDQ_MAX_VLAN_FILTERS   64 /**< Maximum nb. of VMDQ vlan filters. */
@@ -326,6 +350,60 @@ struct rte_eth_rss_conf {
 #define ETH_VLAN_STRIP_MASK   0x0001 /**< VLAN Strip  setting mask */
 #define ETH_VLAN_FILTER_MASK  0x0002 /**< VLAN Filter  setting mask*/
 #define ETH_VLAN_EXTEND_MASK  0x0004 /**< VLAN Extend  setting mask*/
+#define ETH_VLAN_ID_MAX       0x0FFF /**< VLAN ID is in lower 12 bits*/ 
+
+/* Definitions used for receive MAC address   */
+#define ETH_NUM_RECEIVE_MAC_ADDR  128 /**< Maximum nb. of receive mac addr. */
+
+
+/* Definitions used for unicast hash  */
+#define ETH_VMDQ_NUM_UC_HASH_ARRAY  128 /**< Maximum nb. of UC hash array. */
+
+/* Definitions used for VMDQ pool rx mode setting */
+#define ETH_VMDQ_ACCEPT_UNTAG   0x0001 /**< accept untagged packets. */
+#define ETH_VMDQ_ACCEPT_HASH_MC 0x0002 /**< accept packets in multicast table . */
+#define ETH_VMDQ_ACCEPT_HASH_UC 0x0004 /**< accept packets in unicast table. */
+#define ETH_VMDQ_ACCEPT_BROADCAST   0x0008 /**< accept broadcast packets. */
+#define ETH_VMDQ_ACCEPT_MULTICAST   0x0010 /**< multicast promiscuous. */
+
+/* Definitions used for VMDQ mirror rules setting */
+#define ETH_VMDQ_NUM_MIRROR_RULE     4 /**< Maximum nb. of mirror rules. . */
+
+#define ETH_VMDQ_POOL_MIRROR    0x0001 /**< Virtual Pool Mirroring. */
+#define ETH_VMDQ_UPLINK_MIRROR  0x0002 /**< Uplink Port Mirroring. */
+#define ETH_VMDQ_DOWNLIN_MIRROR 0x0004 /**< Downlink Port Mirroring. */
+#define ETH_VMDQ_VLAN_MIRROR    0x0008 /**< VLAN Mirroring. */
+
+/**
+ * A structure used to configure VLAN traffic mirror of an Ethernet port.
+ */
+struct rte_eth_vlan_mirror {
+	uint64_t vlan_mask; /**< mask for valid VLAN ID. */
+	uint16_t vlan_id[ETH_VMDQ_MAX_VLAN_FILTERS]; 
+	/** VLAN ID list for vlan mirror. */
+};
+
+/**
+ * A structure used to configure traffic mirror of an Ethernet port.
+ */
+struct rte_eth_vmdq_mirror_conf {
+	uint8_t rule_type_mask; /**< Mirroring rule type mask we want to set */
+	uint8_t dst_pool; /**< Destination pool for this mirror rule. */
+	uint64_t pool_mask; /**< Bitmap of pool for pool mirroring */
+	struct rte_eth_vlan_mirror vlan; /**< VLAN ID setting for VLAN mirroring */
+};
+
+/**
+ * A structure used to configure Redirection Table of  the Receive Side
+ * Scaling (RSS) feature of an Ethernet port.
+ */
+struct rte_eth_rss_reta {
+	/** First 64 mask bits indicate which entry(s) need to updated/queried. */
+	uint64_t mask_lo; 
+	/** Second 64 mask bits indicate which entry(s) need to updated/queried. */
+	uint64_t mask_hi; 
+	uint8_t reta[ETH_RSS_RETA_NUM_ENTRIES];  /**< 128 RETA entries*/
+};
 
 /**
  * This enum indicates the possible number of traffic classes
@@ -338,11 +416,13 @@ enum rte_eth_nb_tcs {
 
 /**
  * This enum indicates the possible number of queue pools
- * in VMDQ+DCB configurations.
+ * in VMDQ configurations.
  */
 enum rte_eth_nb_pools {
-	ETH_16_POOLS = 16, /**< 16 pools with DCB. */
-	ETH_32_POOLS = 32  /**< 32 pools with DCB. */
+	ETH_8_POOLS = 8,    /**< 8 VMDq pools. */
+	ETH_16_POOLS = 16,  /**< 16 VMDq pools. */
+	ETH_32_POOLS = 32,  /**< 32 VMDq pools. */
+	ETH_64_POOLS = 64   /**< 64 VMDq pools. */
 };
 
 /* This structure may be extended in future. */
@@ -359,9 +439,13 @@ struct rte_eth_vmdq_dcb_tx_conf {
 };
  
 struct rte_eth_dcb_tx_conf {
-	enum rte_eth_nb_tcs nb_tcs; /**< possible DCB TCs, 4 or 8 TCs. */
+	enum rte_eth_nb_tcs nb_tcs; /**< Possible DCB TCs, 4 or 8 TCs. */
 	uint8_t dcb_queue[ETH_DCB_NUM_USER_PRIORITIES];
 	/**< Possible DCB queue,4 or 8. */
+};
+
+struct rte_eth_vmdq_tx_conf {
+	enum rte_eth_nb_pools nb_queue_pools; /**< VMDq mode, 64 pools. */
 };
 
 /**
@@ -386,6 +470,17 @@ struct rte_eth_vmdq_dcb_conf {
 	} pool_map[ETH_VMDQ_MAX_VLAN_FILTERS]; /**< VMDq vlan pool maps. */
 	uint8_t dcb_queue[ETH_DCB_NUM_USER_PRIORITIES];
 	/**< Selects a queue in a pool */
+};
+
+struct rte_eth_vmdq_rx_conf {
+	enum rte_eth_nb_pools nb_queue_pools; /**< VMDq only mode, 8 or 64 pools */
+	uint8_t enable_default_pool; /**< If non-zero, use a default pool */
+	uint8_t default_pool; /**< The default pool, if applicable */
+	uint8_t nb_pool_maps; /**< We can have up to 64 filters/mappings */
+	struct {
+		uint16_t vlan_id; /**< The vlan id of the received frame */
+		uint64_t pools;   /**< Bitmask of pools for packet rx */
+	} pool_map[ETH_VMDQ_MAX_VLAN_FILTERS]; /**< VMDq vlan pool maps. */
 };
 
 /**
@@ -495,9 +590,9 @@ struct rte_fdir_conf {
 	enum rte_fdir_mode mode; /**< Flow Director mode. */
 	enum rte_fdir_pballoc_type pballoc; /**< Space for FDIR filters. */
 	enum rte_fdir_status_mode status;  /**< How to report FDIR hash. */
-	/* Offset of flexbytes field in RX packets (in 16-bit word units). */
+	/** Offset of flexbytes field in RX packets (in 16-bit word units). */
 	uint8_t flexbytes_offset;
-	/* RX queue of packets matching a "drop" filter in perfect mode. */
+	/** RX queue of packets matching a "drop" filter in perfect mode. */
 	uint8_t drop_queue;
 };
 
@@ -635,12 +730,16 @@ struct rte_eth_conf {
 		/**< Port vmdq+dcb configuration. */
 		struct rte_eth_dcb_rx_conf dcb_rx_conf;
 		/**< Port dcb RX configuration. */
+		struct rte_eth_vmdq_rx_conf vmdq_rx_conf;
+		/**< Port vmdq RX configuration. */
 	} rx_adv_conf; /**< Port RX filtering configuration (union). */
 	union {
 		struct rte_eth_vmdq_dcb_tx_conf vmdq_dcb_tx_conf;
 		/**< Port vmdq+dcb TX configuration. */
 		struct rte_eth_dcb_tx_conf dcb_tx_conf;
 		/**< Port dcb TX configuration. */
+		struct rte_eth_vmdq_tx_conf vmdq_tx_conf;
+		/**< Port vmdq TX configuration. */
 	} tx_adv_conf; /**< Port TX DCB configuration (union). */
 	/** Currently,Priority Flow Control(PFC) are supported,if DCB with PFC 
  	    is needed,and the variable must be set ETH_DCB_PFC_SUPPORT. */ 
@@ -662,6 +761,10 @@ struct rte_eth_dev_info {
 	uint16_t max_rx_queues; /**< Maximum number of RX queues. */
 	uint16_t max_tx_queues; /**< Maximum number of TX queues. */
 	uint32_t max_mac_addrs; /**< Maximum number of MAC addresses. */
+	uint32_t max_hash_mac_addrs; 
+	/** Maximum number of hash MAC addresses for MTA and UTA. */
+	uint16_t max_vfs; /**< Maximum number of VFs. */
+	uint16_t max_vmdq_pools; /**< Maximum number of VMDq pools. */
 };
 
 struct rte_eth_dev;
@@ -739,6 +842,13 @@ typedef int (*eth_tx_queue_setup_t)(struct rte_eth_dev *dev,
 typedef void (*eth_queue_release_t)(void *queue);
 /**< @internal Release memory resources allocated by given RX/TX queue. */
 
+typedef uint32_t (*eth_rx_queue_count_t)(struct rte_eth_dev *dev,
+					 uint16_t rx_queue_id);
+/**< @Get number of available descriptors on a receive queue of an Ethernet device. */
+
+typedef int (*eth_rx_descriptor_done_t)(void *rxq, uint16_t offset);
+/**< @Check DD bit of specific RX descriptor */
+
 typedef int (*vlan_filter_set_t)(struct rte_eth_dev *dev,
 				  uint16_t vlan_id,
 				  int on);
@@ -813,6 +923,14 @@ typedef int (*priority_flow_ctrl_set_t)(struct rte_eth_dev *dev,
 				struct rte_eth_pfc_conf *pfc_conf);
 /**< @internal Setup priority flow control parameter on an Ethernet device */
 
+typedef int (*reta_update_t)(struct rte_eth_dev *dev,
+				struct rte_eth_rss_reta *reta_conf);
+/**< @internal Update RSS redirection table on an Ethernet device */
+
+typedef int (*reta_query_t)(struct rte_eth_dev *dev,
+				struct rte_eth_rss_reta *reta_conf);
+/**< @internal Query RSS redirection table on an Ethernet device */
+
 typedef int (*eth_dev_led_on_t)(struct rte_eth_dev *dev);
 /**< @internal Turn on SW controllable LED on an Ethernet device */
 
@@ -826,7 +944,48 @@ typedef void (*eth_mac_addr_add_t)(struct rte_eth_dev *dev,
 				  struct ether_addr *mac_addr,
 				  uint32_t index,
 				  uint32_t vmdq);
-/**< @internal Set a MAC address into Receive Address Address Register */
+/**< @internal Set a MAC address into Receive Address Address Register */ 
+
+typedef int (*eth_uc_hash_table_set_t)(struct rte_eth_dev *dev,
+				  struct ether_addr *mac_addr,
+				  uint8_t on);
+/**< @internal Set a Unicast Hash bitmap */
+
+typedef int (*eth_uc_all_hash_table_set_t)(struct rte_eth_dev *dev,
+				  uint8_t on);
+/**< @internal Set all Unicast Hash bitmap */
+
+typedef int (*eth_set_vf_rx_mode_t)(struct rte_eth_dev *dev,
+				  uint16_t vf,
+				  uint16_t rx_mode, 
+				  uint8_t on);
+/**< @internal Set a VF receive mode */
+
+typedef int (*eth_set_vf_rx_t)(struct rte_eth_dev *dev,
+				uint16_t vf,
+				uint8_t on);
+/**< @internal Set a VF receive  mode */
+
+typedef int (*eth_set_vf_tx_t)(struct rte_eth_dev *dev,
+				uint16_t vf,
+				uint8_t on);
+/**< @internal Enable or disable a VF transmit   */
+
+typedef int (*eth_set_vf_vlan_filter_t)(struct rte_eth_dev *dev, 
+				  uint16_t vlan, 
+				  uint64_t vf_mask,
+				  uint8_t vlan_on);
+/**< @internal Set VF VLAN pool filter */
+
+typedef int (*eth_mirror_rule_set_t)(struct rte_eth_dev *dev,
+				  struct rte_eth_vmdq_mirror_conf *mirror_conf,
+				  uint8_t rule_id, 
+				  uint8_t on);
+/**< @internal Add a traffic mirroring rule on an Ethernet device */
+
+typedef int (*eth_mirror_rule_reset_t)(struct rte_eth_dev *dev,
+				  uint8_t rule_id);
+/**< @internal Remove a traffic mirroring rule on an Ethernet device */
 
 /**
  * @internal A structure containing the functions exported by an Ethernet driver.
@@ -852,6 +1011,8 @@ struct eth_dev_ops {
 	vlan_offload_set_t         vlan_offload_set; /**< Set VLAN Offload. */
 	eth_rx_queue_setup_t       rx_queue_setup;/**< Set up device RX queue.*/
 	eth_queue_release_t        rx_queue_release;/**< Release RX queue.*/
+	eth_rx_queue_count_t       rx_queue_count; /**< Get Rx queue count. */
+	eth_rx_descriptor_done_t   rx_descriptor_done;  /**< Check rxd DD bit */
 	eth_tx_queue_setup_t       tx_queue_setup;/**< Set up device TX queue.*/
 	eth_queue_release_t        tx_queue_release;/**< Release TX queue.*/
 	eth_dev_led_on_t           dev_led_on;    /**< Turn on LED. */
@@ -860,6 +1021,14 @@ struct eth_dev_ops {
 	priority_flow_ctrl_set_t   priority_flow_ctrl_set; /**< Setup priority flow control.*/
 	eth_mac_addr_remove_t      mac_addr_remove; /**< Remove MAC address */
 	eth_mac_addr_add_t         mac_addr_add;  /**< Add a MAC address */
+	eth_uc_hash_table_set_t    uc_hash_table_set;  /**< Set Unicast Table Array */
+	eth_uc_all_hash_table_set_t uc_all_hash_table_set;  /**< Set Unicast hash bitmap */
+	eth_mirror_rule_set_t	   mirror_rule_set;  /**< Add a traffic mirror rule.*/
+	eth_mirror_rule_reset_t	   mirror_rule_reset;  /**< reset a traffic mirror rule.*/
+	eth_set_vf_rx_mode_t       set_vf_rx_mode;   /**< Set VF RX mode */
+	eth_set_vf_rx_t            set_vf_rx;  /**< enable/disable a VF receive */
+	eth_set_vf_tx_t            set_vf_tx;  /**< enable/disable a VF transmit */
+	eth_set_vf_vlan_filter_t   set_vf_vlan_filter;  /**< Set VF VLAN filter */
 
 	/** Add a signature filter. */
 	fdir_add_signature_filter_t fdir_add_signature_filter;
@@ -877,6 +1046,10 @@ struct eth_dev_ops {
 	fdir_remove_perfect_filter_t fdir_remove_perfect_filter;
 	/** Setup masks for FDIR filtering. */
 	fdir_set_masks_t fdir_set_masks;
+	/** Update redirection table. */
+	reta_update_t reta_update;
+	/** Query redirection table. */
+	reta_query_t reta_query;
 };
 
 /**
@@ -899,6 +1072,14 @@ struct rte_eth_dev {
 	struct rte_eth_dev_cb_list callbacks; /**< User application callbacks */
 };
 
+struct rte_eth_dev_sriov {
+	uint8_t active;               /**< SRIOV is active with 16, 32 or 64 pools */
+	uint8_t nb_q_per_pool;        /**< rx queue number per pool */
+	uint16_t def_vmdq_idx;        /**< Default pool num used for PF */
+	uint16_t def_pool_q_idx;      /**< Default pool queue start reg index */
+};
+#define RTE_ETH_DEV_SRIOV(dev)         ((dev)->data->sriov)
+
 /**
  * @internal
  * The data part, with no function pointers, associated with each ethernet device.
@@ -911,6 +1092,8 @@ struct rte_eth_dev_data {
 	void **tx_queues; /**< Array of pointers to TX queues. */
 	uint16_t nb_rx_queues; /**< Number of RX queues. */
 	uint16_t nb_tx_queues; /**< Number of TX queues. */
+	
+	struct rte_eth_dev_sriov sriov;    /**< SRIOV data */
 
 	void *dev_private;              /**< PMD-specific private data */
 
@@ -922,6 +1105,10 @@ struct rte_eth_dev_data {
 
 	uint64_t rx_mbuf_alloc_failed; /**< RX ring mbuf allocation failures. */
 	struct ether_addr* mac_addrs;/**< Device Ethernet Link address. */
+	uint64_t mac_pool_sel[ETH_NUM_RECEIVE_MAC_ADDR]; 
+	/** bitmap array of associating Ethernet MAC addresses to pools */
+	struct ether_addr* hash_mac_addrs;
+	/** Device Ethernet MAC addresses of hash filtering. */
 	uint8_t port_id;           /**< Device [external] port identifier. */
 	uint8_t promiscuous   : 1, /**< RX promiscuous mode ON(1) / OFF(0). */
 		scattered_rx : 1,  /**< RX of scattered packets is ON(1) / OFF(0) */
@@ -946,6 +1133,17 @@ extern struct rte_eth_dev rte_eth_devices[];
  *   - The total number of usable Ethernet devices.
  */
 extern uint8_t rte_eth_dev_count(void);
+
+/**
+ * Function for internal use by dummy drivers primarily, e.g. ring-based
+ * driver.
+ * Allocates a new ethdev slot for an ethernet device and returns the pointer
+ * to that slot for the driver to use.
+ *
+ * @return
+ *   - Slot in the rte_dev_devices array for a new device;
+ */
+struct rte_eth_dev *rte_eth_dev_allocate(void);
 
 struct eth_driver;
 /**
@@ -1060,6 +1258,15 @@ extern int rte_ixgbe_pmd_init(void);
 extern int rte_ixgbevf_pmd_init(void);
 
 /**
+ * The initialization function of the driver for Qumranet virtio-net
+ * Ethernet devices.
+ * Invoked once at EAL start time.
+ * @return
+ *   0 on success
+ */
+extern int rte_virtio_pmd_init(void);
+
+/**
  * The initialization function of *all* supported and enabled drivers.
  * Right now, the following PMDs are supported:
  *  - igb
@@ -1107,6 +1314,13 @@ int rte_pmd_init_all(void)
 		return (ret);
 	}
 #endif /* RTE_LIBRTE_IXGBE_PMD */
+
+#ifdef RTE_LIBRTE_VIRTIO_PMD
+	if ((ret = rte_virtio_pmd_init()) != 0) {
+		RTE_LOG(ERR, PMD, "Cannot init virtio PMD\n");
+		return (ret);
+	}
+#endif /* RTE_LIBRTE_VIRTIO_PMD */
 
 	if (ret == -ENODEV)
 		RTE_LOG(ERR, PMD, "No PMD(s) are configured\n");
@@ -1233,6 +1447,19 @@ extern int rte_eth_rx_queue_setup(uint8_t port_id, uint16_t rx_queue_id,
 extern int rte_eth_tx_queue_setup(uint8_t port_id, uint16_t tx_queue_id,
 				  uint16_t nb_tx_desc, unsigned int socket_id,
 				  const struct rte_eth_txconf *tx_conf);
+
+/*
+ * Return the NUMA socket to which an Ethernet device is connected
+ *
+ * @param port_id
+ *   The port identifier of the Ethernet device
+ * @return
+ *   The NUMA socket id to which the Ethernet device is connected or
+ *   a default of zero if the socket could not be determined.
+ *   -1 is returned is the port_id value is out of range.
+ */
+extern int rte_eth_dev_socket_id(uint8_t port_id);
+
 
 /**
  * Start an Ethernet device.
@@ -1629,6 +1856,59 @@ rte_eth_rx_burst(uint8_t port_id, uint16_t queue_id,
 
 	dev = &rte_eth_devices[port_id];
 	return (*dev->rx_pkt_burst)(dev->data->rx_queues[queue_id], rx_pkts, nb_pkts);
+}
+#endif
+
+/**
+ * Get the number of used descriptors in a specific queue
+ *
+ * @param port_id
+ *  The port identifier of the Ethernet device.
+ * @param queue_id
+ *  The queue id on the specific port.
+ * @return
+ *  The number of used descriptors in the specific queue.
+ */
+#ifdef RTE_LIBRTE_ETHDEV_DEBUG
+extern uint32_t rte_eth_rx_queue_count(uint8_t port_id, uint16_t queue_id);
+#else
+static inline uint32_t
+rte_eth_rx_queue_count(uint8_t port_id, uint16_t queue_id)
+{
+        struct rte_eth_dev *dev;
+ 
+        dev = &rte_eth_devices[port_id];
+        return (*dev->dev_ops->rx_queue_count)(dev, queue_id);
+}
+#endif
+
+/**
+ * Check if the DD bit of the specific RX descriptor in the queue has been set
+ *
+ * @param port_id
+ *  The port identifier of the Ethernet device.
+ * @param queue_id
+ *  The queue id on the specific port.
+ * @offset
+ *  The offset of the descriptor ID from tail.
+ * @return
+ *  - (1) if the specific DD bit is set.
+ *  - (0) if the specific DD bit is not set.
+ *  - (-ENODEV) if *port_id* invalid.
+ */
+#ifdef RTE_LIBRTE_ETHDEV_DEBUG
+extern int rte_eth_rx_descriptor_done(uint8_t port_id,
+				      uint16_t queue_id,
+				      uint16_t offset);
+#else
+static inline int
+rte_eth_rx_descriptor_done(uint8_t port_id, uint16_t queue_id, uint16_t offset)
+{
+	struct rte_eth_dev *dev;
+
+	dev = &rte_eth_devices[port_id];
+	return (*dev->dev_ops->rx_descriptor_done)( \
+		dev->data->rx_queues[queue_id], offset);
 }
 #endif
 
@@ -2093,6 +2373,204 @@ int rte_eth_dev_mac_addr_add(uint8_t port, struct ether_addr *mac_addr,
  */
 int rte_eth_dev_mac_addr_remove(uint8_t port, struct ether_addr *mac_addr);
 
+/**
+ * Update Redirection Table(RETA) of Receive Side Scaling of Ethernet device.
+ * 
+ * @param port
+ *   The port identifier of the Ethernet device.
+ * @param reta_conf 
+ *    RETA to update.
+ * @return
+ *   - (0) if successful. 
+ *   - (-ENOTSUP) if hardware doesn't support.
+ *   - (-EINVAL) if bad parameter.
+ */
+int rte_eth_dev_rss_reta_update(uint8_t port, 
+			struct rte_eth_rss_reta *reta_conf);
+
+ /**
+ * Query Redirection Table(RETA) of Receive Side Scaling of Ethernet device.
+ *  
+ * @param port
+ *   The port identifier of the Ethernet device.
+ * @param reta_conf 
+ *   RETA to query.
+ * @return
+ *   - (0) if successful. 
+ *   - (-ENOTSUP) if hardware doesn't support.
+ *   - (-EINVAL) if bad parameter.
+ */
+int rte_eth_dev_rss_reta_query(uint8_t port, 
+			struct rte_eth_rss_reta *reta_conf);
+ 
+ /**
+ * Updates unicast hash table for receiving packet with the given destionation
+ * MAC address, and the packet is routed to all VFs for which the RX mode is 
+ * accept packets that match the unicast hash table.
+ *  
+ * @param port
+ *   The port identifier of the Ethernet device.
+ * @param addr
+ *   Unicast MAC address.
+ * @param on
+ *    1 - Set an unicast hash bit for receiving packets with the MAC address.
+ *    0 - Clear an unicast hash bit.
+ * @return
+ *   - (0) if successful. 
+ *   - (-ENOTSUP) if hardware doesn't support.
+  *  - (-ENODEV) if *port_id* invalid.
+ *   - (-EINVAL) if bad parameter.
+ */
+int rte_eth_dev_uc_hash_table_set(uint8_t port,struct ether_addr *addr,
+					uint8_t on);
+
+ /**
+ * Updates all unicast hash bitmaps for receiving packet with any Unicast 
+ * Ethernet MAC addresses,the packet is routed to all VFs for which the RX 
+ * mode is accept packets that match the unicast hash table.
+ *  
+ * @param port
+ *   The port identifier of the Ethernet device.
+ * @param on
+ *    1 - Set all unicast hash bitmaps for receiving all the Ethernet 
+ *         MAC addresses
+ *    0 - Clear all unicast hash bitmaps
+ * @return
+ *   - (0) if successful. 
+ *   - (-ENOTSUP) if hardware doesn't support.
+  *  - (-ENODEV) if *port_id* invalid.
+ *   - (-EINVAL) if bad parameter.
+ */
+int rte_eth_dev_uc_all_hash_table_set(uint8_t port,uint8_t on);
+
+ /**
+ * Set RX L2 Filtering mode of a VF of an Ethernet device.
+ *  
+ * @param port
+ *   The port identifier of the Ethernet device.
+ * @param vf 
+ *   VF id.
+ * @param rx_mode
+ *    The RX mode mask, which  is one or more of  accepting Untagged Packets, 
+ *    packets that match the PFUTA table, Broadcast and Multicast Promiscuous.
+ *    ETH_VMDQ_ACCEPT_UNTAG,ETH_VMDQ_ACCEPT_HASH_UC,
+ *    ETH_VMDQ_ACCEPT_BROADCAST and ETH_VMDQ_ACCEPT_MULTICAST will be used
+ *    in rx_mode.
+ * @param on
+ *    1 - Enable a VF RX mode.
+ *    0 - Disable a VF RX mode.
+ * @return
+ *   - (0) if successful. 
+ *   - (-ENOTSUP) if hardware doesn't support.
+ *   - (-ENOTSUP) if hardware doesn't support.
+ *   - (-EINVAL) if bad parameter.
+ */
+int rte_eth_dev_set_vf_rxmode(uint8_t port, uint16_t vf, uint16_t rx_mode,
+				uint8_t on);
+
+/**
+* Enable or disable a VF traffic transmit of the Ethernet device.
+*  
+* @param port
+*   The port identifier of the Ethernet device.
+* @param vf 
+*   VF id.
+* @param on
+*    1 - Enable a VF traffic transmit.
+*    0 - Disable a VF traffic transmit.
+* @return
+*   - (0) if successful. 
+*   - (-ENODEV) if *port_id* invalid.
+*   - (-ENOTSUP) if hardware doesn't support.
+*   - (-EINVAL) if bad parameter.
+*/
+int 
+rte_eth_dev_set_vf_tx(uint8_t port,uint16_t vf, uint8_t on);
+
+/**
+* Enable or disable a VF traffic receive of an Ethernet device.
+*  
+* @param port
+*   The port identifier of the Ethernet device.
+* @param vf
+*   VF id.
+* @param on
+*    1 - Enable a VF traffic receive.
+*    0 - Disable a VF traffic receive.
+* @return
+*   - (0) if successful. 
+*   - (-ENOTSUP) if hardware doesn't support.
+*   - (-ENODEV) if *port_id* invalid.
+*   - (-EINVAL) if bad parameter.
+*/
+int 
+rte_eth_dev_set_vf_rx(uint8_t port,uint16_t vf, uint8_t on);
+
+/**
+* Enable/Disable hardware VF VLAN filtering by an Ethernet device of
+* received VLAN packets tagged with a given VLAN Tag Identifier.
+* 
+* @param port id
+*   The port identifier of the Ethernet device.
+* @param vlan_id
+*   The VLAN Tag Identifier whose filtering must be enabled or disabled.
+* @param vf_mask
+*    Bitmap listing which VFs participate in the VLAN filtering.
+* @param vlan_on
+*    1 - Enable VFs VLAN filtering.
+*    0 - Disable VFs VLAN filtering.
+* @return
+*   - (0) if successful. 
+*   - (-ENOTSUP) if hardware doesn't support.
+*   - (-ENODEV) if *port_id* invalid.
+*   - (-EINVAL) if bad parameter.
+*/
+int
+rte_eth_dev_set_vf_vlan_filter(uint8_t port, uint16_t vlan_id, 
+				uint64_t vf_mask,
+				uint8_t vlan_on);
+ 
+/**
+ * Set a traffic mirroring rule on an Ethernet device
+ *
+ * @param port_id
+ *   The port identifier of the Ethernet device.
+ * @param mirror_conf
+ *   The pointer to the traffic mirroring structure describing the mirroring rule.
+ *   The *rte_eth_vm_mirror_conf* structure includes the type of mirroring rule,
+ *   destination pool and the value of rule if enable vlan or pool mirroring.
+ *
+ * @param rule_id
+ *   The index of traffic mirroring rule, we support four separated rules.
+ * @param on
+ *   1 - Enable a mirroring rule.
+ *   0 - Disable a mirroring rule.
+ * @return
+ *   - (0) if successful.
+ *   - (-ENOTSUP) if hardware doesn't support this feature.
+ *   - (-ENODEV) if *port_id* invalid.
+ *   - (-EINVAL) if the mr_conf information is not correct.
+ */
+int rte_eth_mirror_rule_set(uint8_t port_id,
+			struct rte_eth_vmdq_mirror_conf *mirror_conf, 
+			uint8_t rule_id,
+			uint8_t on);
+
+/**
+ * Reset a traffic mirroring rule on an Ethernet device.
+ *
+ * @param port_id
+ *   The port identifier of the Ethernet device.
+ * @param rule_id
+ *   The index of traffic mirroring rule, we support four separated rules.
+ * @return
+ *   - (0) if successful.
+ *   - (-ENOTSUP) if hardware doesn't support this feature.
+ *   - (-ENODEV) if *port_id* invalid.
+ *   - (-EINVAL) if bad parameter.
+ */
+int rte_eth_mirror_rule_reset(uint8_t port_id,
+					 uint8_t rule_id);
 
 #ifdef __cplusplus
 }

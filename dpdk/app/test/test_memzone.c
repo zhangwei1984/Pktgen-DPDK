@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -118,7 +117,7 @@ test_memzone_reserving_zone_size_bigger_than_the_maximum(void)
 		return -1;
 	}
 
-	mz = rte_memzone_reserve("zone_size_bigger_than_the_maximum", 0x1900000000ULL,
+	mz = rte_memzone_reserve("zone_size_bigger_than_the_maximum", (size_t)-1,
 			SOCKET_ID_ANY, 0);
 	if (mz != NULL) {
 		printf("It is impossible to reserve such big a memzone\n");
@@ -268,9 +267,9 @@ test_memzone_reserve_max(void)
 	const struct rte_memseg *ms;
 	int memseg_idx = 0;
 	int memzone_idx = 0;
-	uint64_t len = 0;
+	size_t len = 0;
 	void* last_addr;
-	uint64_t maxlen = 0;
+	size_t maxlen = 0;
 
 	/* get pointer to global configuration */
 	config = rte_eal_get_configuration();
@@ -285,7 +284,7 @@ test_memzone_reserve_max(void)
 		/* align everything */
 		last_addr = RTE_PTR_ALIGN_CEIL(ms[memseg_idx].addr, CACHE_LINE_SIZE);
 		len = ms[memseg_idx].len - RTE_PTR_DIFF(last_addr, ms[memseg_idx].addr);
-		len &= ~((uint64_t) CACHE_LINE_MASK);
+		len &= ~((size_t) CACHE_LINE_MASK);
 
 		/* cycle through all memzones */
 		for (memzone_idx = 0; memzone_idx < RTE_MAX_MEMZONE; memzone_idx++) {
@@ -297,9 +296,8 @@ test_memzone_reserve_max(void)
 			/* check if the memzone is in our memseg and subtract length */
 			if ((config->mem_config->memzone[memzone_idx].addr >=
 					ms[memseg_idx].addr) &&
-					(config->mem_config->memzone[memzone_idx].addr <=
-					(RTE_PTR_ADD(ms[memseg_idx].addr,
-					(size_t)ms[memseg_idx].len)))) {
+					(config->mem_config->memzone[memzone_idx].addr <
+					(RTE_PTR_ADD(ms[memseg_idx].addr, ms[memseg_idx].len)))) {
 				/* since the zones can now be aligned and occasionally skip
 				 * some space, we should calculate the length based on
 				 * reported length and start addresses difference. Addresses
@@ -336,7 +334,7 @@ test_memzone_reserve_max(void)
 
 	if (mz->len != maxlen) {
 		printf("Memzone reserve with 0 size did not return bigest block\n");
-		printf("Expected size = %" PRIu64 ", actual size = %" PRIu64 "\n",
+		printf("Expected size = %zu, actual size = %zu\n",
 				maxlen, mz->len);
 		rte_dump_physmem_layout();
 		rte_memzone_dump();
@@ -354,9 +352,10 @@ test_memzone_reserve_max_aligned(void)
 	const struct rte_memseg *ms;
 	int memseg_idx = 0;
 	int memzone_idx = 0;
-	uint64_t addr_offset, len = 0;
+	uintptr_t addr_offset;
+	size_t len = 0;
 	void* last_addr;
-	uint64_t maxlen = 0;
+	size_t maxlen = 0;
 
 	/* random alignment */
 	rte_srand((unsigned)rte_rdtsc());
@@ -378,7 +377,7 @@ test_memzone_reserve_max_aligned(void)
 		/* align everything */
 		last_addr = RTE_PTR_ALIGN_CEIL(ms[memseg_idx].addr, CACHE_LINE_SIZE);
 		len = ms[memseg_idx].len - RTE_PTR_DIFF(last_addr, ms[memseg_idx].addr);
-		len &= ~((uint64_t) CACHE_LINE_MASK);
+		len &= ~((size_t) CACHE_LINE_MASK);
 
 		/* cycle through all memzones */
 		for (memzone_idx = 0; memzone_idx < RTE_MAX_MEMZONE; memzone_idx++) {
@@ -390,9 +389,8 @@ test_memzone_reserve_max_aligned(void)
 			/* check if the memzone is in our memseg and subtract length */
 			if ((config->mem_config->memzone[memzone_idx].addr >=
 					ms[memseg_idx].addr) &&
-					(config->mem_config->memzone[memzone_idx].addr <=
-					(RTE_PTR_ADD(ms[memseg_idx].addr,
-					(size_t) ms[memseg_idx].len)))) {
+					(config->mem_config->memzone[memzone_idx].addr <
+					(RTE_PTR_ADD(ms[memseg_idx].addr, ms[memseg_idx].len)))) {
 				/* since the zones can now be aligned and occasionally skip
 				 * some space, we should calculate the length based on
 				 * reported length and start addresses difference.
@@ -433,7 +431,7 @@ test_memzone_reserve_max_aligned(void)
 	if (mz->len != maxlen) {
 		printf("Memzone reserve with 0 size and alignment %u did not return"
 				" bigest block\n", align);
-		printf("Expected size = %" PRIu64 ", actual size = %" PRIu64 "\n",
+		printf("Expected size = %zu, actual size = %zu\n",
 				maxlen, mz->len);
 		rte_dump_physmem_layout();
 		rte_memzone_dump();

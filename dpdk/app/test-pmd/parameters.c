@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <errno.h>
@@ -83,92 +82,104 @@ usage(char* progname)
 	printf("usage: %s [--interactive|-i] [--help|-h] | ["
 	       "--coremask=COREMASK --portmask=PORTMASK --numa "
 	       "--mbuf-size= | --total-num-mbufs= | "
+	       "--nb-cores= | --nb-ports= | "
 	       "--eth-peers-configfile= | "
-	       "--eth-peer=X,M:M:M:M:M:M | --nb-cores= | --nb-ports= | "
+	       "--eth-peer=X,M:M:M:M:M:M | "
 	       "--pkt-filter-mode= |"
 	       "--rss-ip | --rss-udp | "
 	       "--rxpt= | --rxht= | --rxwt= | --rxfreet= | "
 	       "--txpt= | --txht= | --txwt= | --txfreet= | "
 	       "--txrst= | --txqflags= ]\n",
 	       progname);
-	printf("  --interactive: run in interactive mode\n");
-	printf("  --help:   display this message and quit\n");
-	printf("  --eth-peers-configfile=name of file with ethernet addresses "
-	       "of peer ports\n");
-	printf("  --eth-peer=X,M:M:M:M:M:M set the mac address of the X peer "
-	       "port (0 <= X < %d)\n", RTE_MAX_ETHPORTS);
-	printf("  --nb-cores=N set the number of forwarding cores"
-	       " (1 <= N <= %d)\n", nb_lcores);
-	printf("  --nb-ports=N set the number of forwarding ports"
-	       " (1 <= N <= %d)\n", nb_ports);
+	printf("  --interactive: run in interactive mode.\n");
+	printf("  --help: display this message and quit.\n");
+	printf("  --nb-cores=N: set the number of forwarding cores "
+	       "(1 <= N <= %d).\n", nb_lcores);
+	printf("  --nb-ports=N: set the number of forwarding ports "
+	       "(1 <= N <= %d).\n", nb_ports);
 	printf("  --coremask=COREMASK: hexadecimal bitmask of cores running "
 	       "the packet forwarding test. The master lcore is reserved for "
-	       "command line parsing only, and can not be masked on for running"
-	       "the packet forwarding\n");
+	       "command line parsing only, and cannot be masked on for "
+	       "packet forwarding.\n");
 	printf("  --portmask=PORTMASK: hexadecimal bitmask of ports used "
-	       "by the packet forwarding test\n");
+	       "by the packet forwarding test.\n");
 	printf("  --numa: enable NUMA-aware allocation of RX/TX rings and of "
-	       " RX memory buffers (mbufs)\n");
-	printf("  --mbuf-size=N set the data size of mbuf to N bytes\n");
-	printf("  --total-num-mbufs=N set the number of mbufs to be allocated "
-	       "in mbuf pools\n");
-	printf("  --max-pkt-len=N set the maximum size of packet to N bytes\n");
-	printf("  --pkt-filter-mode=N: set Flow director mode "
-	       "( N: none (default mode) or signature or perfect)\n");
-	printf("  --pkt-filter-report-hash=N: set Flow director report mode "
-	       "( N: none  or match (default) or always)\n");
-	printf("  --pkt-filter-size=N: set Flow director mode "
-	       "( N: 64K (default mode) or 128K or 256K)\n");
-	printf("  --pkt-filter-flexbytes-offset=N: set flexbytes-offset."
-	       " The offset is defined in word units counted from the"
-	       " first byte of the destination Ethernet MAC address."
-	       " 0 <= N <= 32\n");
-	printf("  --pkt-filter-drop-queue=N: set drop-queue."
-	       " In perfect mode, when you add a rule with queue -1"
-	       " the packet will be enqueued into the rx drop-queue."
-	       " If the drop-queue doesn't exist, the packet is dropped."
-	       " By default drop-queue=127\n");
-	printf("  --crc-strip: enable CRC stripping by hardware\n");
-	printf("  --enable-rx-cksum: enable rx hardware checksum offload\n");
-	printf("  --disable-hw-vlan: disable hardware vlan\n");
-	printf("  --enable-drop-en: enable per queue packet drop\n");
-	printf("  --disable-rss: disable rss\n");
+	       "RX memory buffers (mbufs).\n");
+	printf("  --port-numa-config=(port,socket)[,(port,socket)]: "
+	       "specify the socket on which the memory pool "
+	       "used by the port will be allocated.\n");
+	printf("  --ring-numa-config=(port,flag,socket)[,(port,flag,socket)]: "
+	       "specify the socket on which the TX/RX rings for "
+	       "the port will be allocated "
+	       "(flag: 1 for RX; 2 for TX; 3 for RX and TX).\n");
+	printf(" --socket-num=N: set socket from which all memory is allocated "
+	       "in NUMA mode.\n");
+	printf("  --mbuf-size=N: set the data size of mbuf to N bytes.\n");
+	printf("  --total-num-mbufs=N: set the number of mbufs to be allocated "
+	       "in mbuf pools.\n");
+	printf("  --max-pkt-len=N: set the maximum size of packet to N bytes.\n");
+	printf("  --eth-peers-configfile=name: config file with ethernet addresses "
+	       "of peer ports.\n");
+	printf("  --eth-peer=X,M:M:M:M:M:M: set the MAC address of the X peer "
+	       "port (0 <= X < %d).\n", RTE_MAX_ETHPORTS);
+	printf("  --pkt-filter-mode=N: set Flow Director mode "
+	       "(N: none (default mode) or signature or perfect).\n");
+	printf("  --pkt-filter-report-hash=N: set Flow Director report mode "
+	       "(N: none  or match (default) or always).\n");
+	printf("  --pkt-filter-size=N: set Flow Director mode "
+	       "(N: 64K (default mode) or 128K or 256K).\n");
+	printf("  --pkt-filter-flexbytes-offset=N: set flexbytes-offset. "
+	       "The offset is defined in word units counted from the "
+	       "first byte of the destination Ethernet MAC address. "
+	       "0 <= N <= 32.\n");
+	printf("  --pkt-filter-drop-queue=N: set drop-queue. "
+	       "In perfect mode, when you add a rule with queue = -1 "
+	       "the packet will be enqueued into the rx drop-queue. "
+	       "If the drop-queue doesn't exist, the packet is dropped. "
+	       "By default drop-queue=127.\n");
+	printf("  --crc-strip: enable CRC stripping by hardware.\n");
+	printf("  --enable-rx-cksum: enable rx hardware checksum offload.\n");
+	printf("  --disable-hw-vlan: disable hardware vlan.\n");
+	printf("  --enable-drop-en: enable per queue packet drop.\n");
+	printf("  --disable-rss: disable rss.\n");
 	printf("  --port-topology=N: set port topology (N: paired (default) or "
-	       "chained)\n");
-	printf("  --rss-ip:  set RSS functions to IPv4/IPv6 only \n");
-	printf("  --rss-udp: set RSS functions to IPv4/IPv6 + UDP\n");
-	printf("  --rxq=N    set the number of RX queues per port to N\n");
-	printf("  --rxd=N    set the number of descriptors in RX rings to N\n");
-	printf("  --txq=N    set the number of TX queues per port to N\n");
-	printf("  --txd=N    set the number of descriptors in TX rings to N\n");
-	printf("  --burst=N  set the number of packets per burst to N\n");
-	printf("  --mbcache=N  set the cache of mbuf memory pool to N\n");
-	printf("  --rxpt=N   set prefetch threshold register of RX rings to N"
-	       " (0 <= N <= 16)\n");
-	printf("  --rxht=N  set the host threshold register of RX rings to N"
-	       " (0 <= N <= 16)\n");
-	printf("  --rxfreet=N set the free threshold of RX descriptors to N"
-	       " (0 <= N < value of rxd)\n");
-	printf("  --rxwt=N  set the write-back threshold register of RX rings"
-	       " to N (0 <= N <= 16)\n");
-	printf("  --txpt=N  set the prefetch threshold register of TX rings"
-	       " to N (0 <= N <= 16)\n");
-	printf("  --txht=N  set the nhost threshold register of TX rings to N"
-	       " (0 <= N <= 16)\n");
-	printf("  --txwt=N  set the write-back threshold register of TX rings"
-	       " to N (0 <= N <= 16)\n");
-	printf("  --txfreet=N set the transmit free threshold of TX rings to N"
-	       " (0 <= N <= value of txd)\n");
-	printf("  --txrst=N set the transmit RS bit threshold of TX rings to N"
-	       " (0 <= N <= value of txd)\n");
-	printf("  --txqflags=0xXXXXXXXX hexidecimal bitmask of TX queue flags"
-	       " (0 <= N <= 0x7FFFFFFF)\n");
-	printf("  --tx-queue-stats-mapping (port,queue,mapping)[,(port,queue,mapping]:"
-	       " tx queues statistics counters mapping"
-	       " (0 <= mapping <= %d)\n", RTE_ETHDEV_QUEUE_STAT_CNTRS - 1);
-	printf("  --rx-queue-stats-mapping (port,queue,mapping)[,(port,queue,mapping]:"
-	       " rx queues statistics counters mapping"
-	       " (0 <= mapping <= %d)\n", RTE_ETHDEV_QUEUE_STAT_CNTRS - 1);
+	       "chained).\n");
+	printf("  --rss-ip: set RSS functions to IPv4/IPv6 only .\n");
+	printf("  --rss-udp: set RSS functions to IPv4/IPv6 + UDP.\n");
+	printf("  --rxq=N: set the number of RX queues per port to N.\n");
+	printf("  --rxd=N: set the number of descriptors in RX rings to N.\n");
+	printf("  --txq=N: set the number of TX queues per port to N.\n");
+	printf("  --txd=N: set the number of descriptors in TX rings to N.\n");
+	printf("  --burst=N: set the number of packets per burst to N.\n");
+	printf("  --mbcache=N: set the cache of mbuf memory pool to N.\n");
+	printf("  --rxpt=N: set prefetch threshold register of RX rings to N "
+	       "(0 <= N <= 16).\n");
+	printf("  --rxht=N: set the host threshold register of RX rings to N "
+	       "(0 <= N <= 16).\n");
+	printf("  --rxfreet=N: set the free threshold of RX descriptors to N "
+	       "(0 <= N < value of rxd).\n");
+	printf("  --rxwt=N: set the write-back threshold register of RX rings "
+	       "to N (0 <= N <= 16).\n");
+	printf("  --txpt=N: set the prefetch threshold register of TX rings "
+	       "to N (0 <= N <= 16).\n");
+	printf("  --txht=N: set the nhost threshold register of TX rings to N "
+	       "(0 <= N <= 16).\n");
+	printf("  --txwt=N: set the write-back threshold register of TX rings "
+	       "to N (0 <= N <= 16).\n");
+	printf("  --txfreet=N: set the transmit free threshold of TX rings to N "
+	       "(0 <= N <= value of txd).\n");
+	printf("  --txrst=N: set the transmit RS bit threshold of TX rings to N "
+	       "(0 <= N <= value of txd).\n");
+	printf("  --txqflags=0xXXXXXXXX: hexadecimal bitmask of TX queue flags "
+	       "(0 <= N <= 0x7FFFFFFF).\n");
+	printf("  --tx-queue-stats-mapping=(port,queue,mapping)[,(port,queue,mapping]: "
+	       "tx queues statistics counters mapping "
+	       "(0 <= mapping <= %d).\n", RTE_ETHDEV_QUEUE_STAT_CNTRS - 1);
+	printf("  --rx-queue-stats-mapping=(port,queue,mapping)[,(port,queue,mapping]: "
+	       "rx queues statistics counters mapping "
+	       "(0 <= mapping <= %d).\n", RTE_ETHDEV_QUEUE_STAT_CNTRS - 1);
+	printf("  --no-flush-rx:  avoids flushing all rx streams before"
+	       " starts forwarding\n");
 }
 
 static int
@@ -180,7 +191,7 @@ init_peer_eth_addrs(char *config_filename)
 
 	config_file = fopen(config_filename, "r");
 	if (config_file == NULL) {
-		perror("open log file failed\n");
+		perror("Failed to open eth config file\n");
 		return -1;
 	}
 
@@ -190,7 +201,7 @@ init_peer_eth_addrs(char *config_filename)
 			break;
 
 		if (cmdline_parse_etheraddr(NULL, buf, &peer_eth_addrs[i]) < 0 ){
-			printf("bad format of mac address on line %d\n", i);
+			printf("Bad MAC address format on line %d\n", i+1);
 			fclose(config_file);
 			return -1;
 		}
@@ -318,6 +329,135 @@ parse_queue_stats_mapping_config(const char *q_arg, int is_rx)
 	return 0;
 }
 
+static int
+parse_portnuma_config(const char *q_arg)
+{
+	char s[256];
+	const char *p, *p0 = q_arg;
+	char *end;
+	uint8_t i,port_id,socket_id;
+	unsigned size;
+	enum fieldnames {
+		FLD_PORT = 0,
+		FLD_SOCKET,
+		_NUM_FLD
+	};
+	unsigned long int_fld[_NUM_FLD];
+	char *str_fld[_NUM_FLD];	
+
+	/* reset from value set at definition */
+	while ((p = strchr(p0,'(')) != NULL) {
+		++p;
+		if((p0 = strchr(p,')')) == NULL)
+			return -1;
+
+		size = p0 - p;
+		if(size >= sizeof(s))
+			return -1;
+
+		rte_snprintf(s, sizeof(s), "%.*s", size, p);
+		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
+			return -1;
+		for (i = 0; i < _NUM_FLD; i++) {
+			errno = 0;
+			int_fld[i] = strtoul(str_fld[i], &end, 0);
+			if (errno != 0 || end == str_fld[i] || int_fld[i] > 255)
+				return -1;
+		}
+		port_id = (uint8_t)int_fld[FLD_PORT];
+		if (port_id >= nb_ports) {
+			printf("Invalid port, range is [0, %d]\n", nb_ports - 1);
+			return -1;
+		}
+		socket_id = (uint8_t)int_fld[FLD_SOCKET];
+		if(socket_id >= MAX_SOCKET) {
+			printf("Invalid socket id, range is [0, %d]\n",
+				 MAX_SOCKET - 1);
+			return -1;
+		}
+		port_numa[port_id] = socket_id;
+	}
+
+	return 0;
+}
+
+static int
+parse_ringnuma_config(const char *q_arg)
+{
+	char s[256];
+	const char *p, *p0 = q_arg;
+	char *end;
+	uint8_t i,port_id,ring_flag,socket_id;
+	unsigned size;
+	enum fieldnames {
+		FLD_PORT = 0,
+		FLD_FLAG,
+		FLD_SOCKET,
+		_NUM_FLD
+	};
+	unsigned long int_fld[_NUM_FLD];
+	char *str_fld[_NUM_FLD];	
+	#define RX_RING_ONLY 0x1
+	#define TX_RING_ONLY 0x2
+	#define RXTX_RING    0x3
+
+	/* reset from value set at definition */
+	while ((p = strchr(p0,'(')) != NULL) {
+		++p;
+		if((p0 = strchr(p,')')) == NULL)
+			return -1;
+
+		size = p0 - p;
+		if(size >= sizeof(s))
+			return -1;
+
+		rte_snprintf(s, sizeof(s), "%.*s", size, p);
+		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
+			return -1;
+		for (i = 0; i < _NUM_FLD; i++) {
+			errno = 0;
+			int_fld[i] = strtoul(str_fld[i], &end, 0);
+			if (errno != 0 || end == str_fld[i] || int_fld[i] > 255)
+				return -1;
+		}
+		port_id = (uint8_t)int_fld[FLD_PORT];
+		if (port_id >= nb_ports) {
+			printf("Invalid port, range is [0, %d]\n", nb_ports - 1);
+			return -1;
+		}
+		socket_id = (uint8_t)int_fld[FLD_SOCKET];
+		if (socket_id >= MAX_SOCKET) {
+			printf("Invalid socket id, range is [0, %d]\n",
+				MAX_SOCKET - 1);
+			return -1;
+		}
+		ring_flag = (uint8_t)int_fld[FLD_FLAG];
+		if ((ring_flag < RX_RING_ONLY) || (ring_flag > RXTX_RING)) {
+			printf("Invalid ring-flag=%d config for port =%d\n",
+				ring_flag,port_id);
+			return -1;
+		}
+
+		switch (ring_flag & RXTX_RING) {
+		case RX_RING_ONLY:
+			rxring_numa[port_id] = socket_id;
+			break;
+		case TX_RING_ONLY:
+			txring_numa[port_id] = socket_id;
+			break;
+		case RXTX_RING:
+			rxring_numa[port_id] = socket_id;
+			txring_numa[port_id] = socket_id;
+			break;
+		default:
+			printf("Invalid ring-flag=%d config for port=%d\n",
+				ring_flag,port_id);
+			break;
+		}
+	}	
+	
+	return 0;
+}
 
 void
 launch_args_parse(int argc, char** argv)
@@ -338,8 +478,11 @@ launch_args_parse(int argc, char** argv)
 		{ "coremask",			1, 0, 0 },
 		{ "portmask",			1, 0, 0 },
 		{ "numa",			0, 0, 0 },
+		{ "port-numa-config",           1, 0, 0 },
+		{ "ring-numa-config",           1, 0, 0 },
+		{ "socket-num",			1, 0, 0 },	
 		{ "mbuf-size",			1, 0, 0 },
-		{ "total-num-mbufs",			1, 0, 0 },
+		{ "total-num-mbufs",		1, 0, 0 },
 		{ "max-pkt-len",		1, 0, 0 },
 		{ "pkt-filter-mode",            1, 0, 0 },
 		{ "pkt-filter-report-hash",     1, 0, 0 },
@@ -372,6 +515,7 @@ launch_args_parse(int argc, char** argv)
 		{ "rxfreet",                    1, 0, 0 },
 		{ "tx-queue-stats-mapping",	1, 0, 0 },
 		{ "rx-queue-stats-mapping",	1, 0, 0 },
+		{ "no-flush-rx",	0, 0, 0 },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -444,8 +588,30 @@ launch_args_parse(int argc, char** argv)
 				parse_fwd_coremask(optarg);
 			if (!strcmp(lgopts[opt_idx].name, "portmask"))
 				parse_fwd_portmask(optarg);
-			if (!strcmp(lgopts[opt_idx].name, "numa"))
+			if (!strcmp(lgopts[opt_idx].name, "numa")) {
 				numa_support = 1;
+				memset(port_numa,NUMA_NO_CONFIG,RTE_MAX_ETHPORTS);
+				memset(rxring_numa,NUMA_NO_CONFIG,RTE_MAX_ETHPORTS);
+				memset(txring_numa,NUMA_NO_CONFIG,RTE_MAX_ETHPORTS);
+			}
+			if (!strcmp(lgopts[opt_idx].name, "port-numa-config")) {
+				if (parse_portnuma_config(optarg))
+					rte_exit(EXIT_FAILURE,
+					   "invalid port-numa configuration\n");
+			}
+			if (!strcmp(lgopts[opt_idx].name, "ring-numa-config"))
+				if (parse_ringnuma_config(optarg))
+					rte_exit(EXIT_FAILURE,
+					   "invalid ring-numa configuration\n");
+			if (!strcmp(lgopts[opt_idx].name, "socket-num")) {
+				n = atoi(optarg);
+				if(n < MAX_SOCKET)
+					socket_num = (uint8_t)n;
+				else
+					rte_exit(EXIT_FAILURE,
+						"The socket number should be < %d\n",
+						MAX_SOCKET);
+			}
 			if (!strcmp(lgopts[opt_idx].name, "mbuf-size")) {
 				n = atoi(optarg);
 				if (n > 0 && n <= 0xFFFF)
@@ -770,6 +936,9 @@ launch_args_parse(int argc, char** argv)
 						 "invalid RX queue statistics mapping config entered\n");
 				}
 			}
+			if (!strcmp(lgopts[opt_idx].name, "no-flush-rx"))
+				no_flush_rx = 1;
+
 			break;
 		case 'h':
 			usage(argv[0]);

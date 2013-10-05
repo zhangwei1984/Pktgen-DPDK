@@ -1,35 +1,64 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ */
+/*   BSD LICENSE
+ *
+ *   Copyright(c) 2013 6WIND.
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *     * Neither the name of 6WIND S.A. nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdarg.h>
@@ -207,6 +236,8 @@ port_infos_display(portid_t port_id)
 	struct rte_port *port;
 	struct rte_eth_link link;
 	int vlan_offload;
+	int socket_id;
+	struct rte_mempool * mp;
 	static const char *info_border = "*********************";
 
 	if (port_id >= nb_ports) {
@@ -215,9 +246,20 @@ port_infos_display(portid_t port_id)
 	}
 	port = &ports[port_id];
 	rte_eth_link_get_nowait(port_id, &link);
+	socket_id = rte_eth_dev_socket_id(port_id);
 	printf("\n%s Infos for port %-2d %s\n",
 	       info_border, port_id, info_border);
 	print_ethaddr("MAC address: ", &port->eth_addr);
+	printf("\nConnect to socket: %d",socket_id);
+
+	if (port_numa[port_id] != NUMA_NO_CONFIG) {
+		mp = mbuf_pool_find(port_numa[port_id]);
+		if (mp)
+			printf("\nmemory allocation on the socket: %d",
+							port_numa[port_id]);
+	} else
+		printf("\nmemory allocation on the socket: %d",socket_id);
+
 	printf("\nLink status: %s\n", (link.link_status) ? ("up") : ("down"));
 	printf("Link speed: %u Mbps\n", (unsigned) link.link_speed);
 	printf("Link duplex: %s\n", (link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
@@ -228,6 +270,8 @@ port_infos_display(portid_t port_id)
 	       rte_eth_allmulticast_get(port_id) ? "enabled" : "disabled");
 	printf("Maximum number of MAC addresses: %u\n",
 	       (unsigned int)(port->dev_info.max_mac_addrs));
+	printf("Maximum number of MAC addresses of hash filtering: %u\n",
+	       (unsigned int)(port->dev_info.max_hash_mac_addrs));
 
 	vlan_offload = rte_eth_dev_get_vlan_offload(port_id);
 	if (vlan_offload >= 0){
@@ -278,7 +322,7 @@ port_reg_off_is_invalid(portid_t port_id, uint32_t reg_off)
 		       (unsigned)reg_off);
 		return 1;
 	}
-	pci_len = ports[port_id].dev_info.pci_dev->mem_resource.len;
+	pci_len = ports[port_id].dev_info.pci_dev->mem_resource[0].len;
 	if (reg_off >= pci_len) {
 		printf("Port %d: register offset %u (0x%X) out of port PCI "
 		       "resource (length=%"PRIu64")\n",
@@ -597,6 +641,40 @@ rxtx_config_display(void)
 	       tx_rs_thresh, txq_flags);
 }
 
+void
+port_rss_reta_info(portid_t port_id,struct rte_eth_rss_reta *reta_conf)
+{
+	uint8_t i,j;
+	int ret;
+
+	if (port_id_is_invalid(port_id)) 
+		return;
+
+	ret = rte_eth_dev_rss_reta_query(port_id, reta_conf);
+	if (ret != 0) {
+		printf("Failed to get RSS RETA info, return code = %d\n", ret);
+		return;
+	}
+
+	if (reta_conf->mask_lo != 0) {
+		for (i = 0; i< ETH_RSS_RETA_NUM_ENTRIES/2; i++) {
+			if (reta_conf->mask_lo & (uint64_t)(1ULL << i))
+				printf("RSS RETA configuration: hash index=%d,"
+					"queue=%d\n",i,reta_conf->reta[i]);	
+		}
+	}
+	
+	if (reta_conf->mask_hi != 0) {
+		for (i = 0; i< ETH_RSS_RETA_NUM_ENTRIES/2; i++) {
+			if(reta_conf->mask_hi & (uint64_t)(1ULL << i)) {
+				j = (uint8_t)(i + ETH_RSS_RETA_NUM_ENTRIES/2);		
+				printf("RSS RETA configuration: hash index=%d,"
+					"queue=%d\n",j,reta_conf->reta[j]);
+			}
+		}
+	}
+}
+
 /*
  * Setup forwarding configuration for each logical core.
  */
@@ -620,7 +698,6 @@ setup_fwd_config_of_each_lcore(struct fwd_config *cfg)
 		nb_fs_per_lcore = (streamid_t) (nb_fs / nb_fc);
 		nb_extra = (lcoreid_t) (nb_fs % nb_fc);
 	}
-	nb_extra = (lcoreid_t) (nb_fs % nb_fc);
 
 	nb_lc = (lcoreid_t) (nb_fc - nb_extra);
 	sm_id = 0;
@@ -648,17 +725,14 @@ simple_fwd_config_setup(void)
 	portid_t j;
 	portid_t inc = 2;
 
-	if (nb_fwd_ports % 2) {
-		if (port_topology == PORT_TOPOLOGY_CHAINED) {
-			inc = 1;
-		}
-		else {
-			printf("\nWarning! Cannot handle an odd number of ports "
-			       "with the current port topology. Configuration "
-			       "must be changed to have an even number of ports, "
-			       "or relaunch application with "
-			       "--port-topology=chained\n\n");
-		}
+	if (port_topology == PORT_TOPOLOGY_CHAINED) {
+		inc = 1;
+	} else if (nb_fwd_ports % 2) {
+		printf("\nWarning! Cannot handle an odd number of ports "
+		       "with the current port topology. Configuration "
+		       "must be changed to have an even number of ports, "
+		       "or relaunch application with "
+		       "--port-topology=chained\n\n");
 	}
 
 	cur_fwd_config.nb_fwd_ports = (portid_t) nb_fwd_ports;
@@ -833,7 +907,7 @@ dcb_fwd_config_setup(void)
 	queueid_t  rxq;
 	queueid_t  nb_q;
 	lcoreid_t  lc_id;
-	uint8_t sm_id;
+	uint16_t sm_id;
 
 	nb_q = nb_rxq;
 
@@ -1024,7 +1098,7 @@ set_fwd_ports_list(unsigned int *portlist, unsigned int nb_pt)
 	for (i = 0; i < nb_pt; i++) {
 		port_id = (portid_t) portlist[i];
 		if (port_id >= nb_ports) {
-			printf("Invalid port id %u > %u\n",
+			printf("Invalid port id %u >= %u\n",
 			       (unsigned int) port_id,
 			       (unsigned int) nb_ports);
 			return;
@@ -1517,3 +1591,42 @@ fdir_set_masks(portid_t port_id, struct rte_fdir_masks *fdir_masks)
 	printf("rte_eth_dev_set_masks_filter for port_id=%d failed "
 	       "diag=%d\n", port_id, diag);
 }
+
+void 
+set_vf_traffic(portid_t port_id, uint8_t is_rx, uint16_t vf, uint8_t on)
+{
+	int diag;
+	
+	if (port_id_is_invalid(port_id))
+		return;
+	if (is_rx)
+		diag = rte_eth_dev_set_vf_rx(port_id,vf,on);
+	else
+		diag = rte_eth_dev_set_vf_tx(port_id,vf,on);
+	if (diag == 0)
+		return;
+	if(is_rx)	
+		printf("rte_eth_dev_set_vf_rx for port_id=%d failed "
+	       		"diag=%d\n", port_id, diag);
+	else
+		printf("rte_eth_dev_set_vf_tx for port_id=%d failed "
+	       		"diag=%d\n", port_id, diag);
+		
+}
+
+void
+set_vf_rx_vlan(portid_t port_id, uint16_t vlan_id, uint64_t vf_mask, uint8_t on)
+{
+	int diag;
+
+	if (port_id_is_invalid(port_id))
+		return;
+	if (vlan_id_is_invalid(vlan_id))
+		return;
+	diag = rte_eth_dev_set_vf_vlan_filter(port_id, vlan_id, vf_mask, on);
+	if (diag == 0)
+		return;
+	printf("rte_eth_dev_set_vf_vlan_filter for port_id=%d failed "
+	       "diag=%d\n", port_id, diag);
+}
+

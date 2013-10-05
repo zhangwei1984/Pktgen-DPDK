@@ -1,34 +1,33 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
-#   Redistribution and use in source and binary forms, with or without 
-#   modification, are permitted provided that the following conditions 
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions
 #   are met:
 # 
-#     * Redistributions of source code must retain the above copyright 
+#     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright 
-#       notice, this list of conditions and the following disclaimer in 
-#       the documentation and/or other materials provided with the 
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in
+#       the documentation and/or other materials provided with the
 #       distribution.
-#     * Neither the name of Intel Corporation nor the names of its 
-#       contributors may be used to endorse or promote products derived 
+#     * Neither the name of Intel Corporation nor the names of its
+#       contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 # 
-#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-#   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
-#   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
-#   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+#   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# 
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
@@ -53,6 +52,7 @@ SRCS-$(CONFIG_RTE_APP_TEST) += test_spinlock.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_memory.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_memzone.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_ring.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_ring_perf.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_rwlock.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_timer.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_mempool.c
@@ -64,6 +64,7 @@ SRCS-$(CONFIG_RTE_APP_TEST) += test_memcpy_perf.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_hash.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_hash_perf.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_lpm.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_lpm6.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_debug.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_errno.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_tailq.c
@@ -84,9 +85,24 @@ SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_ipaddr.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_cirbuf.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_string.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_lib.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_red.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_sched.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_meter.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_kni.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_pmac_acl.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_power.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_common.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_timer_perf.c
 
 CFLAGS += -O3
 CFLAGS += $(WERROR_FLAGS)
+
+# Disable warnings of deprecated-declarations in test_kni.c
+ifeq ($(CC), icc)
+CFLAGS_test_kni.o += -wd1478
+else
+CFLAGS_test_kni.o += -Wno-deprecated-declarations
+endif
 
 # this application needs libraries first
 DEPDIRS-$(CONFIG_RTE_APP_TEST) += lib

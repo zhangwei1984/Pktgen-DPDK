@@ -1,60 +1,59 @@
 /*-
- * This file is provided under a dual BSD/GPLv2 license.  When using or 
+ * This file is provided under a dual BSD/GPLv2 license.  When using or
  *   redistributing this file, you may do so under either license.
  * 
  *   GPL LICENSE SUMMARY
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  * 
- *   This program is free software; you can redistribute it and/or modify 
+ *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of version 2 of the GNU General Public License as
  *   published by the Free Software Foundation.
  * 
- *   This program is distributed in the hope that it will be useful, but 
- *   WITHOUT ANY WARRANTY; without even the implied warranty of 
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ *   This program is distributed in the hope that it will be useful, but
+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *   General Public License for more details.
  * 
- *   You should have received a copy of the GNU General Public License 
- *   along with this program; if not, write to the Free Software 
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
- *   The full GNU General Public License is included in this distribution 
+ *   The full GNU General Public License is included in this distribution
  *   in the file called LICENSE.GPL.
  * 
  *   Contact Information:
  *   Intel Corporation
  * 
- *   BSD LICENSE 
+ *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  * 
  */
 
@@ -64,8 +63,9 @@
  * This file contains a list of the PCI device IDs recognised by DPDK, which
  * can be used to fill out an array of structures describing the devices.
  *
- * Currently three families of devices are recognised: those supported by the
- * IGB driver, by EM driver, and those supported by the IXGBE driver.
+ * Currently four families of devices are recognised: those supported by the
+ * IGB driver, by EM driver, those supported by the IXGBE driver, and by virtio
+ * driver which is a para virtualization driver running in guest virtual machine.
  * The inclusion of these in an array built using this file depends on the
  * definition of
  * RTE_PCI_DEV_ID_DECL_EM
@@ -73,6 +73,7 @@
  * RTE_PCI_DEV_ID_DECL_IGBVF
  * RTE_PCI_DEV_ID_DECL_IXGBE
  * RTE_PCI_DEV_ID_DECL_IXGBEVF
+ * RTE_PCI_DEV_ID_DECL_VIRTIO
  * at the time when this file is included.
  *
  * In order to populate an array, the user of this file must define this macro:
@@ -113,9 +114,18 @@
 #define RTE_PCI_DEV_ID_DECL_IXGBEVF(vend, dev)
 #endif
 
+#ifndef RTE_PCI_DEV_ID_DECL_VIRTIO
+#define RTE_PCI_DEV_ID_DECL_VIRTIO(vend, dev)
+#endif
+
 #ifndef PCI_VENDOR_ID_INTEL
 /** Vendor ID used by Intel devices */
 #define PCI_VENDOR_ID_INTEL 0x8086
+#endif
+
+#ifndef PCI_VENDOR_ID_QUMRANET
+/** Vendor ID used by virtio devices */
+#define PCI_VENDOR_ID_QUMRANET 0x1AF4
 #endif
 
 /******************** Physical EM devices from e1000_hw.h ********************/
@@ -418,6 +428,12 @@ RTE_PCI_DEV_ID_DECL_IXGBEVF(PCI_VENDOR_ID_INTEL, IXGBE_DEV_ID_82599_VF_HV)
 RTE_PCI_DEV_ID_DECL_IXGBEVF(PCI_VENDOR_ID_INTEL, IXGBE_DEV_ID_X540_VF)
 RTE_PCI_DEV_ID_DECL_IXGBEVF(PCI_VENDOR_ID_INTEL, IXGBE_DEV_ID_X540_VF_HV)
 
+/****************** Virtio devices from virtio.h ******************/
+
+#define QUMRANET_DEV_ID_VIRTIO                   	0x1000
+
+RTE_PCI_DEV_ID_DECL_VIRTIO(PCI_VENDOR_ID_QUMRANET, QUMRANET_DEV_ID_VIRTIO)
+
 /*
  * Undef all RTE_PCI_DEV_ID_DECL_* here.
  */
@@ -426,3 +442,4 @@ RTE_PCI_DEV_ID_DECL_IXGBEVF(PCI_VENDOR_ID_INTEL, IXGBE_DEV_ID_X540_VF_HV)
 #undef RTE_PCI_DEV_ID_DECL_IGBVF
 #undef RTE_PCI_DEV_ID_DECL_IXGBE
 #undef RTE_PCI_DEV_ID_DECL_IXGBEVF
+#undef RTE_PCI_DEV_ID_DECL_VIRTIO

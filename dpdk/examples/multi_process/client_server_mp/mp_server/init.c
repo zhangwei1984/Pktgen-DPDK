@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdint.h>
@@ -146,7 +145,7 @@ init_mbuf_pools(void)
 	pktmbuf_pool = rte_mempool_create(PKTMBUF_POOL_NAME, num_mbufs,
 			MBUF_SIZE, MBUF_CACHE_SIZE,
 			sizeof(struct rte_pktmbuf_pool_private), rte_pktmbuf_pool_init,
-			NULL, rte_pktmbuf_init, NULL, SOCKET0, NO_FLAGS );
+			NULL, rte_pktmbuf_init, NULL, rte_socket_id(), NO_FLAGS );
 
 	return (pktmbuf_pool == NULL); /* 0  on success */
 }
@@ -164,7 +163,7 @@ init_port(uint8_t port_num)
 	/* for port configuration all features are off by default */
 	const struct rte_eth_conf port_conf = {
 		.rxmode = {
-			.mq_mode = ETH_RSS
+			.mq_mode = ETH_MQ_RX_RSS
 		}
 	};
 	const uint16_t rx_rings = 1, tx_rings = num_clients;
@@ -185,13 +184,13 @@ init_port(uint8_t port_num)
 
 	for (q = 0; q < rx_rings; q++) {
 		retval = rte_eth_rx_queue_setup(port_num, q, rx_ring_size,
-				SOCKET0, &rx_conf_default, pktmbuf_pool);
+				rte_eth_dev_socket_id(port_num), &rx_conf_default, pktmbuf_pool);
 		if (retval < 0) return retval;
 	}
 
 	for ( q = 0; q < tx_rings; q ++ ) {
 		retval = rte_eth_tx_queue_setup(port_num, q, tx_ring_size,
-				SOCKET0, &tx_conf_default);
+				rte_eth_dev_socket_id(port_num), &tx_conf_default);
 		if (retval < 0) return retval;
 	}
 
@@ -214,6 +213,8 @@ static int
 init_shm_rings(void)
 {
 	unsigned i;
+	unsigned socket_id;
+	const char * q_name;
 	const unsigned ringsize = CLIENT_QUEUE_RINGSIZE;
 
 	clients = rte_malloc("client details",
@@ -223,8 +224,10 @@ init_shm_rings(void)
 
 	for (i = 0; i < num_clients; i++) {
 		/* Create an RX queue for each client */
-		clients[i].rx_q = rte_ring_create(get_rx_queue_name(i),
-				ringsize, SOCKET0,
+		socket_id = rte_socket_id();
+		q_name = get_rx_queue_name(i);
+		clients[i].rx_q = rte_ring_create(q_name,
+				ringsize, socket_id,
 				RING_F_SP_ENQ | RING_F_SC_DEQ ); /* single prod, single cons */
 		if (clients[i].rx_q == NULL)
 			rte_exit(EXIT_FAILURE, "Cannot create rx ring queue for client %u\n", i);
@@ -246,21 +249,21 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 	for (count = 0; count <= MAX_CHECK_TIME; count++) {
 		all_ports_up = 1;
 		for (portid = 0; portid < port_num; portid++) {
-			if ((port_mask & (1 << portid)) == 0)
+			if ((port_mask & (1 << ports->id[portid])) == 0)
 				continue;
 			memset(&link, 0, sizeof(link));
-			rte_eth_link_get_nowait(portid, &link);
+			rte_eth_link_get_nowait(ports->id[portid], &link);
 			/* print link status if flag set */
 			if (print_flag == 1) {
 				if (link.link_status)
 					printf("Port %d Link Up - speed %u "
-						"Mbps - %s\n", (uint8_t)portid,
+						"Mbps - %s\n", ports->id[portid],
 						(unsigned)link.link_speed,
 				(link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
 					("full-duplex") : ("half-duplex\n"));
 				else
 					printf("Port %d Link Down\n",
-						(uint8_t)portid);
+						(uint8_t)ports->id[portid]);
 				continue;
 			}
 			/* clear all_ports_up flag if any link down */

@@ -151,7 +151,10 @@ static void igb_reset_task(struct work_struct *);
 #ifdef HAVE_VLAN_RX_REGISTER
 static void igb_vlan_mode(struct net_device *, struct vlan_group *);
 #endif
-#ifdef HAVE_INT_NDO_VLAN_RX_ADD_VID
+#ifdef HAVE_VLAN_PROTOCOL
+static int igb_vlan_rx_add_vid(struct net_device *, __be16, u16);
+static int igb_vlan_rx_kill_vid(struct net_device *, __be16, u16);
+#elif defined HAVE_INT_NDO_VLAN_RX_ADD_VID
 static int igb_vlan_rx_add_vid(struct net_device *, u16);
 static int igb_vlan_rx_kill_vid(struct net_device *, u16);
 #else
@@ -190,11 +193,25 @@ static int igb_runtime_resume(struct device *dev);
 static int igb_runtime_idle(struct device *dev);
 #endif /* CONFIG_PM_RUNTIME */
 static const struct dev_pm_ops igb_pm_ops = {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,34)
+	.suspend = igb_suspend,
+	.resume = igb_resume,
+	.freeze = igb_suspend,
+	.thaw = igb_resume,
+	.poweroff = igb_suspend,
+	.restore = igb_resume,
+#ifdef CONFIG_PM_RUNTIME
+	.runtime_suspend = igb_runtime_suspend,
+	.runtime_resume = igb_runtime_resume,
+	.runtime_idle = igb_runtime_idle,
+#endif
+#else /* Linux >= 2.6.34 */
 	SET_SYSTEM_SLEEP_PM_OPS(igb_suspend, igb_resume)
 #ifdef CONFIG_PM_RUNTIME
 	SET_RUNTIME_PM_OPS(igb_runtime_suspend, igb_runtime_resume,
 			igb_runtime_idle)
 #endif /* CONFIG_PM_RUNTIME */
+#endif /* Linux version */
 };
 #endif /* HAVE_SYSTEM_SLEEP_PM_OPS */
 #endif /* CONFIG_PM */
@@ -6664,7 +6681,14 @@ static void igb_rx_vlan(struct igb_ring *ring,
 	} else {
 		IGB_CB(skb)->vid = 0;
 #else
+
+#ifdef HAVE_VLAN_PROTOCOL
+		__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q), vid);
+#else
 		__vlan_hwaccel_put_tag(skb, vid);
+#endif
+
+
 #endif
 	}
 }
@@ -7763,7 +7787,9 @@ void igb_vlan_mode(struct net_device *netdev, u32 features)
 	igb_rlpml_set(adapter);
 }
 
-#ifdef HAVE_INT_NDO_VLAN_RX_ADD_VID
+#ifdef HAVE_VLAN_PROTOCOL
+static int igb_vlan_rx_add_vid(struct net_device *netdev, __be16 proto, u16 vid)
+#elif defined HAVE_INT_NDO_VLAN_RX_ADD_VID
 static int igb_vlan_rx_add_vid(struct net_device *netdev, u16 vid)
 #else
 static void igb_vlan_rx_add_vid(struct net_device *netdev, u16 vid)
@@ -7802,7 +7828,9 @@ static void igb_vlan_rx_add_vid(struct net_device *netdev, u16 vid)
 #endif
 }
 
-#ifdef HAVE_INT_NDO_VLAN_RX_ADD_VID
+#ifdef HAVE_VLAN_PROTOCOL
+static int igb_vlan_rx_kill_vid(struct net_device *netdev, __be16 proto, u16 vid)
+#elif defined HAVE_INT_NDO_VLAN_RX_ADD_VID
 static int igb_vlan_rx_kill_vid(struct net_device *netdev, u16 vid)
 #else
 static void igb_vlan_rx_kill_vid(struct net_device *netdev, u16 vid)
@@ -7855,7 +7883,12 @@ static void igb_restore_vlan(struct igb_adapter *adapter)
 	igb_vlan_mode(adapter->netdev, adapter->netdev->features);
 
 	for_each_set_bit(vid, adapter->active_vlans, VLAN_N_VID)
+#ifdef HAVE_VLAN_PROTOCOL
+		igb_vlan_rx_add_vid(adapter->netdev, htons(ETH_P_8021Q), vid);
+#else
 		igb_vlan_rx_add_vid(adapter->netdev, vid);
+#endif
+
 #endif
 }
 
@@ -9132,15 +9165,6 @@ err_alloc_etherdev:
 
 void igb_kni_remove(struct pci_dev *pdev)
 {
-	struct net_device *netdev = pci_get_drvdata(pdev);
-	struct igb_adapter *adapter = netdev_priv(netdev);
-	struct e1000_hw *hw = &adapter->hw;
-
-	iounmap(hw->hw_addr);
-
-	if (hw->flash_address)
-		iounmap(hw->flash_address);
-
 	pci_disable_device(pdev);
 }
 

@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _RTE_SPINLOCK_H_
@@ -53,6 +52,9 @@ extern "C" {
 #endif
 
 #include <rte_lcore.h>
+#ifdef RTE_FORCE_INTRINSICS
+#include <rte_common.h>
+#endif
 
 /**
  * The rte_spinlock_t type.
@@ -87,6 +89,7 @@ rte_spinlock_init(rte_spinlock_t *sl)
 static inline void
 rte_spinlock_lock(rte_spinlock_t *sl)
 {
+#ifndef RTE_FORCE_INTRINSICS
 	int lock_val = 1;
 	asm volatile (
 			"1:\n"
@@ -102,6 +105,11 @@ rte_spinlock_lock(rte_spinlock_t *sl)
 			: [locked] "=m" (sl->locked), [lv] "=q" (lock_val)
 			: "[lv]" (lock_val)
 			: "memory");
+#else
+	while (__sync_lock_test_and_set(&sl->locked, 1))
+		while(sl->locked)
+			rte_pause();
+#endif
 }
 
 /**
@@ -113,12 +121,16 @@ rte_spinlock_lock(rte_spinlock_t *sl)
 static inline void
 rte_spinlock_unlock (rte_spinlock_t *sl)
 {
+#ifndef RTE_FORCE_INTRINSICS
 	int unlock_val = 0;
 	asm volatile (
 			"xchg %[locked], %[ulv]\n"
 			: [locked] "=m" (sl->locked), [ulv] "=q" (unlock_val)
 			: "[ulv]" (unlock_val)
 			: "memory");
+#else
+	__sync_lock_release(&sl->locked);
+#endif
 }
 
 /**
@@ -132,6 +144,7 @@ rte_spinlock_unlock (rte_spinlock_t *sl)
 static inline int
 rte_spinlock_trylock (rte_spinlock_t *sl)
 {
+#ifndef RTE_FORCE_INTRINSICS
 	int lockval = 1;
 
 	asm volatile (
@@ -141,6 +154,9 @@ rte_spinlock_trylock (rte_spinlock_t *sl)
 			: "memory");
 
 	return (lockval == 0);
+#else
+	return (__sync_lock_test_and_set(&sl->locked,1) == 0);
+#endif
 }
 
 /**

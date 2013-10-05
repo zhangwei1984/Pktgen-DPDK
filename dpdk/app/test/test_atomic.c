@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -105,7 +104,7 @@
 static rte_atomic16_t a16;
 static rte_atomic32_t a32;
 static rte_atomic64_t a64;
-static rte_atomic32_t count;
+static rte_atomic64_t count;
 static rte_atomic32_t synchro;
 
 static int
@@ -153,11 +152,11 @@ test_atomic_tas(__attribute__((unused)) void *arg)
 		;
 
 	if (rte_atomic16_test_and_set(&a16))
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 	if (rte_atomic32_test_and_set(&a32))
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 	if (rte_atomic64_test_and_set(&a64))
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 
 	return 0;
 }
@@ -175,22 +174,22 @@ test_atomic_addsub_and_return(__attribute__((unused)) void *arg)
 
 	for (i = 0; i < N; i++) {
 		tmp16 = rte_atomic16_add_return(&a16, 1);
-		rte_atomic32_add(&count, tmp16);
+		rte_atomic64_add(&count, tmp16);
 
 		tmp16 = rte_atomic16_sub_return(&a16, 1);
-		rte_atomic32_sub(&count, tmp16+1);
+		rte_atomic64_sub(&count, tmp16+1);
 
 		tmp32 = rte_atomic32_add_return(&a32, 1);
-		rte_atomic32_add(&count, tmp32);
+		rte_atomic64_add(&count, tmp32);
 
 		tmp32 = rte_atomic32_sub_return(&a32, 1);
-		rte_atomic32_sub(&count, tmp32+1);
+		rte_atomic64_sub(&count, tmp32+1);
 
 		tmp64 = rte_atomic64_add_return(&a64, 1);
-		rte_atomic32_add(&count, tmp64);
+		rte_atomic64_add(&count, tmp64);
 
 		tmp64 = rte_atomic64_sub_return(&a64, 1);
-		rte_atomic32_sub(&count, tmp64+1);
+		rte_atomic64_sub(&count, tmp64+1);
 	}
 
 	return 0;
@@ -213,13 +212,13 @@ test_atomic_inc_and_test(__attribute__((unused)) void *arg)
 		;
 
 	if (rte_atomic16_inc_and_test(&a16)) {
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 	}
 	if (rte_atomic32_inc_and_test(&a32)) {
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 	}
 	if (rte_atomic64_inc_and_test(&a64)) {
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 	}
 
 	return 0;
@@ -240,13 +239,13 @@ test_atomic_dec_and_test(__attribute__((unused)) void *arg)
 		;
 
 	if (rte_atomic16_dec_and_test(&a16))
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 
 	if (rte_atomic32_dec_and_test(&a32))
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 
 	if (rte_atomic64_dec_and_test(&a64))
-		rte_atomic32_inc(&count);
+		rte_atomic64_inc(&count);
 
 	return 0;
 }
@@ -257,7 +256,7 @@ test_atomic(void)
 	rte_atomic16_init(&a16);
 	rte_atomic32_init(&a32);
 	rte_atomic64_init(&a64);
-	rte_atomic32_init(&count);
+	rte_atomic64_init(&count);
 	rte_atomic32_init(&synchro);
 
 	rte_atomic16_set(&a16, 1UL << 10);
@@ -291,13 +290,13 @@ test_atomic(void)
 	rte_atomic64_set(&a64, 0);
 	rte_atomic32_set(&a32, 0);
 	rte_atomic16_set(&a16, 0);
-	rte_atomic32_set(&count, 0);
+	rte_atomic64_set(&count, 0);
 	rte_eal_mp_remote_launch(test_atomic_tas, NULL, SKIP_MASTER);
 	rte_atomic32_set(&synchro, 1);
 	rte_eal_mp_wait_lcore();
 	rte_atomic32_set(&synchro, 0);
 
-	if (rte_atomic32_read(&count) != NUM_ATOMIC_TYPES) {
+	if (rte_atomic64_read(&count) != NUM_ATOMIC_TYPES) {
 		printf("Atomic test and set failed\n");
 		return -1;
 	}
@@ -307,14 +306,14 @@ test_atomic(void)
 	rte_atomic64_set(&a64, 0);
 	rte_atomic32_set(&a32, 0);
 	rte_atomic16_set(&a16, 0);
-	rte_atomic32_set(&count, 0);
+	rte_atomic64_set(&count, 0);
 	rte_eal_mp_remote_launch(test_atomic_addsub_and_return, NULL,
 				 SKIP_MASTER);
 	rte_atomic32_set(&synchro, 1);
 	rte_eal_mp_wait_lcore();
 	rte_atomic32_set(&synchro, 0);
 
-	if (rte_atomic32_read(&count) != 0) {
+	if (rte_atomic64_read(&count) != 0) {
 		printf("Atomic add/sub+return failed\n");
 		return -1;
 	}
@@ -338,7 +337,7 @@ test_atomic(void)
 	rte_atomic32_clear(&a32);
 	rte_atomic16_clear(&a16);
 	rte_atomic32_clear(&synchro);
-	rte_atomic32_clear(&count);
+	rte_atomic64_clear(&count);
 
 	rte_atomic64_set(&a64, (int64_t)(1 - (int64_t)rte_lcore_count()));
 	rte_atomic32_set(&a32, (int32_t)(1 - (int32_t)rte_lcore_count()));
@@ -348,7 +347,7 @@ test_atomic(void)
 	rte_eal_mp_wait_lcore();
 	rte_atomic32_clear(&synchro);
 
-	if (rte_atomic32_read(&count) != NUM_ATOMIC_TYPES) {
+	if (rte_atomic64_read(&count) != NUM_ATOMIC_TYPES) {
 		printf("Atomic inc and test failed %d\n", (int)count.cnt);
 		return -1;
 	}
@@ -360,7 +359,7 @@ test_atomic(void)
 	printf("dec and test\n");
 
 	rte_atomic32_clear(&synchro);
-	rte_atomic32_clear(&count);
+	rte_atomic64_clear(&count);
 
 	rte_atomic64_set(&a64, (int64_t)(rte_lcore_count() - 1));
 	rte_atomic32_set(&a32, (int32_t)(rte_lcore_count() - 1));
@@ -370,7 +369,7 @@ test_atomic(void)
 	rte_eal_mp_wait_lcore();
 	rte_atomic32_clear(&synchro);
 
-	if (rte_atomic32_read(&count) != NUM_ATOMIC_TYPES) {
+	if (rte_atomic64_read(&count) != NUM_ATOMIC_TYPES) {
 		printf("Atomic dec and test failed\n");
 		return -1;
 	}

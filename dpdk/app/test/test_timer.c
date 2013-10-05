@@ -1,42 +1,41 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 /*
  * Timer
  * =====
  *
- * #. Stress tests.
+ * #. Stress test 1.
  *
  *    The objective of the timer stress tests is to check that there are no
  *    race conditions in list and status management. This test launches,
@@ -54,6 +53,23 @@
  *      on another core (same probability), or stopped (same
  *      probability).
  *
+ * # Stress test 2.
+ *
+ *    The objective of this test is similar to the first in that it attempts
+ *    to find if there are any race conditions in the timer library. However,
+ *    it is less complex in terms of operations performed and duration, as it
+ *    is designed to have a predictable outcome that can be tested.
+ *
+ *    - A set of timers is initialized for use by the test
+ *    - All cores then simultaneously are set to schedule all the timers at
+ *      the same time, so conflicts should occur.
+ *    - Then there is a delay while we wait for the timers to expire
+ *    - Then the master lcore calls timer_manage() and we check that all
+ *      timers have had their callbacks called exactly once - no more no less.
+ *    - Then we repeat the process, except after setting up the timers, we have
+ *      all cores randomly reschedule them.
+ *    - Again we check that the expected number of callbacks has occurred when
+ *      we call timer-manage.
  *
  * #. Basic test.
  *
@@ -103,6 +119,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <sys/queue.h>
+#include <math.h>
 
 #include <cmdline_parse.h>
 
@@ -119,10 +136,11 @@
 #include <rte_atomic.h>
 #include <rte_timer.h>
 #include <rte_random.h>
+#include <rte_malloc.h>
 
 #include "test.h"
 
-#define TEST_DURATION_S 30 /* in seconds */
+#define TEST_DURATION_S 20 /* in seconds */
 #define NB_TIMER 4
 
 #define RTE_LOGTYPE_TESTTIMER RTE_LOGTYPE_USER3
@@ -140,7 +158,7 @@ static struct mytimerinfo mytiminfo[NB_TIMER];
 static void timer_basic_cb(struct rte_timer *tim, void *arg);
 
 static void
-mytimer_reset(struct mytimerinfo *timinfo, unsigned ticks,
+mytimer_reset(struct mytimerinfo *timinfo, uint64_t ticks,
 	      enum rte_timer_type type, unsigned tim_lcore,
 	      rte_timer_cb_t fct)
 {
@@ -155,7 +173,7 @@ timer_stress_cb(__attribute__((unused)) struct rte_timer *tim,
 {
 	long r;
 	unsigned lcore_id = rte_lcore_id();
-	uint64_t hz = rte_get_hpet_hz();
+	uint64_t hz = rte_get_timer_hz();
 
 	if (rte_timer_pending(tim))
 		return;
@@ -178,7 +196,7 @@ timer_stress_cb(__attribute__((unused)) struct rte_timer *tim,
 static int
 timer_stress_main_loop(__attribute__((unused)) void *arg)
 {
-	uint64_t hz = rte_get_hpet_hz();
+	uint64_t hz = rte_get_timer_hz();
 	unsigned lcore_id = rte_lcore_id();
 	uint64_t cur_time;
 	int64_t diff = 0;
@@ -190,8 +208,8 @@ timer_stress_main_loop(__attribute__((unused)) void *arg)
 		rte_timer_manage();
 
 		/* simulate the processing of a packet
-		 * (3 us = 6000 cycles at 2 Ghz) */
-		rte_delay_us(3);
+		 * (1 us = 2000 cycles at 2 Ghz) */
+		rte_delay_us(1);
 
 		/* randomly stop or reset timer */
 		r = rte_rand();
@@ -204,7 +222,7 @@ timer_stress_main_loop(__attribute__((unused)) void *arg)
 		else if ((r & 0xff) == 1) {
 			rte_timer_stop_sync(&mytiminfo[0].tim);
 		}
-		cur_time = rte_get_hpet_cycles();
+		cur_time = rte_get_timer_cycles();
 		diff = end_time - cur_time;
 	}
 
@@ -214,14 +232,107 @@ timer_stress_main_loop(__attribute__((unused)) void *arg)
 	return 0;
 }
 
+static volatile int cb_count = 0;
+
+/* callback for second stress test. will only be called
+ * on master lcore */
+static void
+timer_stress2_cb(struct rte_timer *tim __rte_unused, void *arg __rte_unused)
+{
+	cb_count++;
+}
+
+#define NB_STRESS2_TIMERS 8192
+
+static int
+timer_stress2_main_loop(__attribute__((unused)) void *arg)
+{
+	static struct rte_timer *timers;
+	int i;
+	static volatile int ready = 0;
+	uint64_t delay = rte_get_timer_hz() / 4;
+	unsigned lcore_id = rte_lcore_id();
+
+	if (lcore_id == rte_get_master_lcore()) {
+		timers = rte_malloc(NULL, sizeof(*timers) * NB_STRESS2_TIMERS, 0);
+		if (timers == NULL) {
+			printf("Test Failed\n");
+			printf("- Cannot allocate memory for timers\n" );
+			return -1;
+		}
+		for (i = 0; i < NB_STRESS2_TIMERS; i++)
+			rte_timer_init(&timers[i]);
+		ready = 1;
+	} else {
+		while (!ready)
+			rte_pause();
+	}
+
+	/* have all cores schedule all timers on master lcore */
+	for (i = 0; i < NB_STRESS2_TIMERS; i++)
+		rte_timer_reset(&timers[i], delay, SINGLE, rte_get_master_lcore(),
+				timer_stress2_cb, NULL);
+
+	ready = 0;
+	rte_delay_ms(500);
+
+	/* now check that we get the right number of callbacks */
+	if (lcore_id == rte_get_master_lcore()) {
+		rte_timer_manage();
+		if (cb_count != NB_STRESS2_TIMERS) {
+			printf("Test Failed\n");
+			printf("- Stress test 2, part 1 failed\n");
+			printf("- Expected %d callbacks, got %d\n", NB_STRESS2_TIMERS,
+					cb_count);
+			return -1;
+		}
+		ready  = 1;
+	} else {
+		while (!ready)
+			rte_pause();
+	}
+
+	/* now test again, just stop and restart timers at random after init*/
+	for (i = 0; i < NB_STRESS2_TIMERS; i++)
+		rte_timer_reset(&timers[i], delay, SINGLE, rte_get_master_lcore(),
+				timer_stress2_cb, NULL);
+	cb_count = 0;
+
+	/* pick random timer to reset, stopping them first half the time */
+	for (i = 0; i < 100000; i++) {
+		int r = rand() % NB_STRESS2_TIMERS;
+		if (i % 2)
+			rte_timer_stop(&timers[r]);
+		rte_timer_reset(&timers[r], delay, SINGLE, rte_get_master_lcore(),
+				timer_stress2_cb, NULL);
+	}
+
+	rte_delay_ms(500);
+
+	/* now check that we get the right number of callbacks */
+	if (lcore_id == rte_get_master_lcore()) {
+		rte_timer_manage();
+		if (cb_count != NB_STRESS2_TIMERS) {
+			printf("Test Failed\n");
+			printf("- Stress test 2, part 2 failed\n");
+			printf("- Expected %d callbacks, got %d\n", NB_STRESS2_TIMERS,
+					cb_count);
+			return -1;
+		}
+		printf("Test OK\n");
+	}
+
+	return 0;
+}
+
 /* timer callback for basic tests */
 static void
 timer_basic_cb(struct rte_timer *tim, void *arg)
 {
 	struct mytimerinfo *timinfo = arg;
-	uint64_t hz = rte_get_hpet_hz();
+	uint64_t hz = rte_get_timer_hz();
 	unsigned lcore_id = rte_lcore_id();
-	uint64_t cur_time = rte_get_hpet_cycles();
+	uint64_t cur_time = rte_get_timer_cycles();
 
 	if (rte_timer_pending(tim))
 		return;
@@ -274,7 +385,7 @@ timer_basic_cb(struct rte_timer *tim, void *arg)
 static int
 timer_basic_main_loop(__attribute__((unused)) void *arg)
 {
-	uint64_t hz = rte_get_hpet_hz();
+	uint64_t hz = rte_get_timer_hz();
 	unsigned lcore_id = rte_lcore_id();
 	uint64_t cur_time;
 	int64_t diff = 0;
@@ -301,11 +412,48 @@ timer_basic_main_loop(__attribute__((unused)) void *arg)
 		 * (3 us = 6000 cycles at 2 Ghz) */
 		rte_delay_us(3);
 
-		cur_time = rte_get_hpet_cycles();
+		cur_time = rte_get_timer_cycles();
 		diff = end_time - cur_time;
 	}
 	RTE_LOG(INFO, TESTTIMER, "core %u finished\n", lcore_id);
 
+	return 0;
+}
+
+static int
+timer_sanity_check(void)
+{
+#ifdef RTE_LIBEAL_USE_HPET
+	if (eal_timer_source != EAL_TIMER_HPET) {
+		printf("Not using HPET, can't sanity check timer sources\n");
+		return 0;
+	}
+
+	const uint64_t t_hz = rte_get_tsc_hz();
+	const uint64_t h_hz = rte_get_hpet_hz();
+	printf("Hertz values: TSC = %"PRIu64", HPET = %"PRIu64"\n", t_hz, h_hz);
+
+	const uint64_t tsc_start = rte_get_tsc_cycles();
+	const uint64_t hpet_start = rte_get_hpet_cycles();
+	rte_delay_ms(100); /* delay 1/10 second */
+	const uint64_t tsc_end = rte_get_tsc_cycles();
+	const uint64_t hpet_end = rte_get_hpet_cycles();
+	printf("Measured cycles: TSC = %"PRIu64", HPET = %"PRIu64"\n",
+			tsc_end-tsc_start, hpet_end-hpet_start);
+
+	const double tsc_time = (double)(tsc_end - tsc_start)/t_hz;
+	const double hpet_time = (double)(hpet_end - hpet_start)/h_hz;
+	/* get the percentage that the times differ by */
+	const double time_diff = fabs(tsc_time - hpet_time)*100/tsc_time;
+	printf("Measured time: TSC = %.4f, HPET = %.4f\n", tsc_time, hpet_time);
+
+	printf("Elapsed time measured by TSC and HPET differ by %f%%\n",
+			time_diff);
+	if (time_diff > 0.1) {
+		printf("Error times differ by >0.1%%");
+		return -1;
+	}
+#endif
 	return 0;
 }
 
@@ -315,6 +463,12 @@ test_timer(void)
 	unsigned i;
 	uint64_t cur_time;
 	uint64_t hz;
+
+	/* sanity check our timer sources and timer config values */
+	if (timer_sanity_check() < 0) {
+		printf("Timer sanity checks failed\n");
+		return -1;
+	}
 
 	if (rte_lcore_count() < 2) {
 		printf("not enough lcores for this test\n");
@@ -329,8 +483,8 @@ test_timer(void)
 	}
 
 	/* calculate the "end of test" time */
-	cur_time = rte_get_hpet_cycles();
-	hz = rte_get_hpet_hz();
+	cur_time = rte_get_timer_cycles();
+	hz = rte_get_timer_hz();
 	end_time = cur_time + (hz * TEST_DURATION_S);
 
 	/* start other cores */
@@ -341,9 +495,14 @@ test_timer(void)
 	/* stop timer 0 used for stress test */
 	rte_timer_stop_sync(&mytiminfo[0].tim);
 
+	/* run a second, slightly different set of stress tests */
+	printf("Start timer stress tests 2\n");
+	rte_eal_mp_remote_launch(timer_stress2_main_loop, NULL, CALL_MASTER);
+	rte_eal_mp_wait_lcore();
+
 	/* calculate the "end of test" time */
-	cur_time = rte_get_hpet_cycles();
-	hz = rte_get_hpet_hz();
+	cur_time = rte_get_timer_cycles();
+	hz = rte_get_timer_hz();
 	end_time = cur_time + (hz * TEST_DURATION_S);
 
 	/* start other cores */

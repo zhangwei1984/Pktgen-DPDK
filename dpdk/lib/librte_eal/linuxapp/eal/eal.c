@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -39,6 +38,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <syslog.h>
 #include <getopt.h>
 #include <sys/file.h>
 #include <stddef.h>
@@ -47,6 +47,9 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <sys/queue.h>
+#include <sys/io.h>
+#include <sys/user.h>
+#include <linux/binfmts.h>
 
 #include <rte_common.h>
 #include <rte_debug.h>
@@ -69,6 +72,7 @@
 #include <rte_version.h>
 #include <rte_atomic.h>
 #include <malloc_heap.h>
+#include <rte_eth_ring.h>
 
 #include "eal_private.h"
 #include "eal_thread.h"
@@ -76,24 +80,27 @@
 #include "eal_filesystem.h"
 #include "eal_hugepages.h"
 
-#ifdef RTE_LIBWR
-#include <wr_core_info.h>
-#endif
-
 #define OPT_HUGE_DIR    "huge-dir"
 #define OPT_PROC_TYPE   "proc-type"
 #define OPT_NO_SHCONF   "no-shconf"
 #define OPT_NO_HPET     "no-hpet"
+#define OPT_VMWARE_TSC_MAP   "vmware-tsc-map"
 #define OPT_NO_PCI      "no-pci"
 #define OPT_NO_HUGE     "no-huge"
 #define OPT_FILE_PREFIX "file-prefix"
 #define OPT_SOCKET_MEM  "socket-mem"
+#define OPT_USE_DEVICE  "use-device"
+#define OPT_SYSLOG      "syslog"
 
 #define RTE_EAL_BLACKLIST_SIZE	0x100
 
 #define MEMSIZE_IF_NO_HUGE_PAGE (64ULL * 1024ULL * 1024ULL)
 
 #define SOCKET_MEM_STRLEN (RTE_MAX_NUMA_NODES * 10)
+
+#define HIGHEST_RPL 3
+
+#define BITS_PER_HEX 4
 
 #define GET_BLACKLIST_FIELD(in, fd, lim, dlm)                   \
 {                                                               \
@@ -108,8 +115,7 @@
 }
 
 /* Allow the application to print its usage message too if set */
-rte_usage_hook_t	rte_application_usage_hook;
-
+static rte_usage_hook_t	rte_application_usage_hook = NULL;
 /* early configuration structure, when memory config is not mmapped */
 static struct rte_mem_config early_mem_config;
 
@@ -136,6 +142,9 @@ struct lcore_config lcore_config[RTE_MAX_LCORE];
 
 /* internal configuration */
 struct internal_config internal_config;
+
+/* used by rte_rdtsc() */
+int rte_cycles_vmware_tsc_map;
 
 /* Return a pointer to the configuration structure */
 struct rte_config *
@@ -318,8 +327,6 @@ eal_usage(const char *prgname)
 	       "[--proc-type primary|secondary|auto] \n\n"
 	       "EAL options:\n"
 	       "  -c COREMASK  : A hexadecimal bitmask of cores to run on\n"
-		   "                 or logical core list starting with a ':' and comma between cores :0,[2-4],6,8\n"
-		   "                 and/or Socket/Core/HT format :0/0/0,0/1/0,0/2/1 or any combo of the two\n"
 	       "  -n NUM       : Number of memory channels\n"
 		   "  -v           : Display version information on startup\n"
 	       "  -b <domain:bus:devid.func>: to prevent EAL from using specified "
@@ -327,18 +334,24 @@ eal_usage(const char *prgname)
 	       "                 (multiple -b options are allowed)\n"
 	       "  -m MB        : memory to allocate (see also --"OPT_SOCKET_MEM")\n"
 	       "  -r NUM       : force number of memory ranks (don't detect)\n"
+	       "  --"OPT_SYSLOG"     : set syslog facility\n"
 	       "  --"OPT_SOCKET_MEM" : memory to allocate on specific \n"
 		   "                 sockets (use comma separated values)\n"
 	       "  --"OPT_HUGE_DIR"   : directory where hugetlbfs is mounted\n"
 	       "  --"OPT_PROC_TYPE"  : type of this process\n"
 	       "  --"OPT_FILE_PREFIX": prefix for hugepage filenames\n"
+	       "  --"OPT_USE_DEVICE": use the specified ethernet device(s) only."
+	    		   "Use comma-separate <[domain:]bus:devid.func> values.\n"
+	       "               [NOTE: Cannot be used with -b option]\n"
+	       "  --"OPT_VMWARE_TSC_MAP": use VMware TSC map instead of "
+	    		   "native RDTSC\n"
 	       "\nEAL options for DEBUG use only:\n"
 	       "  --"OPT_NO_HUGE"  : use malloc instead of hugetlbfs\n"
 	       "  --"OPT_NO_PCI"   : disable pci\n"
 	       "  --"OPT_NO_HPET"  : disable hpet\n"
-	       "  --"OPT_NO_SHCONF": no shared config (mmap'd files)\n\n",
+	       "  --"OPT_NO_SHCONF": no shared config (mmap'd files)\n"
+	       "\n",
 	       prgname);
-
 	/* Allow the application to print its usage message too if hook is set */
 	if ( rte_application_usage_hook ) {
 		printf("===== Application Usage =====\n\n");
@@ -346,50 +359,125 @@ eal_usage(const char *prgname)
 	}
 }
 
+/* Set a per-application usage message */
+rte_usage_hook_t
+rte_set_application_usage_hook( rte_usage_hook_t usage_func )
+{
+	rte_usage_hook_t	old_func;
+
+	/* Will be NULL on the first call to denote the last usage routine. */
+	old_func					= rte_application_usage_hook;
+	rte_application_usage_hook	= usage_func;
+
+	return old_func;
+}
+
 /*
  * Parse the coremask given as argument (hexadecimal string) and fill
  * the global configuration (core role and core count) with the parsed
  * value.
  */
+static int xdigit2val(unsigned char c)
+{
+	int val;
+	if(isdigit(c)) 
+		val = c - '0';
+	else if(isupper(c))
+		val = c - 'A' + 10;
+	else 
+		val = c - 'a' + 10;
+	return val;
+}
 static int
 eal_parse_coremask(const char *coremask)
 {
 	struct rte_config *cfg = rte_eal_get_configuration();
-	unsigned i;
-	char *end = NULL;
-	unsigned long long cm;
+	int i, j, idx = 0 ;
 	unsigned count = 0;
+	char c;
+	int val;
 
-	if ( (coremask == NULL) || (coremask[0] == '\0') )
+	if (coremask == NULL)
+		return -1;
+	/* Remove all blank characters ahead and after .
+	 * Remove 0x/0X if exists.
+	 */
+	while (isblank(*coremask))
+		coremask++;
+	if (coremask[0] == '0' && ((coremask[1] == 'x')
+		||  (coremask[1] == 'X')) )
+		coremask += 2;
+	i = strnlen(coremask, MAX_ARG_STRLEN);
+	while ((i > 0) && isblank(coremask[i - 1]))
+		i--;
+	if (i == 0)
 		return -1;
 
-	if ( coremask[0] == ':' ) {			/* parse the lcore string */
-#ifdef RTE_LIBWR
-		cm = wr_parse_coremask(coremask);
-		if ( cm == 0 )
+	for (i = i - 1; i >= 0 && idx < RTE_MAX_LCORE; i--) {
+		c = coremask[i];
+		if (isxdigit(c) == 0) {
+			/* invalid characters */
+			return (-1);
+		}
+		val = xdigit2val(c);
+		for(j = 0; j < BITS_PER_HEX && idx < RTE_MAX_LCORE; j++, idx++) {
+			if((1 << j) & val) {
+				cfg->lcore_role[idx] = ROLE_RTE;
+				if(count == 0)
+					cfg->master_lcore = idx;
+				count++;
+			} else  {
+				cfg->lcore_role[idx] = ROLE_OFF;
+			}
+		}
+	}
+	for(; i >= 0; i--)
+		if(coremask[i] != '0')
 			return -1;
-#else
+	for(; idx < RTE_MAX_LCORE; idx++)
+		cfg->lcore_role[idx] = ROLE_OFF;
+	if(count == 0)
 		return -1;
-#endif
-	} else {							/* parse hexadecimal string */
-		cm = strtoull(coremask, &end, 16);
-		if ( (end == NULL) || (*end != '\0') || (cm == 0) )
-			return -1;
-	}
-	RTE_LOG(DEBUG, EAL, "coremask set to %llx\n", cm);
-	/* set core role and core count */
-	for (i = 0; i < RTE_MAX_LCORE; i++) {
-		if ((1ULL << i) & cm) {
-			if (count == 0)
-				cfg->master_lcore = i;
-			cfg->lcore_role[i] = ROLE_RTE;
-			count++;
-		}
-		else {
-			cfg->lcore_role[i] = ROLE_OFF;
-		}
-	}
 	return 0;
+}
+
+static int
+eal_parse_syslog(const char *facility)
+{
+	int i;
+	static struct {
+		const char *name;
+		int value;
+	} map[] = {
+		{ "auth", LOG_AUTH },
+		{ "cron", LOG_CRON },
+		{ "daemon", LOG_DAEMON },
+		{ "ftp", LOG_FTP },
+		{ "kern", LOG_KERN },
+		{ "lpr", LOG_LPR },
+		{ "mail", LOG_MAIL },
+		{ "news", LOG_NEWS },
+		{ "syslog", LOG_SYSLOG },
+		{ "user", LOG_USER },
+		{ "uucp", LOG_UUCP },
+		{ "local0", LOG_LOCAL0 },
+		{ "local1", LOG_LOCAL1 },
+		{ "local2", LOG_LOCAL2 },
+		{ "local3", LOG_LOCAL3 },
+		{ "local4", LOG_LOCAL4 },
+		{ "local5", LOG_LOCAL5 },
+		{ "local6", LOG_LOCAL6 },
+		{ "local7", LOG_LOCAL7 },
+		{ NULL, 0 }
+	};
+
+	for (i = 0; map[i].name; i++) {
+		if (!strcmp(facility, map[i].name)) {
+			internal_config.syslog_facility = map[i].value;
+			return 0;
+		}
+	}
+	return -1;
 }
 
 static int
@@ -442,7 +530,7 @@ eal_parse_socket_mem(char *socket_mem)
 	return 0;
 }
 
-static inline uint64_t
+static inline size_t
 eal_get_hugepage_mem_size(void)
 {
 	uint64_t size = 0;
@@ -457,7 +545,7 @@ eal_get_hugepage_mem_size(void)
 		}
 	}
 
-	return (size);
+	return (size < SIZE_MAX) ? (size_t)(size) : SIZE_MAX;
 }
 
 static enum rte_proc_type_t
@@ -473,35 +561,21 @@ eal_parse_proc_type(const char *arg)
 	return RTE_PROC_INVALID;
 }
 
-static int
-eal_parse_blacklist(const char *input,  struct rte_pci_addr *dev2bl)
-{
-	GET_BLACKLIST_FIELD(input, dev2bl->domain, UINT16_MAX, ':');
-	GET_BLACKLIST_FIELD(input, dev2bl->bus, UINT8_MAX, ':');
-	GET_BLACKLIST_FIELD(input, dev2bl->devid, UINT8_MAX, '.');
-	GET_BLACKLIST_FIELD(input, dev2bl->function, UINT8_MAX, 0);
-	return (0);
-}
-
 static ssize_t
 eal_parse_blacklist_opt(const char *optarg, size_t idx)
 {
 	if (idx >= sizeof (eal_dev_blacklist) / sizeof (eal_dev_blacklist[0])) {
-		RTE_LOG(ERR, EAL,
-		    "%s - too many devices to blacklist...\n",
-		    optarg);
+		RTE_LOG(ERR, EAL, "%s - too many devices to blacklist...\n", optarg);
 		return (-EINVAL);
-	} else if (eal_parse_blacklist(optarg, eal_dev_blacklist + idx) != 0) {
-		RTE_LOG(ERR, EAL,
-		    "%s - invalid device to blacklist...\n",
-		    optarg);
+	} else if (eal_parse_pci_DomBDF(optarg, eal_dev_blacklist + idx) < 0 &&
+			eal_parse_pci_BDF(optarg, eal_dev_blacklist + idx) < 0) {
+		RTE_LOG(ERR, EAL, "%s - invalid device to blacklist...\n", optarg);
 		return (-EINVAL);
 	}
 
 	idx += 1;
 	return (idx);
 }
-
 
 /* Parse the argument given in the command line of the application */
 static int
@@ -511,17 +585,20 @@ eal_parse_args(int argc, char **argv)
 	char **argvopt;
 	int option_index;
 	int coremask_ok = 0;
-	ssize_t blacklist_index = 0;;
+	ssize_t blacklist_index = 0;
 	char *prgname = argv[0];
 	static struct option lgopts[] = {
 		{OPT_NO_HUGE, 0, 0, 0},
 		{OPT_NO_PCI, 0, 0, 0},
 		{OPT_NO_HPET, 0, 0, 0},
+		{OPT_VMWARE_TSC_MAP, 0, 0, 0},
 		{OPT_HUGE_DIR, 1, 0, 0},
 		{OPT_NO_SHCONF, 0, 0, 0},
 		{OPT_PROC_TYPE, 1, 0, 0},
 		{OPT_FILE_PREFIX, 1, 0, 0},
 		{OPT_SOCKET_MEM, 1, 0, 0},
+		{OPT_USE_DEVICE, 1, 0, 0},
+		{OPT_SYSLOG, 1, NULL, 0},
 		{0, 0, 0, 0}
 	};
 
@@ -533,6 +610,7 @@ eal_parse_args(int argc, char **argv)
 	internal_config.hugefile_prefix = HUGEFILE_PREFIX_DEFAULT;
 	internal_config.hugepage_dir = NULL;
 	internal_config.force_sockets = 0;
+	internal_config.syslog_facility = LOG_DAEMON;
 #ifdef RTE_LIBEAL_USE_HPET
 	internal_config.no_hpet = 0;
 #else
@@ -545,6 +623,8 @@ eal_parse_args(int argc, char **argv)
 	/* zero out hugedir descriptors */
 	for (i = 0; i < MAX_HUGEPAGE_SIZES; i++)
 		internal_config.hugepage_info[i].lock_descriptor = 0;
+
+	internal_config.vmware_tsc_map = 0;
 
 	while ((opt = getopt_long(argc, argvopt, "b:c:m:n:r:v",
 				  lgopts, &option_index)) != EOF) {
@@ -611,6 +691,9 @@ eal_parse_args(int argc, char **argv)
 			else if (!strcmp(lgopts[option_index].name, OPT_NO_HPET)) {
 				internal_config.no_hpet = 1;
 			}
+			else if (!strcmp(lgopts[option_index].name, OPT_VMWARE_TSC_MAP)) {
+				internal_config.vmware_tsc_map = 1;
+			}
 			else if (!strcmp(lgopts[option_index].name, OPT_NO_SHCONF)) {
 				internal_config.no_shconf = 1;
 			}
@@ -627,6 +710,17 @@ eal_parse_args(int argc, char **argv)
 				if (eal_parse_socket_mem(optarg) < 0) {
 					RTE_LOG(ERR, EAL, "invalid parameters for --"
 							OPT_SOCKET_MEM "\n");
+					eal_usage(prgname);
+					return -1;
+				}
+			}
+			else if (!strcmp(lgopts[option_index].name, OPT_USE_DEVICE)) {
+				eal_dev_whitelist_add_entry(optarg);
+			}
+			else if (!strcmp(lgopts[option_index].name, OPT_SYSLOG)) {
+				if (eal_parse_syslog(optarg) < 0) {
+					RTE_LOG(ERR, EAL, "invalid parameters for --"
+							OPT_SYSLOG "\n");
 					eal_usage(prgname);
 					return -1;
 				}
@@ -680,8 +774,21 @@ eal_parse_args(int argc, char **argv)
 		return -1;
 	}
 
-	if (blacklist_index > 0)
+	/* if no blacklist, parse a whitelist */
+	if (blacklist_index > 0) {
+		if (eal_dev_whitelist_exists()) {
+			RTE_LOG(ERR, EAL, "Error: blacklist [-b] and whitelist "
+					"[--use-device] options cannot be used at the same time\n");
+			eal_usage(prgname);
+			return -1;
+		}
 		rte_eal_pci_set_blacklist(eal_dev_blacklist, blacklist_index);
+	} else {
+		if (eal_dev_whitelist_exists() && eal_dev_whitelist_parse() < 0) {
+			RTE_LOG(ERR,EAL, "Error parsing whitelist[--use-device] options\n");
+			return -1;
+		}
+	}
 
 	if (optind >= 0)
 		argv[optind-1] = prgname;
@@ -729,6 +836,15 @@ rte_eal_mcfg_complete(void)
 		rte_config.mem_config->magic = RTE_MAGIC;
 }
 
+/*
+ * Request iopl priviledge for all RPL, returns 0 on success
+ */
+static int
+rte_eal_iopl_init(void)
+{
+	return iopl(HIGHEST_RPL);
+}
+
 /* Launch threads, called at application init(). */
 int
 rte_eal_init(int argc, char **argv)
@@ -761,9 +877,23 @@ rte_eal_init(int argc, char **argv)
 			internal_config.memory = eal_get_hugepage_mem_size();
 	}
 
+	if (internal_config.vmware_tsc_map == 1) {
+#ifdef RTE_LIBRTE_EAL_VMWARE_TSC_MAP_SUPPORT
+		rte_cycles_vmware_tsc_map = 1;
+		RTE_LOG (DEBUG, EAL, "Using VMWARE TSC MAP, "
+				"you must have monitor_control.pseudo_perfctr = TRUE\n");
+#else
+		RTE_LOG (WARNING, EAL, "Ignoring --vmware-tsc-map because "
+				"RTE_LIBRTE_EAL_VMWARE_TSC_MAP_SUPPORT is not set\n");
+#endif
+	}
+
 	rte_srand(rte_rdtsc());
 
 	rte_config_init();
+
+	if (rte_eal_iopl_init() == 0)
+		rte_config.flags |= EAL_FLG_HIGH_IOPL;
 	
 	if (rte_eal_cpu_init() < 0)
 		rte_panic("Cannot detect lcores\n");
@@ -780,7 +910,7 @@ rte_eal_init(int argc, char **argv)
 	if (rte_eal_tailqs_init() < 0)
 		rte_panic("Cannot init tail queues for objects\n");
 
-	if (rte_eal_log_init() < 0)
+	if (rte_eal_log_init(argv[0], internal_config.syslog_facility) < 0)
 		rte_panic("Cannot init logs\n");
 
 	if (rte_eal_alarm_init() < 0)
@@ -789,8 +919,8 @@ rte_eal_init(int argc, char **argv)
 	if (rte_eal_intr_init() < 0)
 		rte_panic("Cannot init interrupt-handling thread\n");
 
-	if (rte_eal_hpet_init() < 0)
-		rte_panic("Cannot init HPET\n");
+	if (rte_eal_timer_init() < 0)
+		rte_panic("Cannot init HPET or TSC timers\n");
 
 	if (rte_eal_pci_init() < 0)
 		rte_panic("Cannot init PCI\n");
@@ -801,6 +931,9 @@ rte_eal_init(int argc, char **argv)
 	eal_check_mem_on_local_socket();
 
 	rte_eal_mcfg_complete();
+
+	if (rte_eal_non_pci_ethdev_init() < 0)
+		rte_panic("Cannot init non-PCI eth_devs\n");
 
 	RTE_LCORE_FOREACH_SLAVE(i) {
 

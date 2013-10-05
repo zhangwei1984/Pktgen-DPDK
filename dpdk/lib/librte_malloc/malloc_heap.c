@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 #include <stdint.h>
 #include <stddef.h>
@@ -79,17 +78,28 @@ static int
 malloc_heap_add_memzone(struct malloc_heap *heap, size_t size, unsigned align)
 {
 	const unsigned mz_flags = 0;
-	const size_t min_size = get_malloc_memzone_size();
+	const size_t block_size = get_malloc_memzone_size();
 	/* ensure the data we want to allocate will fit in the memzone */
-	size_t mz_size = size + align + MALLOC_ELEM_OVERHEAD * 2;
-	if (mz_size < min_size)
-		mz_size = min_size;
+	const size_t min_size = size + align + MALLOC_ELEM_OVERHEAD * 2;
+	const struct rte_memzone *mz = NULL;
+
+	size_t mz_size = min_size;
+	if (mz_size < block_size)
+		mz_size = block_size;
 
 	char mz_name[RTE_MEMZONE_NAMESIZE];
 	rte_snprintf(mz_name, sizeof(mz_name), "MALLOC_S%u_HEAP_%u",
 			heap->numa_socket, heap->mz_count++);
-	const struct rte_memzone *mz = rte_memzone_reserve(mz_name, mz_size,
-			heap->numa_socket, mz_flags);
+
+	/* try getting a block. if we fail and we don't need as big a block
+	 * as given in the config, we can shrink our request and try again
+	 */
+	do {
+		mz = rte_memzone_reserve(mz_name, mz_size,
+				heap->numa_socket, mz_flags);
+		if (mz == NULL)
+			mz_size /= 2;
+	} while (mz == NULL && mz_size > min_size);
 	if (mz == NULL)
 		return -1;
 
@@ -153,15 +163,27 @@ static struct malloc_elem *
 find_suitable_element(struct malloc_heap *heap, size_t size,
 		unsigned align, struct malloc_elem **prev)
 {
-	struct malloc_elem *elem = heap->free_head;
+	struct malloc_elem *elem, *min_elem, *min_prev;
+	size_t min_sz;
+
+	elem = heap->free_head;
+	min_elem = NULL;
+	min_prev = NULL;
+	min_sz = (size_t) SIZE_MAX;
 	*prev = NULL;
+
 	while(elem){
-		if (malloc_elem_can_hold(elem, size, align))
-			break;
-		*prev = elem;
+		if (malloc_elem_can_hold(elem, size, align)) {
+			if (min_sz > elem->size) {
+				min_elem = elem;
+				*prev = min_prev;
+				min_sz = elem->size;
+			}
+		}
+		min_prev = elem;
 		elem = elem->next_free;
 	}
-	return elem;
+	return (min_elem);
 }
 
 /*

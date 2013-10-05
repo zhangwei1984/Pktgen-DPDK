@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -113,9 +112,7 @@
 #define TX_WTHRESH 0  /**< Default values of TX write-back threshold reg. */
 
 #define MAX_PKT_BURST 32
-#define BURST_TX_DRAIN 200000ULL /* around 100us at 2 Ghz */
-
-#define SOCKET0 0
+#define BURST_TX_DRAIN_US 100 /* TX drain every ~100us */
 
 /* Configure how many packets ahead to prefetch, when reading packets */
 #define PREFETCH_OFFSET	3
@@ -175,7 +172,7 @@ static const struct rte_eth_conf port_conf = {
 		.hw_strip_crc   = 0, /**< CRC stripped by hardware */
 	},
 	.txmode = {
-		.mq_mode = ETH_DCB_NONE,
+		.mq_mode = ETH_MQ_TX_NONE,
 	},
 };
 
@@ -205,7 +202,7 @@ static struct rte_fbk_hash_params mcast_hash_params = {
 	.name = "MCAST_HASH",
 	.entries = 1024,
 	.entries_per_bucket = 4,
-	.socket_id = SOCKET0,
+	.socket_id = 0,
 	.hash_func = NULL,
 	.init_val = 0,
 };
@@ -452,9 +449,10 @@ send_timeout_burst(struct lcore_queue_conf *qconf)
 {
 	uint64_t cur_tsc;
 	uint8_t portid;
+	const uint64_t drain_tsc = (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
 	cur_tsc = rte_rdtsc();
-	if (likely (cur_tsc < qconf->tx_tsc + BURST_TX_DRAIN))
+	if (likely (cur_tsc < qconf->tx_tsc + drain_tsc))
 		return;
 
 	for (portid = 0; portid < MAX_PORTS; portid++) {
@@ -465,7 +463,7 @@ send_timeout_burst(struct lcore_queue_conf *qconf)
 }
 
 /* main processing loop */
-static __attribute__((noreturn)) int
+static int
 main_loop(__rte_unused void *dummy)
 {
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
@@ -481,7 +479,7 @@ main_loop(__rte_unused void *dummy)
 	if (qconf->n_rx_queue == 0) {
 		RTE_LOG(INFO, IPv4_MULTICAST, "lcore %u has nothing to do\n",
 		    lcore_id);
-		while(1);
+		return 0;
 	}
 
 	RTE_LOG(INFO, IPv4_MULTICAST, "entering main loop on lcore %u\n",
@@ -638,6 +636,7 @@ init_mcast_hash(void)
 {
 	uint32_t i;
 
+	mcast_hash_params.socket_id = rte_socket_id();
 	mcast_hash = rte_fbk_hash_create(&mcast_hash_params);
 	if (mcast_hash == NULL){
 		return -1;
@@ -715,7 +714,7 @@ MAIN(int argc, char **argv)
 	struct lcore_queue_conf *qconf;
 	int ret;
 	uint16_t queueid;
-	unsigned lcore_id = 0, rx_lcore_id = 0;;
+	unsigned lcore_id = 0, rx_lcore_id = 0;
 	uint32_t n_tx_queue, nb_lcores;
 	uint8_t portid;
 
@@ -735,21 +734,21 @@ MAIN(int argc, char **argv)
 	packet_pool = rte_mempool_create("packet_pool", NB_PKT_MBUF,
 	    PKT_MBUF_SIZE, 32, sizeof(struct rte_pktmbuf_pool_private),
 	    rte_pktmbuf_pool_init, NULL, rte_pktmbuf_init, NULL,
-	    SOCKET0, 0);
+	    rte_socket_id(), 0);
 
 	if (packet_pool == NULL)
 		rte_exit(EXIT_FAILURE, "Cannot init packet mbuf pool\n");
 
 	header_pool = rte_mempool_create("header_pool", NB_HDR_MBUF,
 	    HDR_MBUF_SIZE, 32, 0, NULL, NULL, rte_pktmbuf_init, NULL,
-	    SOCKET0, 0);
+	    rte_socket_id(), 0);
 
 	if (header_pool == NULL)
 		rte_exit(EXIT_FAILURE, "Cannot init header mbuf pool\n");
 
 	clone_pool = rte_mempool_create("clone_pool", NB_CLONE_MBUF,
 	    CLONE_MBUF_SIZE, 32, 0, NULL, NULL, rte_pktmbuf_init, NULL,
-	    SOCKET0, 0);
+	    rte_socket_id(), 0);
 
 	if (clone_pool == NULL)
 		rte_exit(EXIT_FAILURE, "Cannot init clone mbuf pool\n");
@@ -815,7 +814,7 @@ MAIN(int argc, char **argv)
 		printf("rxq=%hu ", queueid);
 		fflush(stdout);
 		ret = rte_eth_rx_queue_setup(portid, queueid, nb_rxd,
-					     SOCKET0, &rx_conf,
+					     rte_eth_dev_socket_id(portid), &rx_conf,
 					     packet_pool);
 		if (ret < 0)
 			rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: err=%d, port=%d\n",
@@ -830,7 +829,7 @@ MAIN(int argc, char **argv)
 			printf("txq=%u,%hu ", lcore_id, queueid);
 			fflush(stdout);
 			ret = rte_eth_tx_queue_setup(portid, queueid, nb_txd,
-						     SOCKET0, &tx_conf);
+						     rte_lcore_to_socket_id(lcore_id), &tx_conf);
 			if (ret < 0)
 				rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: err=%d, "
 					  "port=%d\n", ret, portid);

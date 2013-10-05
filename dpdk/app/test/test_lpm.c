@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -47,12 +46,12 @@
 #include <rte_ip.h>
 #include <time.h>
 
+#include "test.h"
+
 #ifdef RTE_LIBRTE_LPM
 
 #include "rte_lpm.h"
 #include "test_lpm_routes.h"
-
-#include "test.h"
 
 #define TEST_LPM_ASSERT(cond) do {                                            \
 	if (!(cond)) {                                                        \
@@ -725,7 +724,6 @@ test10(void)
 
 	ip = IPv4(128, 0, 0, 0);
 	depth = 24;
-	next_hop_add = 100;
 
 	status = rte_lpm_delete(lpm, ip, depth);
 	TEST_LPM_ASSERT(status < 0);
@@ -739,7 +737,6 @@ test10(void)
 
 	ip = IPv4(128, 0, 0, 0);
 	depth = 32;
-	next_hop_add = 100;
 
 	status = rte_lpm_delete(lpm, ip, depth);
 	TEST_LPM_ASSERT(status < 0);
@@ -940,12 +937,12 @@ test14(void)
 	lpm = rte_lpm_create(__func__, SOCKET_ID_ANY, 256 * 32, 0);
 	TEST_LPM_ASSERT(lpm != NULL);
 
-	ip = IPv4(0, 0, 0, 0);
 	depth = 32;
 	next_hop_add = 100;
+	ip = IPv4(0, 0, 0, 0);
 
 	/* Add 256 rules that require a tbl8 extension */
-	for (ip = 0; ip <= IPv4(0, 0, 255, 0); ip += 256) {
+	for (; ip <= IPv4(0, 0, 255, 0); ip += 256) {
 		status = rte_lpm_add(lpm, ip, depth, next_hop_add);
 		TEST_LPM_ASSERT(status == 0);
 
@@ -1283,7 +1280,7 @@ test_lpm(void)
 	return global_status;
 }
 
-#else
+#else /* RTE_LIBRTE_LPM */
 
 int
 test_lpm(void)
@@ -1292,4 +1289,4 @@ test_lpm(void)
 	return 0;
 }
 
-#endif
+#endif /* RTE_LIBRTE_LPM */

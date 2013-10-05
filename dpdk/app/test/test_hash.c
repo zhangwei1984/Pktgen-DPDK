@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -50,6 +49,11 @@
 #include <rte_eal.h>
 #include <rte_ip.h>
 #include <rte_string_fns.h>
+#include <cmdline_parse.h>
+
+#include "test.h"
+
+#ifdef RTE_LIBRTE_HASH
 
 #include <rte_hash.h>
 #include <rte_fbk_hash.h>
@@ -58,11 +62,6 @@
 #ifdef RTE_MACHINE_CPUFLAG_SSE4_2
 #include <rte_hash_crc.h>
 #endif
-#include <cmdline_parse.h>
-
-#include "test.h"
-
-#ifdef RTE_LIBRTE_HASH
 
 /*******************************************************************************
  * Hash function performance test configuration section. Each performance test
@@ -242,6 +241,7 @@ static void run_hash_func_tests(void)
 static int test_add_delete(void)
 {
 	struct rte_hash *handle;
+	/* test with standard add/lookup/delete functions */
 	int pos0, expectedPos0;
 
 	ut_params.name = "test1";
@@ -269,6 +269,37 @@ static int test_add_delete(void)
 			"fail: found key after deleting! (pos0=%d)", pos0);
 
 	rte_hash_free(handle);
+
+	/* repeat test with precomputed hash functions */
+	hash_sig_t hash_value;
+	int pos1, expectedPos1;
+
+	handle = rte_hash_create(&ut_params);
+	RETURN_IF_ERROR(handle == NULL, "hash creation failed");
+
+	hash_value = rte_hash_hash(handle, &keys[0]);
+	pos1 = rte_hash_add_key_with_hash(handle, &keys[0], hash_value);
+	print_key_info("Add", &keys[0], pos1);
+	RETURN_IF_ERROR(pos1 < 0, "failed to add key (pos1=%d)", pos1);
+	expectedPos1 = pos1;
+
+	pos1 = rte_hash_lookup_with_hash(handle, &keys[0], hash_value);
+	print_key_info("Lkp", &keys[0], pos1);
+	RETURN_IF_ERROR(pos1 != expectedPos1,
+			"failed to find key (pos1=%d)", pos1);
+
+	pos1 = rte_hash_del_key_with_hash(handle, &keys[0], hash_value);
+	print_key_info("Del", &keys[0], pos1);
+	RETURN_IF_ERROR(pos1 != expectedPos1,
+			"failed to delete key (pos1=%d)", pos1);
+
+	pos1 = rte_hash_lookup_with_hash(handle, &keys[0], hash_value);
+	print_key_info("Lkp", &keys[0], pos1);
+	RETURN_IF_ERROR(pos1 != -ENOENT,
+			"fail: found key after deleting! (pos1=%d)", pos1);
+
+	rte_hash_free(handle);
+
 	return 0;
 }
 
@@ -707,6 +738,8 @@ fbk_hash_unit_test(void)
 	double used_entries;
 
 	/* Try creating hashes with invalid parameters */
+	printf("# Testing hash creation with invalid parameters "
+			"- expert error msgs\n");
 	handle = rte_fbk_hash_create(&invalid_params_1);
 	RETURN_IF_ERROR_FBK(handle != NULL, "fbk hash creation should have failed");
 
@@ -1334,7 +1367,7 @@ int test_hash(void)
 
 	return 0;
 }
-#else
+#else /* RTE_LIBRTE_HASH */
 
 int
 test_hash(void)
@@ -1343,4 +1376,4 @@ test_hash(void)
 	return 0;
 }
 
-#endif
+#endif /* RTE_LIBRTE_HASH */

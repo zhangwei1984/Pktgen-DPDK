@@ -1,26 +1,25 @@
 /*-
  * GPL LICENSE SUMMARY
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  * 
- *   This program is free software; you can redistribute it and/or modify 
+ *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of version 2 of the GNU General Public License as
  *   published by the Free Software Foundation.
  * 
- *   This program is distributed in the hope that it will be useful, but 
- *   WITHOUT ANY WARRANTY; without even the implied warranty of 
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ *   This program is distributed in the hope that it will be useful, but
+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *   General Public License for more details.
  * 
- *   You should have received a copy of the GNU General Public License 
- *   along with this program; if not, write to the Free Software 
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
- *   The full GNU General Public License is included in this distribution 
+ *   The full GNU General Public License is included in this distribution
  *   in the file called LICENSE.GPL.
  * 
  *   Contact Information:
  *   Intel Corporation
- * 
  */
 
 /*
@@ -39,6 +38,7 @@
 
 #include <rte_config.h>
 #include <exec-env/rte_kni_common.h>
+#include <kni_fifo.h>
 #include "kni_dev.h"
 
 #define WD_TIMEOUT 5 /*jiffies */
@@ -60,68 +60,6 @@ static int kni_net_process_request(struct kni_dev *kni,
 /* kni rx function pointer, with default to normal rx */
 static kni_net_rx_t kni_net_rx_func = kni_net_rx_normal;
 
-
-/**
- * Adds num elements into the fifo. Return the number actually written
- */
-static inline unsigned
-kni_fifo_put(struct rte_kni_fifo *fifo, void **data, unsigned num)
-{
-	unsigned i = 0;
-	unsigned fifo_write = fifo->write;
-	unsigned fifo_read = fifo->read;
-	unsigned new_write = fifo_write;
-
-	for (i = 0; i < num; i++) {
-		new_write = (new_write + 1) & (fifo->len - 1);
-
-		if (new_write == fifo_read)
-			break;
-		fifo->buffer[fifo_write] = data[i];
-		fifo_write = new_write;
-	}
-	fifo->write = fifo_write;
-	return i;
-}
-
-/**
- * Get up to num elements from the fifo. Return the number actully read
- */
-static inline unsigned
-kni_fifo_get(struct rte_kni_fifo *fifo, void **data, unsigned num)
-{
-	unsigned i = 0;
-	unsigned new_read = fifo->read;
-	unsigned fifo_write = fifo->write;
-	for (i = 0; i < num; i++) {
-		if (new_read == fifo_write)
-			break;
-
-		data[i] = fifo->buffer[new_read];
-		new_read = (new_read + 1) & (fifo->len - 1);
-	}
-	fifo->read = new_read;
-	return i;
-}
-
-/**
- * Get the num of elements in the fifo
- */
-static inline unsigned
-kni_fifo_count(struct rte_kni_fifo *fifo)
-{
-	return (fifo->len + fifo->write - fifo->read) &( fifo->len - 1);
-}
-
-/**
- * Get the num of available lements in the fifo
- */
-static inline unsigned
-kni_fifo_free_count(struct rte_kni_fifo *fifo)
-{
-	return (fifo->read - fifo->write - 1) & (fifo->len - 1);
-}
-
 /*
  * Open and close
  */
@@ -132,20 +70,14 @@ kni_net_open(struct net_device *dev)
 	struct rte_kni_request req;
 	struct kni_dev *kni = netdev_priv(dev);
 
-	KNI_DBG("kni_net_open %d\n", kni->idx);
-
-	/*
-	 * Assign the hardware address of the board: use "\0KNIx", where
-	 * x is KNI index. The first byte is '\0' to avoid being a multicast
-	 * address (the first byte of multicast addrs is odd).
-	 */
-
 	if (kni->lad_dev)
 		memcpy(dev->dev_addr, kni->lad_dev->dev_addr, ETH_ALEN);
-	else {
-		memcpy(dev->dev_addr, "\0KNI0", ETH_ALEN);
-		dev->dev_addr[ETH_ALEN-1] += kni->idx; /* \0KNI1 */
-	}
+	else
+		/*
+		 * Generate random mac address. eth_random_addr() is the newer
+		 * version of generating mac address in linux kernel.
+		 */
+		random_ether_addr(dev->dev_addr);
 
 	netif_start_queue(dev);
 
@@ -247,7 +179,7 @@ kni_net_rx_normal(struct kni_dev *kni)
 			skb->ip_summed = CHECKSUM_UNNECESSARY;
 
 			/* Call netif interface */
-			netif_rx(skb);
+			netif_receive_skb(skb);
 
 			/* Update statistics */
 			kni->stats.rx_bytes += len;
@@ -447,6 +379,18 @@ kni_net_rx(struct kni_dev *kni)
 /*
  * Transmit a packet (called by the kernel)
  */
+#ifdef RTE_KNI_VHOST
+static int
+kni_net_tx(struct sk_buff *skb, struct net_device *dev)
+{
+	struct kni_dev *kni = netdev_priv(dev);
+	
+	dev_kfree_skb(skb);
+	kni->stats.tx_dropped++;
+	
+	return NETDEV_TX_OK;
+}
+#else
 static int
 kni_net_tx(struct sk_buff *skb, struct net_device *dev)
 {
@@ -519,6 +463,7 @@ drop:
 
 	return NETDEV_TX_OK;
 }
+#endif
 
 /*
  * Deal with a transmit timeout.
@@ -542,8 +487,8 @@ kni_net_tx_timeout (struct net_device *dev)
 static int
 kni_net_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 {
-	struct kni_dev *kni = netdev_priv(dev);
-	KNI_DBG("kni_net_ioctl %d\n", kni->idx);
+	KNI_DBG("kni_net_ioctl %d\n",
+		((struct kni_dev *)netdev_priv(dev))->group_id);
 
 	return 0;
 }
@@ -573,13 +518,9 @@ kni_net_change_mtu(struct net_device *dev, int new_mtu)
 void
 kni_net_poll_resp(struct kni_dev *kni)
 {
-	int i = kni_fifo_count(kni->resp_q);
-
-	if (i) {
+	if (kni_fifo_count(kni->resp_q))
 		wake_up_interruptible(&kni->wq);
-	}
 }
-
 
 /*
  * It can be called to process the request.
@@ -621,7 +562,6 @@ kni_net_process_request(struct kni_dev *kni, struct rte_kni_request *req)
 		ret = -ENODATA;
 		goto fail;
 	}
-
 
 	memcpy(req, kni->sync_kva, sizeof(struct rte_kni_request));
 	ret = 0;
@@ -727,4 +667,3 @@ kni_net_config_lo_mode(char *lo_str)
 	} else
 		KNI_PRINT("Incognizant parameter, loopback disabled");
 }
-

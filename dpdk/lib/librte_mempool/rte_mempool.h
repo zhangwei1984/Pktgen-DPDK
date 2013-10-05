@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _RTE_MEMPOOL_H_
@@ -451,7 +450,7 @@ void rte_mempool_dump(const struct rte_mempool *mp);
  * @param is_mp
  *   Mono-producer (0) or multi-producers (1).
  */
-static inline void
+static inline void __attribute__((always_inline))
 __mempool_put_bulk(struct rte_mempool *mp, void * const *obj_table,
 		    unsigned n, int is_mp)
 {
@@ -532,7 +531,7 @@ ring_enqueue:
  * @param n
  *   The number of objects to add in the mempool from the obj_table.
  */
-static inline void
+static inline void __attribute__((always_inline))
 rte_mempool_mp_put_bulk(struct rte_mempool *mp, void * const *obj_table,
 			unsigned n)
 {
@@ -572,7 +571,7 @@ rte_mempool_sp_put_bulk(struct rte_mempool *mp, void * const *obj_table,
  * @param n
  *   The number of objects to add in the mempool from obj_table.
  */
-static inline void
+static inline void __attribute__((always_inline))
 rte_mempool_put_bulk(struct rte_mempool *mp, void * const *obj_table,
 		     unsigned n)
 {
@@ -588,7 +587,7 @@ rte_mempool_put_bulk(struct rte_mempool *mp, void * const *obj_table,
  * @param obj
  *   A pointer to the object to be added.
  */
-static inline void
+static inline void __attribute__((always_inline))
 rte_mempool_mp_put(struct rte_mempool *mp, void *obj)
 {
 	rte_mempool_mp_put_bulk(mp, &obj, 1);
@@ -602,7 +601,7 @@ rte_mempool_mp_put(struct rte_mempool *mp, void *obj)
  * @param obj
  *   A pointer to the object to be added.
  */
-static inline void
+static inline void __attribute__((always_inline))
 rte_mempool_sp_put(struct rte_mempool *mp, void *obj)
 {
 	rte_mempool_sp_put_bulk(mp, &obj, 1);
@@ -620,7 +619,7 @@ rte_mempool_sp_put(struct rte_mempool *mp, void *obj)
  * @param obj
  *   A pointer to the object to be added.
  */
-static inline void
+static inline void __attribute__((always_inline))
 rte_mempool_put(struct rte_mempool *mp, void *obj)
 {
 	rte_mempool_put_bulk(mp, &obj, 1);
@@ -640,7 +639,7 @@ rte_mempool_put(struct rte_mempool *mp, void *obj)
  *   - >=0: Success; number of objects supplied.
  *   - <0: Error; code of ring dequeue function.
  */
-static inline int
+static inline int __attribute__((always_inline))
 __mempool_get_bulk(struct rte_mempool *mp, void **obj_table,
 		   unsigned n, int is_mc)
 {
@@ -655,12 +654,11 @@ __mempool_get_bulk(struct rte_mempool *mp, void **obj_table,
 	unsigned lcore_id = rte_lcore_id();
 	uint32_t cache_size = mp->cache_size;
 
-	cache = &mp->local_cache[lcore_id];
-
 	/* cache is not enabled or single consumer */
 	if (unlikely(cache_size == 0 || is_mc == 0 || n >= cache_size))
 		goto ring_dequeue;
 
+	cache = &mp->local_cache[lcore_id];
 	cache_objs = cache->objs;
 
 	/* Can this be satisfied from the cache? */
@@ -728,7 +726,7 @@ ring_dequeue:
  *   - 0: Success; objects taken.
  *   - -ENOENT: Not enough entries in the mempool; no object is retrieved.
  */
-static inline int
+static inline int __attribute__((always_inline))
 rte_mempool_mc_get_bulk(struct rte_mempool *mp, void **obj_table, unsigned n)
 {
 	int ret;
@@ -757,7 +755,7 @@ rte_mempool_mc_get_bulk(struct rte_mempool *mp, void **obj_table, unsigned n)
  *   - -ENOENT: Not enough entries in the mempool; no object is
  *     retrieved.
  */
-static inline int
+static inline int __attribute__((always_inline))
 rte_mempool_sc_get_bulk(struct rte_mempool *mp, void **obj_table, unsigned n)
 {
 	int ret;
@@ -789,7 +787,7 @@ rte_mempool_sc_get_bulk(struct rte_mempool *mp, void **obj_table, unsigned n)
  *   - 0: Success; objects taken
  *   - -ENOENT: Not enough entries in the mempool; no object is retrieved.
  */
-static inline int
+static inline int __attribute__((always_inline))
 rte_mempool_get_bulk(struct rte_mempool *mp, void **obj_table, unsigned n)
 {
 	int ret;
@@ -816,7 +814,7 @@ rte_mempool_get_bulk(struct rte_mempool *mp, void **obj_table, unsigned n)
  *   - 0: Success; objects taken.
  *   - -ENOENT: Not enough entries in the mempool; no object is retrieved.
  */
-static inline int
+static inline int __attribute__((always_inline))
 rte_mempool_mc_get(struct rte_mempool *mp, void **obj_p)
 {
 	return rte_mempool_mc_get_bulk(mp, obj_p, 1);
@@ -838,7 +836,7 @@ rte_mempool_mc_get(struct rte_mempool *mp, void **obj_p)
  *   - 0: Success; objects taken.
  *   - -ENOENT: Not enough entries in the mempool; no object is retrieved.
  */
-static inline int
+static inline int __attribute__((always_inline))
 rte_mempool_sc_get(struct rte_mempool *mp, void **obj_p)
 {
 	return rte_mempool_sc_get_bulk(mp, obj_p, 1);
@@ -864,7 +862,7 @@ rte_mempool_sc_get(struct rte_mempool *mp, void **obj_p)
  *   - 0: Success; objects taken.
  *   - -ENOENT: Not enough entries in the mempool; no object is retrieved.
  */
-static inline int
+static inline int __attribute__((always_inline))
 rte_mempool_get(struct rte_mempool *mp, void **obj_p)
 {
 	return rte_mempool_get_bulk(mp, obj_p, 1);
@@ -885,7 +883,12 @@ rte_mempool_get(struct rte_mempool *mp, void **obj_p)
 unsigned rte_mempool_count(const struct rte_mempool *mp);
 
 /**
- * Return the number of free entries in the mempool.
+ * Return the number of free entries in the mempool ring.
+ * i.e. how many entries can be freed back to the mempool.
+ *
+ * NOTE: This corresponds to the number of elements *allocated* from the
+ * memory pool, not the number of elements in the pool itself. To count
+ * the number elements currently available in the pool, use "rte_mempool_count"
  *
  * When cache is enabled, this function has to browse the length of
  * all lcores, so it should not be used in a data path, but only for

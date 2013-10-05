@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _TESTPMD_H_
@@ -68,6 +67,9 @@ int main(int argc, char **argv);
 
 #define CACHE_LINE_SIZE_ROUNDUP(size) \
 	(CACHE_LINE_SIZE * ((size + CACHE_LINE_SIZE - 1) / CACHE_LINE_SIZE))
+
+#define NUMA_NO_CONFIG 0xFF
+#define UMA_NO_CONFIG  0xFF
 
 typedef uint8_t  lcoreid_t;
 typedef uint8_t  portid_t;
@@ -147,6 +149,7 @@ struct rte_port {
 	uint8_t                 need_reconfig;  /**< need reconfiguring port or not */
 	uint8_t                 need_reconfig_queues; /**< need reconfiguring queues or not */
 	uint8_t                 rss_flag;   /**< enable rss or not */
+	uint8_t			dcb_flag;   /**< enable dcb */
 	struct rte_eth_rxconf   rx_conf;    /**< rx configuration */
 	struct rte_eth_txconf   tx_conf;    /**< tx configuration */
 };
@@ -267,6 +270,29 @@ extern uint16_t verbose_level; /**< Drives messages being displayed, if any. */
 extern uint8_t  interactive;
 extern uint8_t  numa_support; /**< set by "--numa" parameter */
 extern uint16_t port_topology; /**< set by "--port-topology" parameter */
+extern uint8_t no_flush_rx; /**<set by "--no-flush-rx" parameter */
+
+#define MAX_SOCKET 2 /*MAX SOCKET:currently, it is 2 */
+
+/*
+ * Store specified sockets on which memory pool to be used by ports 
+ * is allocated. 
+ */
+uint8_t port_numa[RTE_MAX_ETHPORTS];
+
+/*
+ * Store specified sockets on which RX ring to be used by ports
+ * is allocated. 
+ */
+uint8_t rxring_numa[RTE_MAX_ETHPORTS];
+
+/*
+ * Store specified sockets on which TX ring to be used by ports
+ * is allocated. 
+ */
+uint8_t txring_numa[RTE_MAX_ETHPORTS];
+
+extern uint8_t socket_num;
 
 /*
  * Configuration of logical cores:
@@ -375,8 +401,9 @@ port_pci_reg_read(struct rte_port *port, uint32_t reg_off)
 	void *reg_addr;
 	uint32_t reg_v;
 
-	reg_addr = (void *)((char *)port->dev_info.pci_dev->mem_resource.addr +
-			    reg_off);
+	reg_addr = (void *)
+		((char *)port->dev_info.pci_dev->mem_resource[0].addr +
+			reg_off);
 	reg_v = *((volatile uint32_t *)reg_addr);
 	return rte_le_to_cpu_32(reg_v);
 }
@@ -389,8 +416,9 @@ port_pci_reg_write(struct rte_port *port, uint32_t reg_off, uint32_t reg_v)
 {
 	void *reg_addr;
 
-	reg_addr = (void *)((char *)port->dev_info.pci_dev->mem_resource.addr +
-			    reg_off);
+	reg_addr = (void *)
+		((char *)port->dev_info.pci_dev->mem_resource[0].addr +
+			reg_off);
 	*((volatile uint32_t *)reg_addr) = rte_cpu_to_le_32(reg_v);
 }
 
@@ -479,6 +507,10 @@ void fdir_update_perfect_filter(portid_t port_id, uint16_t soft_id,
 void fdir_remove_perfect_filter(portid_t port_id, uint16_t soft_id,
 				struct rte_fdir_filter *fdir_filter);
 void fdir_set_masks(portid_t port_id, struct rte_fdir_masks *fdir_masks);
+void port_rss_reta_info(portid_t port_id, struct rte_eth_rss_reta *reta_conf);
+void set_vf_traffic(portid_t port_id, uint8_t is_rx, uint16_t vf, uint8_t on);
+void set_vf_rx_vlan(portid_t port_id, uint16_t vlan_id, 
+		uint64_t vf_mask, uint8_t on);
 
 /*
  * Work-around of a compilation error with ICC on invocations of the

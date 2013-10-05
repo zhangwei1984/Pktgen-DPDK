@@ -1,35 +1,64 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ */
+/*   BSD LICENSE
+ *
+ *   Copyright(c) 2013 6WIND.
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *     * Neither the name of 6WIND S.A. nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef _RTE_PCI_H_
@@ -45,7 +74,9 @@
 extern "C" {
 #endif
 
+#include <stdlib.h>
 #include <limits.h>
+#include <errno.h>
 #include <sys/queue.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -62,6 +93,9 @@ extern struct pci_device_list device_list; /**< Global list of PCI devices. */
 
 /** Formatting string for PCI device identifier: Ex: 0000:00:01.0 */
 #define PCI_PRI_FMT "%.4"PRIx16":%.2"PRIx8":%.2"PRIx8".%"PRIx8
+
+/** Short formatting string, without domain, for PCI device: Ex: 00:01.0 */
+#define PCI_SHORT_PRI_FMT "%.2"PRIx8":%.2"PRIx8".%"PRIx8
 
 /** Nb. of values in PCI device identifier format string. */
 #define PCI_FMT_NVAL 4
@@ -109,10 +143,11 @@ struct rte_pci_device {
 	TAILQ_ENTRY(rte_pci_device) next;       /**< Next probed PCI device. */
 	struct rte_pci_addr addr;               /**< PCI location. */
 	struct rte_pci_id id;                   /**< PCI ID. */
-	struct rte_pci_resource mem_resource;   /**< PCI Memory Resource */
+	struct rte_pci_resource mem_resource[PCI_MAX_RESOURCE];   /**< PCI Memory Resource */
 	struct rte_intr_handle intr_handle;     /**< Interrupt handle */
-	char previous_dr[PATH_MAX];             /**< path for pre-dpdk driver*/
 	const struct rte_pci_driver *driver;    /**< Associated driver */
+	uint16_t max_vfs;                       /**< sriov enable if not zero */
+	int numa_node;                          /**< NUMA node connection */
 	unsigned int blacklisted:1;             /**< Device is blacklisted */
 };
 
@@ -153,13 +188,71 @@ struct rte_pci_driver {
 	uint32_t drv_flags;                     /**< Flags contolling handling of device. */
 };
 
-/**< Device needs igb_uio kernel module */
+#ifdef RTE_EAL_UNBIND_PORTS
+/** Device needs igb_uio kernel module */
 #define RTE_PCI_DRV_NEED_IGB_UIO 0x0001
+#endif
+/** Device driver must be registered several times until failure */
+#define RTE_PCI_DRV_MULTIPLE 0x0002
+
+/**< Internal use only - Macro used by pci addr parsing functions **/
+#define GET_PCIADDR_FIELD(in, fd, lim, dlm)                   \
+do {                                                               \
+	unsigned long val;                                      \
+	char *end;                                              \
+	errno = 0;                                              \
+	val = strtoul((in), &end, 16);                          \
+	if (errno != 0 || end[0] != (dlm) || val > (lim))       \
+		return (-EINVAL);                               \
+	(fd) = (typeof (fd))val;                                \
+	(in) = end + 1;                                         \
+} while(0)
 
 /**
- * Perform clean up of pci drivers on application exits.
- * */
-void rte_eal_pci_exit(void);
+ * Utility function to produce a PCI Bus-Device-Function value
+ * given a string representation. Assumes that the BDF is provided without
+ * a domain prefix (i.e. domain returned is always 0)
+ *
+ * @param input
+ * 	The input string to be parsed. Should have the format XX:XX.X
+ * @param dev_addr
+ * 	The PCI Bus-Device-Function address to be returned. Domain will always be
+ * 	returned as 0
+ * @return
+ *  0 on success, negative on error.
+ */
+static inline int
+eal_parse_pci_BDF(const char *input, struct rte_pci_addr *dev_addr)
+{
+	dev_addr->domain = 0;
+	GET_PCIADDR_FIELD(input, dev_addr->bus, UINT8_MAX, ':');
+	GET_PCIADDR_FIELD(input, dev_addr->devid, UINT8_MAX, '.');
+	GET_PCIADDR_FIELD(input, dev_addr->function, UINT8_MAX, 0);
+	return (0);
+}
+
+/**
+ * Utility function to produce a PCI Bus-Device-Function value
+ * given a string representation. Assumes that the BDF is provided including
+ * a domain prefix.
+ *
+ * @param input
+ * 	The input string to be parsed. Should have the format XXXX:XX:XX.X
+ * @param dev_addr
+ * 	The PCI Bus-Device-Function address to be returned
+ * @return
+ *  0 on success, negative on error.
+ */
+static inline int
+eal_parse_pci_DomBDF(const char *input, struct rte_pci_addr *dev_addr)
+{
+	GET_PCIADDR_FIELD(input, dev_addr->domain, UINT16_MAX, ':');
+	GET_PCIADDR_FIELD(input, dev_addr->bus, UINT8_MAX, ':');
+	GET_PCIADDR_FIELD(input, dev_addr->devid, UINT8_MAX, '.');
+	GET_PCIADDR_FIELD(input, dev_addr->function, UINT8_MAX, 0);
+	return (0);
+}
+#undef GET_PCIADDR_FIELD
 
 /**
  * Probe the PCI bus for registered drivers.
@@ -187,6 +280,15 @@ void rte_eal_pci_dump(void);
  *   to be registered.
  */
 void rte_eal_pci_register(struct rte_pci_driver *driver);
+
+/**
+ * Unregister a PCI driver.
+ *
+ * @param driver
+ *   A pointer to a rte_pci_driver structure describing the driver
+ *   to be unregistered.
+ */
+void rte_eal_pci_unregister(struct rte_pci_driver *driver);
 
 /**
  * Register a list of PCI locations that will be blacklisted (not used by DPDK).

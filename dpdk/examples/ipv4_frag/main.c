@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -77,8 +76,6 @@
 
 #define RTE_LOGTYPE_L3FWD RTE_LOGTYPE_USER1
 
-#define MAX_PORTS 32
-
 #define MBUF_SIZE (2048 + sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
 
 /* allow max jumbo frame 9.5 KB */
@@ -113,9 +110,7 @@
 #define TX_WTHRESH 0  /**< Default values of TX write-back threshold reg. */
 
 #define MAX_PKT_BURST	32
-#define BURST_TX_DRAIN 200000ULL /* around 100us at 2 Ghz */
-
-#define SOCKET0 0
+#define BURST_TX_DRAIN_US 100 /* TX drain every ~100us */
 
 /* Configure how many packets ahead to prefetch, when reading packets */
 #define PREFETCH_OFFSET	3
@@ -129,7 +124,7 @@ static uint16_t nb_rxd = RTE_TEST_RX_DESC_DEFAULT;
 static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 
 /* ethernet addresses of ports */
-static struct ether_addr ports_eth_addr[MAX_PORTS];
+static struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 static struct ether_addr remote_eth_addr =
 	{{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff}};
 
@@ -150,8 +145,8 @@ struct mbuf_table {
 struct lcore_queue_conf {
 	uint16_t n_rx_queue;
 	uint8_t rx_queue_list[MAX_RX_QUEUE_PER_LCORE];
-	uint16_t tx_queue_id[MAX_PORTS];
-	struct mbuf_table tx_mbufs[MAX_PORTS];
+	uint16_t tx_queue_id[RTE_MAX_ETHPORTS];
+	struct mbuf_table tx_mbufs[RTE_MAX_ETHPORTS];
 
 } __rte_cache_aligned;
 struct lcore_queue_conf lcore_queue_conf[RTE_MAX_LCORE];
@@ -167,7 +162,7 @@ static const struct rte_eth_conf port_conf = {
 		.hw_strip_crc   = 0, /**< CRC stripped by hardware */
 	},
 	.txmode = {
-		.mq_mode = ETH_DCB_NONE,
+		.mq_mode = ETH_MQ_TX_NONE,
 	},
 };
 
@@ -308,23 +303,25 @@ l3fwd_simple_forward(struct rte_mbuf *m, uint8_t port_in)
 }
 
 /* main processing loop */
-static __attribute__((noreturn)) int
+static int
 main_loop(__attribute__((unused)) void *dummy)
 {
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
 	unsigned lcore_id;
-	uint64_t prev_tsc = 0;
-	uint64_t diff_tsc, cur_tsc;
+	uint64_t prev_tsc, diff_tsc, cur_tsc;
 	int i, j, nb_rx;
 	uint8_t portid;
 	struct lcore_queue_conf *qconf;
+	const uint64_t drain_tsc = (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
+
+	prev_tsc = 0;
 
 	lcore_id = rte_lcore_id();
 	qconf = &lcore_queue_conf[lcore_id];
 
 	if (qconf->n_rx_queue == 0) {
 		RTE_LOG(INFO, L3FWD, "lcore %u has nothing to do\n", lcore_id);
-		while(1);
+		return 0;
 	}
 
 	RTE_LOG(INFO, L3FWD, "entering main loop on lcore %u\n", lcore_id);
@@ -344,13 +341,13 @@ main_loop(__attribute__((unused)) void *dummy)
 		 * TX burst queue drain
 		 */
 		diff_tsc = cur_tsc - prev_tsc;
-		if (unlikely(diff_tsc > BURST_TX_DRAIN)) {
+		if (unlikely(diff_tsc > drain_tsc)) {
 
 			/*
 			 * This could be optimized (use queueid instead of
 			 * portid), but it is not called so often
 			 */
-			for (portid = 0; portid < MAX_PORTS; portid++) {
+			for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
 				if (qconf->tx_mbufs[portid].len == 0)
 					continue;
 				send_burst(&lcore_queue_conf[lcore_id],
@@ -574,7 +571,7 @@ MAIN(int argc, char **argv)
 	int ret;
 	unsigned nb_ports, i;
 	uint16_t queueid = 0;
-	unsigned lcore_id = 0, rx_lcore_id = 0;;
+	unsigned lcore_id = 0, rx_lcore_id = 0;
 	uint32_t n_tx_queue, nb_lcores;
 	uint8_t portid;
 
@@ -597,7 +594,7 @@ MAIN(int argc, char **argv)
 				   sizeof(struct rte_pktmbuf_pool_private),
 				   rte_pktmbuf_pool_init, NULL,
 				   rte_pktmbuf_init, NULL,
-				   SOCKET0, 0);
+				   rte_socket_id(), 0);
 	if (pool_direct == NULL)
 		rte_panic("Cannot init direct mbuf pool\n");
 
@@ -607,7 +604,7 @@ MAIN(int argc, char **argv)
 				   0,
 				   NULL, NULL,
 				   rte_pktmbuf_init, NULL,
-				   SOCKET0, 0);
+				   rte_socket_id(), 0);
 	if (pool_indirect == NULL)
 		rte_panic("Cannot init indirect mbuf pool\n");
 
@@ -619,8 +616,8 @@ MAIN(int argc, char **argv)
 		rte_panic("Cannot probe PCI\n");
 
 	nb_ports = rte_eth_dev_count();
-	if (nb_ports > MAX_PORTS)
-		nb_ports = MAX_PORTS;
+	if (nb_ports > RTE_MAX_ETHPORTS)
+		nb_ports = RTE_MAX_ETHPORTS;
 
 	nb_lcores = rte_lcore_count();
 
@@ -639,10 +636,10 @@ MAIN(int argc, char **argv)
 		       qconf->n_rx_queue == (unsigned)rx_queue_per_lcore) {
 
 			rx_lcore_id ++;
-			qconf = &lcore_queue_conf[rx_lcore_id];
-
 			if (rx_lcore_id >= RTE_MAX_LCORE)
 				rte_exit(EXIT_FAILURE, "Not enough cores\n");
+
+			qconf = &lcore_queue_conf[rx_lcore_id];
 		}
 		qconf->rx_queue_list[qconf->n_rx_queue] = portid;
 		qconf->n_rx_queue++;
@@ -671,7 +668,7 @@ MAIN(int argc, char **argv)
 		printf("rxq=%d ", queueid);
 		fflush(stdout);
 		ret = rte_eth_rx_queue_setup(portid, queueid, nb_rxd,
-					     SOCKET0, &rx_conf,
+					     rte_eth_dev_socket_id(portid), &rx_conf,
 					     pool_direct);
 		if (ret < 0)
 			rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: "
@@ -686,7 +683,7 @@ MAIN(int argc, char **argv)
 			printf("txq=%u,%d ", lcore_id, queueid);
 			fflush(stdout);
 			ret = rte_eth_tx_queue_setup(portid, queueid, nb_txd,
-						     SOCKET0, &tx_conf);
+						     rte_eth_dev_socket_id(portid), &tx_conf);
 			if (ret < 0)
 				rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: "
 					"err=%d, port=%d\n", ret, portid);
@@ -712,7 +709,7 @@ MAIN(int argc, char **argv)
 	check_all_ports_link_status((uint8_t)nb_ports, enabled_port_mask);
 
 	/* create the LPM table */
-	l3fwd_lpm = rte_lpm_create("L3FWD_LPM", SOCKET0, L3FWD_LPM_MAX_RULES, 0);
+	l3fwd_lpm = rte_lpm_create("L3FWD_LPM", rte_socket_id(), L3FWD_LPM_MAX_RULES, 0);
 	if (l3fwd_lpm == NULL)
 		rte_panic("Unable to create the l3fwd LPM table\n");
 

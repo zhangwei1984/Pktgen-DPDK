@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #include <stdio.h>
@@ -78,9 +77,6 @@
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 #define FATAL_ERROR(fmt, args...)       rte_exit(EXIT_FAILURE, fmt "\n", ##args)
 #define PRINT_INFO(fmt, args...)        RTE_LOG(INFO, APP, fmt "\n", ##args)
-
-/* NUMA socket to allocate mbuf pool on */
-#define SOCKET                  0
 
 /* Max ports than can be used (each port is associated with two lcores) */
 #define MAX_PORTS               (RTE_MAX_LCORE / 2)
@@ -149,7 +145,7 @@ static const struct rte_eth_conf port_conf = {
 		.hw_strip_crc = 0,      /* CRC stripped by hardware */
 	},
 	.txmode = {
-		.mq_mode = ETH_DCB_NONE,
+		.mq_mode = ETH_MQ_TX_NONE,
 	},
 };
 
@@ -248,21 +244,21 @@ static int tap_create(char *name)
 }
 
 /* Main processing loop */
-static  __attribute__((noreturn)) int
+static int
 main_loop(__attribute__((unused)) void *arg)
 {
 	const unsigned lcore_id = rte_lcore_id();
 	char tap_name[IFNAMSIZ];
 	int tap_fd;
 
-	/* Create new tap interface */
-	rte_snprintf(tap_name, IFNAMSIZ, "tap_dpdk_%.2u", lcore_id);
-	tap_fd = tap_create(tap_name);
-	if (tap_fd < 0)
-		FATAL_ERROR("Could not create tap interface \"%s\" (%d)",
-		            tap_name, tap_fd);
-
 	if ((1 << lcore_id) & input_cores_mask) {
+		/* Create new tap interface */
+		rte_snprintf(tap_name, IFNAMSIZ, "tap_dpdk_%.2u", lcore_id);
+		tap_fd = tap_create(tap_name);
+		if (tap_fd < 0)
+			FATAL_ERROR("Could not create tap interface \"%s\" (%d)",
+					tap_name, tap_fd);
+
 		PRINT_INFO("Lcore %u is reading from port %u and writing to %s",
 		           lcore_id, (unsigned)port_ids[lcore_id], tap_name);
 		fflush(stdout);
@@ -289,6 +285,13 @@ main_loop(__attribute__((unused)) void *arg)
 		}
 	}
 	else if ((1 << lcore_id) & output_cores_mask) {
+		/* Create new tap interface */
+		rte_snprintf(tap_name, IFNAMSIZ, "tap_dpdk_%.2u", lcore_id);
+		tap_fd = tap_create(tap_name);
+		if (tap_fd < 0)
+			FATAL_ERROR("Could not create tap interface \"%s\" (%d)",
+					tap_name, tap_fd);
+
 		PRINT_INFO("Lcore %u is reading from %s and writing to port %u",
 		           lcore_id, tap_name, (unsigned)port_ids[lcore_id]);
 		fflush(stdout);
@@ -321,8 +324,7 @@ main_loop(__attribute__((unused)) void *arg)
 	}
 	else {
 		PRINT_INFO("Lcore %u has nothing to do", lcore_id);
-		for (;;)
-			; /* loop doing nothing */
+		return 0;
 	}
 	/*
 	 * Tap file is closed automatically when program exits. Putting close()
@@ -457,13 +459,14 @@ init_port(uint8_t port)
 		FATAL_ERROR("Could not configure port%u (%d)",
 		            (unsigned)port, ret);
 
-	ret = rte_eth_rx_queue_setup(port, 0, NB_RXD, SOCKET, &rx_conf,
-	                             pktmbuf_pool);
+	ret = rte_eth_rx_queue_setup(port, 0, NB_RXD, rte_eth_dev_socket_id(port),
+                                 &rx_conf, pktmbuf_pool);
 	if (ret < 0)
 		FATAL_ERROR("Could not setup up RX queue for port%u (%d)",
 		            (unsigned)port, ret);
 
-	ret = rte_eth_tx_queue_setup(port, 0, NB_TXD, SOCKET, &tx_conf);
+	ret = rte_eth_tx_queue_setup(port, 0, NB_TXD, rte_eth_dev_socket_id(port),
+                                 &tx_conf);
 	if (ret < 0)
 		FATAL_ERROR("Could not setup up TX queue for port%u (%d)",
 		            (unsigned)port, ret);
@@ -557,7 +560,7 @@ main(int argc, char** argv)
 			MEMPOOL_CACHE_SZ,
 			sizeof(struct rte_pktmbuf_pool_private),
 			rte_pktmbuf_pool_init, NULL, rte_pktmbuf_init, NULL,
-			SOCKET, 0);
+			rte_socket_id(), 0);
 	if (pktmbuf_pool == NULL) {
 		FATAL_ERROR("Could not initialise mbuf pool");
 		return -1;

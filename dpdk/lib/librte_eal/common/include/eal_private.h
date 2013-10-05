@@ -1,39 +1,40 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _EAL_PRIVATE_H_
 #define _EAL_PRIVATE_H_
+
+#include <stdio.h>
 
 /**
  * Initialize the memzone subsystem (private to eal).
@@ -84,17 +85,18 @@ int rte_eal_cpu_init(void);
 int rte_eal_memory_init(void);
 
 /**
- * Configure HPET
+ * Configure timers
  *
  * This function is private to EAL.
  *
  * Mmap memory areas used by HPET (high precision event timer) that will
- * provide our time reference.
+ * provide our time reference, and configure the TSC frequency also for it
+ * to be used as a reference.
  *
  * @return
  *   0 on success, negative on error
  */
-int rte_eal_hpet_init(void);
+int rte_eal_timer_init(void);
 
 /**
  * Init early logs
@@ -114,7 +116,7 @@ int rte_eal_log_early_init(void);
  * @return
  *   0 on success, negative on error
  */
-int rte_eal_log_init(void);
+int rte_eal_log_init(const char *id, int facility);
 
 /**
  * Init the default log stream
@@ -171,5 +173,50 @@ int rte_eal_intr_init(void);
  *  0 on success, negative on error
  */
 int rte_eal_alarm_init(void);
+
+/**
+ * When parsing command-line args add a new entry to the whitelist string
+ * to be parsed, i.e. this is used to join multiple --use-device flags together
+ *
+ * This function is private to EAL
+ */
+int eal_dev_whitelist_add_entry(const char *entry);
+
+/**
+ * Returns true if whitelist parameters are available for parsing,
+ * false otherwise.
+ *
+ * This function is private to EAL
+ */
+int eal_dev_whitelist_exists(void);
+
+/**
+ * Parse the combined whitelist options into a single white-list for later use.
+ *
+ * This function is private to EAL
+ */
+int eal_dev_whitelist_parse(void);
+
+/**
+ * Check if a particular device is whitelisted or not. Returns true if the
+ * device is in the whitelist.
+ *
+ * This function is private to EAL
+ */
+int eal_dev_is_whitelisted(const char *device_str, const char **params);
+
+/**
+ * This function clears the whitelist settings.
+ *
+ * This function is private to the EAL.
+ */
+void eal_dev_whitelist_clear(void);
+
+/**
+ * This function initialises any non-PCI i.e. dummy ethernet devices
+ *
+ * This function is private to the EAL.
+ */
+int rte_eal_non_pci_ethdev_init(void);
 
 #endif /* _EAL_PRIVATE_H_ */

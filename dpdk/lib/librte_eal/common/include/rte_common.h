@@ -1,35 +1,34 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2012 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
  * 
- *     * Redistributions of source code must retain the above copyright 
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
  */
 
 #ifndef _RTE_COMMON_H_
@@ -50,7 +49,6 @@ extern "C" {
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
-
 
 /*********** Macros to eliminate unused variable warnings ********/
 
@@ -122,7 +120,7 @@ rte_align_floor_int(uintptr_t ptr, uintptr_t align)
  * power-of-two value.
  */
 #define RTE_ALIGN_FLOOR(val, align) \
-	(typeof(val))(val & (~((typeof(val))(align - 1))))
+	(typeof(val))((val) & (~((typeof(val))((align) - 1))))
 
 /**
  * Macro to align a pointer to a given power-of-two. The resultant
@@ -131,7 +129,7 @@ rte_align_floor_int(uintptr_t ptr, uintptr_t align)
  * must be a power-of-two value.
  */
 #define RTE_PTR_ALIGN_CEIL(ptr, align) \
-	RTE_PTR_ALIGN_FLOOR(RTE_PTR_ADD(ptr, align - 1), align)
+	RTE_PTR_ALIGN_FLOOR(RTE_PTR_ADD(ptr, (align) - 1), align)
 
 /**
  * Macro to align a value to a given power-of-two. The resultant value
@@ -140,7 +138,7 @@ rte_align_floor_int(uintptr_t ptr, uintptr_t align)
  * value.
  */
 #define RTE_ALIGN_CEIL(val, align) \
-	RTE_ALIGN_FLOOR((val + ((typeof(val)) align - 1)), align)
+	RTE_ALIGN_FLOOR(((val) + ((typeof(val)) (align) - 1)), align)
 
 /**
  * Macro to align a pointer to a given power-of-two. The resultant
@@ -251,13 +249,36 @@ rte_align32pow2(uint32_t x)
 
 /*********** Other general functions / macros ********/
 
+#ifdef __SSE2__
+#include <emmintrin.h>
 /**
  * PAUSE instruction for tight loops (avoid busy waiting)
  */
 static inline void
 rte_pause (void)
 {
-	asm volatile ("pause");
+	_mm_pause();
+}
+#else
+static inline void
+rte_pause(void) {}
+#endif
+
+/**
+ * Searches the input parameter for the least significant set bit
+ * (starting from zero).
+ * If a least significant 1 bit is found, its bit index is returned.
+ * If the content of the input parameter is zero, then the content of the return
+ * value is undefined.
+ * @param v
+ *     input parameter, should not be zero.
+ * @return
+ *     least significant set bit in the input parameter.
+ */
+static inline uint32_t
+rte_bsf32(uint32_t v)
+{
+	return (__builtin_ctz(v));
 }
 
 #ifndef offsetof
