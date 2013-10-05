@@ -3604,7 +3604,7 @@ main(int argc, char **argv)
     argc -= ret;
     argv += ret;
 
-    pktgen.hz = rte_get_hpet_hz();		// Get the starting HZ value.
+    pktgen.hz = rte_get_timer_hz();		// Get the starting HZ value.
 
     rte_delay_ms(100);      // Wait a bit for things to settle.
 

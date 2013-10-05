@@ -685,7 +685,7 @@ mcos_initialize( mInfo_t ** ret, mcos_config_t * cfg)
 	if ( likely(ret != NULL) )
 		*ret = mInfo;
 
-    mInfo->hz			= rte_get_hpet_hz();
+    mInfo->hz			= rte_get_timer_hz();
 
 	// Allow the mInfo to point back to the instance and master structures
 	mInfo->master		= cfg->master;

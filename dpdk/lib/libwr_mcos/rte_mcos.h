@@ -2616,7 +2616,7 @@ static __inline__ uint32_t mcos_get_tick32(mInfo_t * mInfo) {
 */
 
 static __inline__ uint64_t mcos_get_timestamp(__attribute__ ((unused))mInfo_t * mInfo) {
-	return rte_get_hpet_hz();
+	return rte_get_timer_hz();
 }
 
 /****************************************************************************/

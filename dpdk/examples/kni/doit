@@ -1,5 +1,0 @@
-#!/bin/sh
-
-# Normal setup
-#   different cores for each port.
-./build/kni -c 0xf00 -n 3 --proc-type auto --socket-mem 512,512 --file-prefix kni -b 0000:04:00.0 -b 0000:04:00.1 -- -p 0x03 -i 0x500 -o 0xa00
