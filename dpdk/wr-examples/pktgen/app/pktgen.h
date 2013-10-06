@@ -201,7 +201,7 @@ enum {
 	PORT_STATE_ROWS			= 1,
 	LINK_STATE_ROWS			= 4,
 	PKT_SIZE_ROWS			= 9,
-	PKT_TOTALS_ROWS			= 8,
+	PKT_TOTALS_ROWS			= 7,
 	IP_ADDR_ROWS			= 10,
 
 	PORT_STATE_ROW			= 2,
@@ -524,7 +524,8 @@ enum {		// Pktgen flags bits
 	CPU_PAGE_FLAG			= 0x00000400,		/**< Display the PCAP page */
 	IS_SERVER_FLAG			= 0x00000800,		/**< Pktgen is a Server */
 	ENABLE_GUI_FLAG			= 0x00001000,		/**< GUI support is enabled */
-	LUA_SHELL_FLAG			= 0x00002000		/**< Enable Lua Shell */
+	LUA_SHELL_FLAG			= 0x00002000,		/**< Enable Lua Shell */
+	TX_DEBUG_FLAG			= 0x00004000		/**< TX Debug output */
 };
 
 struct cmdline_etheraddr {

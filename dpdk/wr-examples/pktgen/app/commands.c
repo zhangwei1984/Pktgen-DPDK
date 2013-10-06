@@ -2103,6 +2103,50 @@ cmdline_parse_inst_t cmd_on = {
 
 /**********************************************************/
 
+struct cmd_tx_debug_result {
+	cmdline_fixed_string_t tx_debug;
+};
+
+/**************************************************************************//**
+*
+* cmd_tx_debug_parsed - Toggle TX debug data
+*
+* DESCRIPTION
+* Toggle TX debug data
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_tx_debug_parsed(void *parsed_result,
+		__attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_tx_debug_result *res = parsed_result;
+
+	if ( (pktgen.flags & TX_DEBUG_FLAG) == 0 )
+		pktgen.flags |= TX_DEBUG_FLAG;
+	else
+		pktgen.flags &= ~TX_DEBUG_FLAG;
+	pktgen_cls();
+}
+
+cmdline_parse_token_string_t cmd_set_tx_debug =
+	TOKEN_STRING_INITIALIZER(struct cmd_tx_debug_result, tx_debug, "tx_debug");
+
+cmdline_parse_inst_t cmd_tx_debug = {
+	.f = cmd_tx_debug_parsed,
+	.data = NULL,
+	.help_str = "Toggle TX debug",
+	.tokens = {
+		(void *)&cmd_set_tx_debug,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
 struct cmd_l2p_result {
 	cmdline_fixed_string_t l2p;
 };
@@ -3163,6 +3207,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_str,
 	    (cmdline_parse_inst_t *)&cmd_rst,
 	    (cmdline_parse_inst_t *)&cmd_l2p,
+	    (cmdline_parse_inst_t *)&cmd_tx_debug,
 	NULL,
 };
 
