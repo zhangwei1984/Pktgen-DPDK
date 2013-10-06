@@ -500,7 +500,7 @@ main(int argc, char ** argv)
 
     mcos_clear_saved();
 
-    mcos.hz = rte_get_hpet_hz();
+    mcos.hz = rte_get_timer_hz();
 
     mcos.last_row = 20;
 
