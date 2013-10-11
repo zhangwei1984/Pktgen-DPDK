@@ -550,7 +550,7 @@ static __inline__ char * inet_ntop4(char * buff, int len, unsigned long ip_addr,
 
 /* char * inet_mtoa(char * buff, int len, struct ether_addr * eaddr) - Convert MAC address to ascii */
 static __inline__ char * inet_mtoa(char * buff, int len, struct ether_addr * eaddr) {
-	snprintf(buff, len, "%02x%02x:%02x%02x:%02x%02x",
+	snprintf(buff, len, "%02x:%02x:%02x:%02x:%02x:%02x",
 			eaddr->addr_bytes[0], eaddr->addr_bytes[1],
 			eaddr->addr_bytes[2], eaddr->addr_bytes[3],
 			eaddr->addr_bytes[4], eaddr->addr_bytes[5]);

@@ -195,7 +195,7 @@ enum {
 	MAX_SCRN_COLS			= 132,
 
 	COLUMN_WIDTH_0			= 18,
-	COLUMN_WIDTH_1			= 18,
+	COLUMN_WIDTH_1			= 19,
 
 	// Row locations for start of data
 	PORT_STATE_ROWS			= 1,
