@@ -1410,7 +1410,6 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                 pkt->vlanid = p;
             }
 
-        	pkt->pktSize = range->pkt_size;
             if (unlikely(range->pkt_size_inc != 0))
             {
                 uint32_t p = pkt->pktSize;
@@ -1421,6 +1420,10 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                     p = range->pkt_size_min;
                 pkt->pktSize = p;
             }
+	    else
+	    {
+        	pkt->pktSize = range->pkt_size;
+	    }
 
             if (unlikely(range->src_mac_inc != 0))
             {
@@ -1435,6 +1438,10 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 
                 inet_h64tom(p, &pkt->eth_src_addr);
             }
+	    else
+	    {
+                inet_h64tom(range->src_mac, &pkt->eth_src_addr);
+	    }
 
             if (unlikely(range->dst_mac_inc != 0))
             {
@@ -1449,6 +1456,10 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 
                 inet_h64tom(p, &pkt->eth_dst_addr);
             }
+	    else
+	    {
+                inet_h64tom(range->dst_mac, &pkt->eth_dst_addr);
+	    }
 
 			break;
 		default:
