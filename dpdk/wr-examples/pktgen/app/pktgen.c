@@ -118,6 +118,11 @@ const struct rte_eth_txconf tx_conf = {
     .txq_flags = IXGBE_SIMPLE_FLAGS,
 };
 
+static void pktgen_process_arp( struct rte_mbuf * m, uint32_t pid );
+static void pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid );
+static void pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid );
+static void pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid );
+
 static __inline__ int do_command(const char * cmd, int (*display)(char *, int)) {
 	FILE	  * f;
 	int			i;
@@ -277,7 +282,9 @@ pktgen_tx_cleanup(port_info_t * info, uint8_t qid)
 	// Flush any done transmit buffers and descriptors.
 	pktgen_tx_flush(info, qid);
 
-	(void)rte_eth_tx_burst(info->pid, qid, NULL, 0);
+	rte_eth_dev_stop(info->pid);
+
+	rte_eth_dev_start(info->pid);
 
 	pktgen_clr_q_flags(info, qid, DO_TX_CLEANUP);
 }
@@ -761,23 +768,42 @@ pktgen_packet_type( struct rte_mbuf * m )
 * SEE ALSO:
 */
 
-static __inline__ pktType_e
+static void
 pktgen_packet_classify( struct rte_mbuf * m, int pid )
 {
     port_info_t * info = &pktgen.info[pid];
     int     plen = (m->pkt.pkt_len + FCS_SIZE);
-    pktType_e   ret;
+	uint32_t	flags;
+    pktType_e   pType;
 
-    ret = pktgen_packet_type(m);
+    pType = pktgen_packet_type(m);
 
-    // Count the type of packet found.
-    switch((int)ret) {
-    case ETHER_TYPE_ARP:        info->stats.arp_pkts++;       break;
-    case ETHER_TYPE_IPv4:       info->stats.ip_pkts++;        break;
-    case ETHER_TYPE_IPv6:       info->stats.ipv6_pkts++;      break;
-    case ETHER_TYPE_VLAN:       info->stats.vlan_pkts++;      break;
-    default:			    	break;
-    }
+	flags = rte_atomic32_read(&info->port_flags);
+	if ( unlikely(flags & (PROCESS_INPUT_PKTS | PROCESS_TAP_PKTS)) ) {
+		if ( unlikely(flags & PROCESS_TAP_PKTS) ) {
+			if ( write(info->tapfd, rte_pktmbuf_mtod(m, char *), m->pkt.pkt_len) < 0 )
+				printf_info("Write failed for tap%d", pid);
+		}
+
+		switch((int)pType) {
+		case ETHER_TYPE_ARP:	info->stats.arp_pkts++;		pktgen_process_arp(m, pid);     break;
+		case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;		pktgen_process_ping4(m, pid);   break;
+		case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;	pktgen_process_ping6(m, pid);   break;
+		case ETHER_TYPE_VLAN:   info->stats.vlan_pkts++;	pktgen_process_vlan(m, pid);    break;
+		case UNKNOWN_PACKET:    /* FALL THRU */
+		default: 				rte_pktmbuf_free(m);	break;
+		}
+	} else {
+		// Count the type of packets found.
+		switch((int)pType) {
+		case ETHER_TYPE_ARP:        info->stats.arp_pkts++;     break;
+		case ETHER_TYPE_IPv4:       info->stats.ip_pkts++;      break;
+		case ETHER_TYPE_IPv6:       info->stats.ipv6_pkts++;    break;
+		case ETHER_TYPE_VLAN:       info->stats.vlan_pkts++;    break;
+		default:			    	break;
+		}
+		rte_pktmbuf_free(m);
+	}
 
     // Count the size of each packet.
     if ( plen == ETHER_MIN_LEN )
@@ -799,13 +825,11 @@ pktgen_packet_classify( struct rte_mbuf * m, int pid )
 
     // Process multicast and broadcast packets.
     if ( unlikely(((uint8_t *)m->pkt.data)[0] == 0xFF) ) {
-		if ( unlikely((((uint64_t *)m->pkt.data)[0] & 0xFFFFFFFFFFFF0000LL) == 0xFFFFFFFFFFFF0000LL) )
+		if ( (((uint64_t *)m->pkt.data)[0] & 0xFFFFFFFFFFFF0000LL) == 0xFFFFFFFFFFFF0000LL )
 			info->sizes.broadcast++;
-		else if ( unlikely(((uint8_t *)m->pkt.data)[0] & 1) )
+		else if ( ((uint8_t *)m->pkt.data)[0] & 1 )
 			info->sizes.multicast++;
     }
-
-    return ret;
 }
 
 /**************************************************************************//**
@@ -833,12 +857,12 @@ pktgen_packet_classify_bulk(struct rte_mbuf ** pkts, int nb_rx, int pid )
 	/* Prefetch and handle already prefetched packets */
 	for (j = 0; j < (nb_rx - PREFETCH_OFFSET); j++) {
 		rte_prefetch0(rte_pktmbuf_mtod(pkts[j + PREFETCH_OFFSET], void *));
-		(void)pktgen_packet_classify(pkts[j], pid);
+		pktgen_packet_classify(pkts[j], pid);
 	}
 
 	/* Handle remaining prefetched packets */
 	for (; j < nb_rx; j++)
-		(void)pktgen_packet_classify(pkts[j], pid);
+		pktgen_packet_classify(pkts[j], pid);
 }
 
 /**************************************************************************//**
@@ -1622,11 +1646,11 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 		struct rte_mempool * mp	= info->q[qid].tx_mp;
 
 		if ( unlikely(flags & (SEND_RANGE_PKTS|SEND_PCAP_PKTS|SEND_SEQ_PKTS)) ) {
-			if ( unlikely(flags & SEND_RANGE_PKTS) )
+			if ( flags & SEND_RANGE_PKTS )
 				mp = info->q[qid].range_mp;
-			else if ( unlikely(flags & SEND_SEQ_PKTS) )
+			else if ( flags & SEND_SEQ_PKTS )
 				mp = info->q[qid].seq_mp;
-			else if ( unlikely(flags & SEND_PCAP_PKTS) )
+			else if ( flags & SEND_PCAP_PKTS )
 				mp = info->q[qid].pcap_mp;
 		}
 
@@ -1634,10 +1658,12 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 	}
 
 	flags = rte_atomic32_read(&info->q[qid].flags);
-	if ( unlikely(flags & DO_TX_CLEANUP) )
-		pktgen_tx_cleanup(info, qid);
-	else if ( unlikely(flags & DO_TX_FLUSH) )
-		pktgen_tx_flush(info, qid);
+	if ( unlikely(flags & (DO_TX_CLEANUP |  DO_TX_FLUSH)) ) {
+		if ( flags & DO_TX_CLEANUP )
+			pktgen_tx_cleanup(info, qid);
+		else if ( flags & DO_TX_FLUSH )
+			pktgen_tx_flush(info, qid);
+	}
 }
 
 /**************************************************************************//**
@@ -1654,12 +1680,10 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 */
 
 static __inline__ void
-pktgen_main_receive(port_info_t * info, uint8_t idx)
+pktgen_main_receive(port_info_t * info, uint8_t idx, struct rte_mbuf *pkts_burst[])
 {
-    struct rte_mbuf *pkts_burst[DEFAULT_PKT_BURST];
-    struct rte_mbuf *m;
     uint8_t			lid = rte_lcore_id();
-    uint32_t		j, nb_rx, pid, qid, flags;
+    uint32_t		nb_rx, pid, qid;
 
 	pid		= info->pid;
 	qid		= wr_get_rxque(pktgen.l2p, lid, idx);
@@ -1670,36 +1694,8 @@ pktgen_main_receive(port_info_t * info, uint8_t idx)
 	if ( (nb_rx = rte_eth_rx_burst(pid, qid, pkts_burst, info->tx_burst)) == 0 )
 		return;
 
+	// packets are freed in the next call.
 	pktgen_packet_classify_bulk(pkts_burst, nb_rx, pid);
-
-	flags = rte_atomic32_read(&info->port_flags);
-	if ( unlikely(flags & (PROCESS_INPUT_PKTS | PROCESS_TAP_PKTS)) ) {
-		for (j = 0; j < nb_rx; j++) {
-			pktType_e   pType;
-
-			m = pkts_burst[j];
-
-			// Count the packet sizes and type
-			pType = pktgen_packet_type(m);
-
-			if ( unlikely(flags & PROCESS_TAP_PKTS) ) {
-				if ( write(info->tapfd, rte_pktmbuf_mtod(m, char *), m->pkt.pkt_len) < 0 )
-					printf_info("Write failed for tap%d", pid);
-			}
-
-			switch((int)pType) {
-			case ETHER_TYPE_ARP:    pktgen_process_arp(m, pid);     break;
-			case ETHER_TYPE_IPv4:   pktgen_process_ping4(m, pid);   break;
-			case ETHER_TYPE_IPv6:   pktgen_process_ping6(m, pid);   break;
-			case ETHER_TYPE_VLAN:   pktgen_process_vlan(m, pid);    break;
-			case UNKNOWN_PACKET:    /* FALL THRU */
-			default:                rte_pktmbuf_free(m);            break;
-			}
-		}
-	} else {
-		for (j = 0; j < nb_rx; j++)
-			rte_pktmbuf_free(pkts_burst[j]);
-	}
 }
 
 /**************************************************************************//**
@@ -1718,6 +1714,7 @@ pktgen_main_receive(port_info_t * info, uint8_t idx)
 static void
 pktgen_main_rxtx_loop(uint8_t lid)
 {
+    struct rte_mbuf *pkts_burst[DEFAULT_PKT_BURST];
 	port_info_t	  * infos[RTE_MAX_ETHPORTS];
 	uint8_t		 	qids[RTE_MAX_ETHPORTS];
     uint64_t		curr_tsc;
@@ -1747,7 +1744,7 @@ pktgen_main_rxtx_loop(uint8_t lid)
 			/*
 			 * Read packet from RX queues and free the mbufs
 			 */
-			pktgen_main_receive(infos[idx], idx);
+			pktgen_main_receive(infos[idx], idx, pkts_burst);
     	}
 		// Determine when is the next time to send packets
 		if ( unlikely(curr_tsc >= tx_next_cycle) ) {
@@ -1846,6 +1843,7 @@ pktgen_main_tx_loop(uint8_t lid)
 static void
 pktgen_main_rx_loop(uint8_t lid)
 {
+    struct rte_mbuf *pkts_burst[DEFAULT_PKT_BURST];
 	uint8_t			pid, idx, rxcnt;
 	port_info_t	  * infos[RTE_MAX_ETHPORTS];
 
@@ -1865,7 +1863,7 @@ pktgen_main_rx_loop(uint8_t lid)
     do {
     	for(idx = 0; idx < rxcnt; idx++) {
 			// Read packet from RX queues and free the mbufs
-			pktgen_main_receive(infos[idx], idx);
+			pktgen_main_receive(infos[idx], idx, pkts_burst);
     	}
 
 		// Exit loop when flag is set.
