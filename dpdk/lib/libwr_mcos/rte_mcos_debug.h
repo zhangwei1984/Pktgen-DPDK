@@ -109,9 +109,6 @@
 #define dbgAssert(expr)			E_NOOP	/**< Debug assert macro */
 #endif
 
-typedef struct mInfo_s mInfo_t;
-typedef struct mcos_master_s mcos_master_t;
-
 /**************************************************************************//**
 * Setup the debug system and set memory to the correct initial value.
 *

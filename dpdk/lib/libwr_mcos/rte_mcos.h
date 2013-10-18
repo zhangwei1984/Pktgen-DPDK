@@ -124,7 +124,6 @@
 #include "rte_mcos_queue.h"
 #include "rte_mcos_sema.h"
 #include "rte_mcos_mutex.h"
-#include "rte_mcos_debug.h"
 
 #ifndef rte_mcos_H_
 #define rte_mcos_H_										/**< Used to not have recursive includes */
@@ -392,6 +391,8 @@ typedef	void (*func_t)(mInfo_t * mInfo, void * arg1);	/**< typedef for fiber ent
 #define CLOCK_FLAG		0x0002					/**< Clock flag */
 
 /****************************************************************************/
+
+#include "rte_mcos_debug.h"
 
 // Part of the MCOS API plus the inline functions below.
 /**************************************************************************//**
