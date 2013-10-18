@@ -51,11 +51,12 @@ endif
 ifdef NODOTCONF
 $(RTE_OUTPUT)/.config: ;
 else
+# Remove '-C' for ubuntu 13.10 cpp issues.
 $(RTE_OUTPUT)/.config: $(RTE_CONFIG_TEMPLATE) FORCE
 	@[ -d $(RTE_OUTPUT) ] || mkdir -p $(RTE_OUTPUT)
 	$(Q)if [ "$(RTE_CONFIG_TEMPLATE)" != "" -a -f "$(RTE_CONFIG_TEMPLATE)" ]; then \
 		if grep -q '#include' $(RTE_CONFIG_TEMPLATE) ; then \
-			$(CPP) -undef -C -P -x assembler-with-cpp -fdirectives-only \
+			$(CPP) -undef -P -x assembler-with-cpp -fdirectives-only \
 			-o $(RTE_OUTPUT)/.config_tmp $(RTE_CONFIG_TEMPLATE) ; \
 		else \
 			cp $(RTE_CONFIG_TEMPLATE) $(RTE_OUTPUT)/.config_tmp ; \
