@@ -118,10 +118,31 @@ const struct rte_eth_txconf tx_conf = {
     .txq_flags = IXGBE_SIMPLE_FLAGS,
 };
 
+static struct rte_eth_fc_conf fc_conf = {
+    .mode       = RTE_FC_NONE, //RTE_FC_TX_PAUSE
+    .high_water = 80 * 510 / 100,
+    .low_water  = 60 * 510 / 100,
+    .pause_time = 1337,
+    .send_xon   = 0,
+};
+
+// Forward declaration of functions.
 static void pktgen_process_arp( struct rte_mbuf * m, uint32_t pid );
 static void pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid );
 static void pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid );
 static void pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid );
+
+/**************************************************************************//**
+*
+* do_command - Internal function to execute a shell command and grab the output.
+*
+* DESCRIPTION
+* Internal function to execute a shell command and grab the output from the command.
+*
+* RETURNS: Nubmer of lines read.
+*
+* SEE ALSO:
+*/
 
 static __inline__ int do_command(const char * cmd, int (*display)(char *, int)) {
 	FILE	  * f;
@@ -144,6 +165,18 @@ static __inline__ int do_command(const char * cmd, int (*display)(char *, int)) 
 
 	return i;
 }
+
+/**************************************************************************//**
+*
+* pktgen_wire_size - Calculate the wire size of the data to be sent.
+*
+* DESCRIPTION
+* Calculate the number of bytes/bits in a burst of traffic.
+*
+* RETURNS: Number of bits in burst of packets.
+*
+* SEE ALSO:
+*/
 
 static __inline__ uint64_t
 pktgen_wire_size( port_info_t * info ) {
@@ -183,7 +216,8 @@ pktgen_packet_rate(port_info_t * info)
     uint64_t	cps = (pps > 0) ? ((pktgen.hz * info->tx_burst)/pps) : pktgen.hz;
 
     info->tx_pps		= pps;
-    info->tx_cycles 	= (cps - OVERHEAD_FUDGE_VALUE) * wr_get_port_txcnt(pktgen.l2p, info->pid);
+    info->tx_cycles 	= (cps * wr_get_port_txcnt(pktgen.l2p, info->pid)) /* + (pktgen.hz/pps)*/;
+    info->rx_cycles 	= (cps * wr_get_port_txcnt(pktgen.l2p, info->pid)) - (pktgen.hz/pps);
 }
 
 /**************************************************************************//**
@@ -282,6 +316,7 @@ pktgen_tx_cleanup(port_info_t * info, uint8_t qid)
 	// Flush any done transmit buffers and descriptors.
 	pktgen_tx_flush(info, qid);
 
+	// Stop and start the device to flush TX and RX buffers from the device rings.
 	rte_eth_dev_stop(info->pid);
 
 	rte_eth_dev_start(info->pid);
@@ -1570,8 +1605,13 @@ pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp)
 			}
 
 			// Free all of the mbufs
-			if ( likely(mm != 0) )
-				rte_pktmbuf_free(mm);
+			if ( likely(mm != 0) ) {
+				while( (m = mm) != NULL ) {
+					mm = m->pkt.next;
+					m->pkt.next = NULL;
+					rte_pktmbuf_free(m);
+				}
+			}
 		}
 		pktgen_clr_q_flags(info, idx, CLEAR_FAST_ALLOC_FLAG);
 	}
@@ -1717,9 +1757,10 @@ pktgen_main_rxtx_loop(uint8_t lid)
     struct rte_mbuf *pkts_burst[DEFAULT_PKT_BURST];
 	port_info_t	  * infos[RTE_MAX_ETHPORTS];
 	uint8_t		 	qids[RTE_MAX_ETHPORTS];
-    uint64_t		curr_tsc;
     uint8_t			idx, pid, txcnt, rxcnt;
+    uint64_t		curr_tsc;
 	uint64_t		tx_next_cycle;		/**< Next cycle to send a burst of traffic */
+	uint64_t		rx_next_cycle;		/**< Next cycle to receive a burst of traffic */
 
     txcnt	= wr_get_lcore_txcnt(pktgen.l2p, lid);
 	rxcnt	= wr_get_lcore_rxcnt(pktgen.l2p, lid);
@@ -1737,15 +1778,21 @@ pktgen_main_rxtx_loop(uint8_t lid)
 
     curr_tsc		= rte_rdtsc();
     tx_next_cycle	= curr_tsc + infos[0]->tx_cycles;
+	rx_next_cycle	= curr_tsc + infos[0]->rx_cycles;
 
     wr_start_lcore(pktgen.l2p, lid);
     do {
-    	for(idx = 0; idx < rxcnt; idx++) {
-			/*
-			 * Read packet from RX queues and free the mbufs
-			 */
-			pktgen_main_receive(infos[idx], idx, pkts_burst);
-    	}
+		if ( unlikely(curr_tsc >= rx_next_cycle) ) {
+
+			rx_next_cycle = curr_tsc + infos[0]->rx_cycles;
+
+			for(idx = 0; idx < rxcnt; idx++) {
+				/*
+				 * Read packet from RX queues and free the mbufs
+				 */
+				pktgen_main_receive(infos[idx], idx, pkts_burst);
+			}
+		}
 		// Determine when is the next time to send packets
 		if ( unlikely(curr_tsc >= tx_next_cycle) ) {
 
@@ -1783,10 +1830,10 @@ pktgen_main_rxtx_loop(uint8_t lid)
 static void
 pktgen_main_tx_loop(uint8_t lid)
 {
-    uint64_t	  curr_tsc;
     uint8_t		  idx, txcnt, pid;
     port_info_t * infos[RTE_MAX_ETHPORTS];
     uint8_t       qids[RTE_MAX_ETHPORTS];
+    uint64_t	  curr_tsc;
 	uint64_t	  tx_next_cycle;		/**< Next cycle to send a burst of traffic */
 
     txcnt = wr_get_lcore_txcnt(pktgen.l2p, lid);
@@ -1804,7 +1851,7 @@ pktgen_main_tx_loop(uint8_t lid)
     curr_tsc		= rte_rdtsc();
     tx_next_cycle	= curr_tsc + infos[0]->tx_cycles;
 
-    wr_start_lcore(pktgen.l2p, lid);
+	wr_start_lcore(pktgen.l2p, lid);
     do {
 
 		// Determine when is the next time to send packets
@@ -1817,6 +1864,7 @@ pktgen_main_tx_loop(uint8_t lid)
 				pktgen_main_transmit(infos[idx], qids[idx]);
 	    	}
     	}
+
 		curr_tsc = rte_rdtsc();
 
 		// Exit loop when flag is set.
@@ -1846,6 +1894,8 @@ pktgen_main_rx_loop(uint8_t lid)
     struct rte_mbuf *pkts_burst[DEFAULT_PKT_BURST];
 	uint8_t			pid, idx, rxcnt;
 	port_info_t	  * infos[RTE_MAX_ETHPORTS];
+    uint64_t		curr_tsc;
+	uint64_t		rx_next_cycle;		/**< Next cycle to receive a burst of traffic */
 
 	rxcnt = wr_get_lcore_rxcnt(pktgen.l2p, lid);
     printf_info("=== RX processing on lcore %2d, rxcnt %d, port/qid, ",
@@ -1859,12 +1909,22 @@ pktgen_main_rx_loop(uint8_t lid)
 	}
 	printf_info("\n");
 
+    curr_tsc		= rte_rdtsc();
+	rx_next_cycle	= curr_tsc + infos[0]->rx_cycles;
+
 	wr_start_lcore(pktgen.l2p, lid);
     do {
-    	for(idx = 0; idx < rxcnt; idx++) {
-			// Read packet from RX queues and free the mbufs
-			pktgen_main_receive(infos[idx], idx, pkts_burst);
-    	}
+		if ( unlikely(curr_tsc >= rx_next_cycle) ) {
+
+			rx_next_cycle = curr_tsc + infos[0]->rx_cycles;
+
+			for(idx = 0; idx < rxcnt; idx++) {
+				// Read packet from RX queues and free the mbufs
+				pktgen_main_receive(infos[idx], idx, pkts_burst);
+			}
+		}
+
+        curr_tsc = rte_rdtsc();
 
 		// Exit loop when flag is set.
     } while( wr_lcore_is_running(pktgen.l2p, lid) );
@@ -1996,7 +2056,7 @@ pktgen_print_static_data(void)
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "ARP/ICMP Pkts");
 	if ( pktgen.flags & TX_DEBUG_FLAG ) {
 		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Tx Overrun");
-		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Cycles per Tx");
+		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Cycles per Rx/Tx");
 	}
 
     ip_row = ++row;
@@ -2426,7 +2486,7 @@ pktgen_page_stats(void)
 		if ( pktgen.flags & TX_DEBUG_FLAG ) {
 			scrn_snprintf(buff, sizeof(buff), "%llu", info->stats.tx_failed);
 			scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
-			scrn_snprintf(buff, sizeof(buff), "%llu/%d", info->tx_cycles, wr_get_port_txcnt(pktgen.l2p, info->pid));
+			scrn_snprintf(buff, sizeof(buff), "%llu/%llu", info->rx_cycles, info->tx_cycles);
 			scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 		}
     }
@@ -2805,7 +2865,7 @@ rte_timer_setup(void)
     rte_timer_init(&timer0);
     rte_timer_init(&timer1);
 
-    /* load timer0, every 2 seconds, on timer lcore, reloaded automatically */
+    /* load timer0, every 2 seconds, on Display lcore, reloaded automatically */
     rte_timer_reset(&timer0, (pktgen.hz*2), PERIODICAL, lcore_id, pktgen_page_display, NULL);
 
     /* load timer1, every second, on timer lcore, reloaded automatically */
@@ -3079,6 +3139,11 @@ void pktgen_config_ports(void)
 			ret = rte_eth_tx_queue_setup(pid, q, pktgen.nb_txd, sid, &tx);
 			if (ret < 0)
 				rte_panic("rte_eth_tx_queue_setup: err=%d, port=%d, %s\n", ret, pid, rte_strerror(-ret));
+
+			ret = rte_eth_dev_flow_ctrl_set(pid, &fc_conf);
+			if (ret < 0)
+				rte_panic("rte_eth_dev_flow_ctrl_set: err=%d, port=%d, %s\n", ret, pid, rte_strerror(-ret));
+
 			printf_info("\n");
 		}
 		printf_info("%*sPort memory used = %6lu KB\n", 71, " ", (pktgen.mem_used + 1023)/1024);
@@ -3548,17 +3613,23 @@ pktgen_interact(struct cmdline *cl)
 {
 	char c;
 	struct pollfd	fds;
-	int				pollcnt = POLL_RATE;
+	uint64_t		curr_tsc;
+	uint64_t		next_poll;
+	uint64_t		reload;
 
 	fds.fd		= cl->s_in;
 	fds.events	= POLLIN;
 	fds.revents	= 0;
 
 	c = -1;
-	while (1) {
+	reload = (pktgen.hz/1000);
+	next_poll = rte_rdtsc() + reload;
+	
+	for(;;) {
 		rte_timer_manage();
-		if ( --pollcnt == 0 ) {
-			pollcnt = POLL_RATE;
+		curr_tsc = rte_rdtsc();
+		if ( unlikely(curr_tsc >= next_poll)  ) {
+			next_poll = curr_tsc + reload;
 			if ( poll(&fds, 1, 0) ) {
 				if ( (fds.revents & (POLLERR | POLLNVAL | POLLHUP)) )
 					break;

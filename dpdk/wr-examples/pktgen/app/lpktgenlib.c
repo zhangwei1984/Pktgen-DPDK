@@ -824,6 +824,17 @@ static int pktgen_prime (lua_State *L) {
 	return 0;
 }
 
+static __inline__ void __delay(int32_t t) {
+	int32_t		n;
+
+	while( t > 0 ) {
+		rte_timer_manage();
+		n = (t > 10)? 10 : t;
+		rte_delay_ms(n);
+		t -= n;
+	}
+}
+
 /**************************************************************************//**
 *
 * pktgen_delay - Delay for a given number of milliseconds.
@@ -837,12 +848,16 @@ static int pktgen_prime (lua_State *L) {
 */
 
 static int pktgen_delay (lua_State *L) {
+	int32_t	t;
+
 	switch( lua_gettop(L) ) {
 	default: return luaL_error(L, "delay, wrong number of arguments");
 	case 1:
 		break;
 	}
-	rte_delay_ms(luaL_checkinteger(L, 1));
+
+	__delay(luaL_checkinteger(L, 1));
+
 	return 0;
 }
 
@@ -860,9 +875,10 @@ static int pktgen_delay (lua_State *L) {
 
 static int pktgen_pause (lua_State *L) {
 	char * str;
+	int32_t	t;
 
 	switch( lua_gettop(L) ) {
-	default: return luaL_error(L, "wait, wrong number of arguments");
+	default: return luaL_error(L, "pause, wrong number of arguments");
 	case 2:
 		break;
 	}
@@ -870,7 +886,7 @@ static int pktgen_pause (lua_State *L) {
 	if ( strlen(str) > 0 )
 		luai_putstring(L, str);
 
-	rte_delay_ms(luaL_checkinteger(L, 2));
+	__delay(luaL_checkinteger(L, 2));
 	return 0;
 }
 
@@ -1050,6 +1066,66 @@ static int pktgen_clear (lua_State *L) {
 
 	foreach_port( portlist,
 		pktgen_clear_stats(info) );
+
+	return 0;
+}
+
+/**************************************************************************//**
+*
+* pktgen_clear_all - Clear all port statistics
+*
+* DESCRIPTION
+* Clear all port statistics to zero for a given port
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_clear_all (lua_State *L) {
+
+	uint64_t	portlist = -1;
+
+	foreach_port( portlist,
+		pktgen_clear_stats(info) );
+
+	return 0;
+}
+
+/**************************************************************************//**
+*
+* pktgen_cls_screen - Clear and redraw the screen
+*
+* DESCRIPTION
+* Clear and redraw the screen
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_cls_screen (lua_State *L) {
+
+	pktgen_cls();
+
+	return 0;
+}
+
+/**************************************************************************//**
+*
+* pktgen_update - Update the screen information
+*
+* DESCRIPTION
+* Update the screen information
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_update_screen (lua_State *L) {
+
+	pktgen_update();
 
 	return 0;
 }
@@ -2049,25 +2125,163 @@ static int pktgen_run (lua_State *L) {
 	return 0;
 }
 
+static char * lua_help_info[] = {
+	"Pktgen Lua functions and values using pktgen.XXX to access\n",
+	"set            - Set a number of options\n",
+	"set_mac        - Set the MAC address for a port\n",
+	"set_ipaddr     - Set the src and dst IP addresses\n",
+	"mac_from_arp   - Configure MAC from ARP packet\n",
+	"set_proto      - Set the prototype value\n",
+	"set_type       - Set the type value\n",
+	"\n",
+	"seq            - Set the sequence data for a port\n",
+	"seqTable       - Set the sequence data for a port using tables\n",
+	"ports_per_page - Set the number of ports per page\n",
+	"icmp_echo      - Enable/disable ICMP echo support\n",
+	"send_arp       - Send a ARP request or GRATUITOUS_ARP\n",
+	"pcap           - Load a PCAP file\n",
+	"ping4          - Send a Ping IPv4 packet (ICMP echo)\n",
+#ifdef INCLUDE_PING6
+	"ping6          - Send a Ping IPv6 packet (ICMP echo)\n",
+#endif
+	"start          - Start a set of ports sending packets\n",
+	"stop           - Stop a set of ports sending packets\n",
+	"screen         - Turn off and on the screen updates\n",
+	"prime          - Send a small number of packets to prime the routes\n",
+	"delay          - Delay a given number of milliseconds\n",
+	"pause          - Delay for a given number of milliseconds and display message\n",
+	"sleep          - Delay a given number of seconds\n",
+	"load           - load and run a command file or Lua file.\n",
+	"save           - Save the configuration of Pktgen to a file.\n",
+	"clear          - Clear stats for the given ports\n",
+	"clr            - Clear all stats on all ports\n",
+	"cls            - Redraw the screen\n",
+	"\n",
+	"update         - Update the screen information\n",
+	"reset          - Reset the configuration to all ports\n",
+	"vlan           - Enable or disable VLAN header\n",
+	"\n",
+	"Range commands\n",
+	"dst_mac        - Set the destination MAC address for a port\n",
+	"src_mac        - Set the src MAC address for a port\n",
+	"src_ip         - Set the source IP address and netmask value\n",
+	"dst_ip         - Set the destination IP address\n",
+	"src_port       - Set the IP source port number\n",
+	"dst_port       - Set the IP destination port number\n",
+	"vlan_id        - Set the vlan id value\n",
+	"pkt_size       - the packet size for a range port\n",
+	"range          - Enable or disable sending range data on a port.\n",
+	"\n",
+	"page           - Select a page to display, seq, range, pcap and a number from 0-N\n",
+	"port           - select a different port number used for sequence and range pages.\n",
+	"process        - Enable or disable input packet processing on a port\n",
+	"blink          - Blink an led on a port\n",
+	"help           - Return the help text\n",
+	"Lua.help       - Lua command help text\n",
+	"\n",
+	"isSending      - Test to see if a port is sending packets\n",
+	"linkState      - Return the current link state of a port\n",
+	"\n",
+	"portSizes      - Return the stats on the size of packet for a port.\n",
+	"pktStats       - return the current packet stats on a port\n",
+	"portStats      - return the current port stats\n",
+	"\n",
+	"compile        - Convert a structure into a frame to be sent\n",
+	"decompile      - decompile a frame into Ethernet, IP, TCP, UDP or other protocols\n",
+	"sendPkt        - Not working.\n",
+	"recvPkt        - Not working.\n",
+	"\n",
+	"run            - Load a Lua string or command file and execute it.\n",
+	"continue       - Display a message and wait for keyboard key and return\n",
+	"input          - Wait for a keyboard input line and return line.\n",
+	"\n",
+	"Pktgen.info.XXXX values below\n",
+	"\n",
+	"Lua_Version    - Lua version string\n",
+	"Lua_Release    - Lua release string\n",
+	"Lua_Copyright  - Lua Copyright string\n",
+	"Lua_Authors    - Lua Authors string\n",
+	"\n",
+  	"Pktgen_Version - Pktgen version string\n",
+  	"Pktgen_Copyright - Pktgen copyright string\n",
+  	"Pktgen_Authors - Pktgen Authors string\n",
+  	"DPDK_Version   - DPDK version string\n",
+  	"DPDK_Copyright - DPDK copyright string",
+	"\n",
+  	"startSeqIdx    - Start of Sequence index value\n",
+  	"singlePktIdx   - Single packet index value\n",
+  	"rangePktIdx    - Start of the Range packet index\n",
+  	"pingPktIdx     - Ping packet index value\n",
+  	"startExtraTxIdx- Start of Extra TX index value",
+	"\n",
+  	"numSeqPkts     - Max number of sequence packets\n",
+  	"numExtraTxPkts - Number of Extra TX packet buffers\n",
+  	"numTotalPkts   - Number of total packet buffers\n",
+	"\n",
+  	"minPktSize     - Min packet size plus FCS\n",
+  	"maxPktSize     - Max packet size plus FCS\n",
+  	"minVlanID      - Min VLAN ID value\n",
+  	"maxVlanID      - Max VLAN ID value\n",
+  	"vlanTagSize    - VLAN Tag size\n",
+  	"mbufCacheSize  - mbuf cache size value]n",
+	"\n",
+  	"defaultPktBurst- Default burst packet count\n",
+  	"defaultBuffSize- Default buffer size value\n",
+  	"maxMbufsPerPort- Max mbufs per port value\n",
+  	"maxPrimeCount  - Max prime count\n",
+
+	NULL
+};
+/**************************************************************************//**
+*
+* pktgen_lua_help - Display the current Lua help information.
+*
+* DESCRIPTION
+* Display the current Lua help information.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_lua_help (lua_State *L) {
+	int		i;
+
+	lua_concat(L, 0);
+	for(i=1; lua_help_info[i] != NULL; i++ ) {
+		lua_pushstring(L, lua_help_info[i]);
+		lua_concat(L, 2);
+	}
+
+	return 1;
+}
+
 static const luaL_Reg pktgenlib[] = {
   {"set",			pktgen_set},			// Set a number of options
-  {"seq",     		pktgen_seq},			// Set the sequence data for a port
-  {"seqTable", 		pktgen_seqTable},		// Set the sequence data for a port using tables
-  {"ports_per_page",pktgen_ports_per_page},	// Set the number of ports per page
-  {"icmp_echo", 	pktgen_icmp},			// Enable/disable ICMP echo support
-  {"send_arp",  	pktgen_sendARP},		// Send a ARP request or GRATUITOUS_ARP
+
+  {"start",			pktgen_start},			// Start a set of ports sending packets
+  {"stop",			pktgen_stop},			// Stop a set of ports sending packets
+
+  // Set the single packet value on main screen
   {"set_mac",   	pktgen_set_mac},		// Set the MAC address for a port
   {"set_ipaddr",	pktgen_set_ip_addr},	// Set the src and dst IP addresses
   {"mac_from_arp",  pktgen_macFromArp},		// Configure MAC from ARP packet
   {"set_proto", 	pktgen_prototype},		// Set the prototype value
   {"set_type",  	pktgen_set_type},		// Set the type value
-  {"pcap",			pktgen_pcap},			// Load a PCAP file
+
   {"ping4",     	pktgen_send_ping4},		// Send a Ping IPv4 packet (ICMP echo)
 #ifdef INCLUDE_PING6
   {"ping6",     	pktgen_send_ping6},		// Send a Ping IPv6 packet (ICMP echo)
 #endif
-  {"start",			pktgen_start},			// Start a set of ports sending packets
-  {"stop",			pktgen_stop},			// Stop a set of ports sending packets
+
+  {"pcap",			pktgen_pcap},			// Load a PCAP file
+  {"icmp_echo", 	pktgen_icmp},			// Enable/disable ICMP echo support
+  {"send_arp",  	pktgen_sendARP},		// Send a ARP request or GRATUITOUS_ARP
+
+  // Setup sequence packets
+  {"seq",     		pktgen_seq},			// Set the sequence data for a port
+  {"seqTable", 		pktgen_seqTable},		// Set the sequence data for a port using tables
+
   {"screen",		pktgen_scrn},			// Turn off and on the screen updates
   {"prime",			pktgen_prime},			// Send a small number of packets to prime the routes
   {"delay",			pktgen_delay},			// Delay a given number of milliseconds
@@ -2075,10 +2289,13 @@ static const luaL_Reg pktgenlib[] = {
   {"sleep",			pktgen_sleep},			// Delay a given number of seconds
   {"load",			pktgen_load},			// load and run a command file or Lua file.
   {"save",			pktgen_config_save},	// Save the configuration of Pktgen to a file.
-  {"clear",			pktgen_clear},			// Clear all of the stats
+  {"clear",			pktgen_clear},			// Clear stats for the given ports
+  {"clr",			pktgen_clear_all},		// Clear all stats on all ports
+  {"cls",			pktgen_cls_screen},		// Redraw the screen
+  {"update",		pktgen_update_screen},	// Update the screen information
   {"reset",			pktgen_reset_config},	// Reset the configuration to all ports
 
-  {"vlan",		pktgen_vlan},		// Enable or disable VLAN header
+  {"vlan",			pktgen_vlan},			// Enable or disable VLAN header
 
   // Range commands
   {"dst_mac",		pktgen_dst_mac},		// Set the destination MAC address for a port
@@ -2091,11 +2308,13 @@ static const luaL_Reg pktgenlib[] = {
   {"pkt_size",		pktgen_pkt_size},		// the packet size for a range port
   {"range",			pktgen_range},			// Enable or disable sending range data on a port.
 
+  {"ports_per_page",pktgen_ports_per_page},	// Set the number of ports per page
   {"page",			pktgen_page},			// Select a page to display, seq, range, pcap and a number from 0-N
   {"port",			pktgen_port},			// select a different port number used for sequence and range pages.
   {"process",		pktgen_process},		// Enable or disable input packet processing on a port
   {"blink",			pktgen_blink},			// Blink an led on a port
   {"help",			pktgen_help},			// Return the help text
+  {"Lua.help",		pktgen_lua_help},		// Lua command help text
   
   {"isSending",		pktgen_isSending},		// Test to see if a port is sending packets
   {"linkState",		pktgen_linkState},		// Return the current link state of a port

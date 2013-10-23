@@ -273,3 +273,4 @@ function serialize(k, t)
 end
 
 function prints(k, t) io.write(serialize(k, t)); io.flush(); end
+function sleep(t) pktgen.delay(t * 1000); end

@@ -110,6 +110,7 @@ extern void pktgen_set_port_seqCnt(port_info_t * info, uint32_t cnt);
 extern void pktgen_set_port_prime(port_info_t * info, uint32_t cnt);
 extern void pktgen_set_tx_burst(port_info_t * info, uint32_t burst);
 extern void pktgen_set_tx_cycles(port_info_t * info, uint32_t cycles);
+extern void pktgen_set_rx_cycles(port_info_t * info, uint32_t cycles);
 extern void pktgen_set_pkt_size(port_info_t * info, uint32_t size);
 extern void pktgen_set_port_value(port_info_t * info, char type, uint32_t portValue);
 extern void pktgen_set_tx_rate(port_info_t * info, uint32_t rate);

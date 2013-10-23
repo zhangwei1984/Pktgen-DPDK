@@ -15,6 +15,7 @@ printf("delay for 1 second\n");
 pktgen.delay(1000);
 printf("done\n");
 
+-- 'set' commands for a number of per port values
 pktgen.set("all", "count", 100);
 pktgen.set("all", "rate", 50);
 pktgen.set("all", "size", 256);
@@ -24,9 +25,11 @@ pktgen.set("all", "dport", 0x9988);
 pktgen.set("all", "prime", 3);
 pktgen.set("all", "seqCnt", 3);
 
+-- sequence command in one line
 pktgen.seq(0, "all", "0000:4455:6677", "0000:1234:5678", "10.11.0.1", "10.10.0.1/16", 5, 6, "ipv4", "udp", 1, 128);
 prints("seq", pktgen.decompile(0, "all"));
 
+-- sequence command using a table of packet configurations
 local seq_table = {
     ["eth_dst_addr"] = "0011:4455:6677",
     ["eth_src_addr"] = "0011:1234:5678",

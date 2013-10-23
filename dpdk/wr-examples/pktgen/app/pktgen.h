@@ -224,7 +224,7 @@ enum {
 	MAX_VLAN_ID				= 4095,
 	DEFAULT_VLAN_ID			= MIN_VLAN_ID,
 	MAX_ETHER_TYPE_SIZE		= 0x600,
-	OVERHEAD_FUDGE_VALUE	= 60,
+	OVERHEAD_FUDGE_VALUE	= 50,
 
 	DEFAULT_BUFF_SIZE		= 2048,
 	DEFAULT_PORTS_PER_PAGE	= 4,
@@ -241,15 +241,14 @@ enum {
 	EXTRA_TX_PKT			= (PING_PKT + 1),						// 19
 	NUM_TOTAL_PKTS			= (EXTRA_TX_PKT + NUM_EXTRA_TX_PKTS),
 
-	DEFAULT_PKT_BURST		= 128,		// Increasing this number consumes memory very fast
-	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 4),
+	DEFAULT_PKT_BURST		= 16,		// Increasing this number consumes memory very fast
+	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 32),
 	DEFAULT_TX_DESC			= DEFAULT_RX_DESC,
-	MAX_MBUFS_PER_PORT		= (DEFAULT_TX_DESC * 2),	// number of buffers to support per port
+	MAX_MBUFS_PER_PORT		= (DEFAULT_TX_DESC * 8),	// number of buffers to support per port
 	MAX_SPECIAL_MBUFS		= 64,
 
 	MBUF_CACHE_SIZE			= (MAX_MBUFS_PER_PORT/8),
 
-	POLL_RATE				= 1000,
 	ALL_PORTS				= 0xFFFFFFFF,
 	INTER_FRAME_GAP			= 12,
 	PKT_PREAMBLE_SIZE		= 8,
@@ -392,6 +391,7 @@ typedef struct port_info_s {
 	uint64_t				transmit_count;		/**< Packets to transmit loaded into current_tx_count */
 	uint64_t				current_tx_count;	/**< Current number of packets to send */
 	uint64_t				tx_cycles;			/**< Number cycles between TX bursts */
+	uint64_t				rx_cycles;			/**< Number cycles between RX bursts */
 	uint64_t				tx_pps;				/**< Transmit packets per seconds */
 	uint64_t				delta;				/**< Delta value for latency testing */
 	uint64_t				tx_count;			/**< Total count of tx attempts */

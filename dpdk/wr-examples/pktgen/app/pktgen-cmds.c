@@ -990,6 +990,23 @@ void pktgen_cls(void)
 
 /**************************************************************************//**
 *
+* pktgen_update - Update the screen information
+*
+* DESCRIPTION
+* Update the screen information
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void pktgen_update(void)
+{
+	pktgen_page_display(NULL, NULL);
+}
+
+/**************************************************************************//**
+*
 * pktgen_port_defaults - Set all ports back to the default values.
 *
 * DESCRIPTION
@@ -1232,6 +1249,23 @@ void pktgen_set_tx_burst(port_info_t * info, uint32_t burst)
 void pktgen_set_tx_cycles(port_info_t * info, uint32_t cycles)
 {
 	info->tx_cycles		= cycles;
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_rx_cycles - Set the number of recieve cycles to use.
+*
+* DESCRIPTION
+* Set the number of receive cycles for the given port list.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void pktgen_set_rx_cycles(port_info_t * info, uint32_t cycles)
+{
+	info->rx_cycles		= cycles;
 }
 
 /**************************************************************************//**
