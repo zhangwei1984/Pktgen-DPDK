@@ -1118,6 +1118,8 @@ static void cmd_pkt_size_parsed(void *parsed_result,
 
 	foreach_port( res->portlist.map,
 		pktgen_set_range_pkt_size(info, res->what, res->size) );
+
+	pktgen_update_display();
 }
 
 cmdline_parse_token_string_t cmd_set_range_pkt_size =
