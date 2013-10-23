@@ -1,4 +1,4 @@
-Pktgen version 2.2.2 using DPDK-1.5.0
+Pktgen version 2.2.3 using DPDK-1.5.0
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,7 @@ Pktgen version 2.2.2 using DPDK-1.5.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.2.3   - range packet fixes for packet size and source/destination mac
  - 2.2.2   - Minor performance changes for receive packet performance.
  - 2.2.1   - Change MAC address from XXXX:XXXX:XXXX to XX:XX:XX:XX:XX:XX format
           Fixed Pktgen to allow packet changes without having to restart the tool.
