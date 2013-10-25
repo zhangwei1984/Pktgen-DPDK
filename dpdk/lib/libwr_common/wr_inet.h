@@ -559,23 +559,23 @@ static __inline__ char * inet_mtoa(char * buff, int len, struct ether_addr * ead
 
 /* convert a MAC address from network byte order to host 64bit number */
 static __inline__ uint64_t inet_mtoh64(struct ether_addr * eaddr, uint64_t * value) {
-    *value = ((uint64_t)eaddr->addr_bytes[0] << 0)
-           + ((uint64_t)eaddr->addr_bytes[1] << 8)
-           + ((uint64_t)eaddr->addr_bytes[2] << 16)
-           + ((uint64_t)eaddr->addr_bytes[3] << 24)
-           + ((uint64_t)eaddr->addr_bytes[4] << 32)
-           + ((uint64_t)eaddr->addr_bytes[5] << 40);
+    *value = ((uint64_t)eaddr->addr_bytes[5] << 0)
+           + ((uint64_t)eaddr->addr_bytes[4] << 8)
+           + ((uint64_t)eaddr->addr_bytes[3] << 16)
+           + ((uint64_t)eaddr->addr_bytes[2] << 24)
+           + ((uint64_t)eaddr->addr_bytes[1] << 32)
+           + ((uint64_t)eaddr->addr_bytes[0] << 40);
     return *value;
 }
 
 /* convert a host 64bit number to MAC address in network byte order */
 static __inline__ struct ether_addr * inet_h64tom(uint64_t value, struct ether_addr * eaddr) {
-    eaddr->addr_bytes[0] = ((value >> 0) & 0xFF);
-    eaddr->addr_bytes[1] = ((value >> 8) & 0xFF);
-    eaddr->addr_bytes[2] = ((value >> 16) & 0xFF);
-    eaddr->addr_bytes[3] = ((value >> 24) & 0xFF);
-    eaddr->addr_bytes[4] = ((value >> 32) & 0xFF);
-    eaddr->addr_bytes[5] = ((value >> 40) & 0xFF);
+    eaddr->addr_bytes[5] = ((value >> 0) & 0xFF);
+    eaddr->addr_bytes[4] = ((value >> 8) & 0xFF);
+    eaddr->addr_bytes[3] = ((value >> 16) & 0xFF);
+    eaddr->addr_bytes[2] = ((value >> 24) & 0xFF);
+    eaddr->addr_bytes[1] = ((value >> 32) & 0xFF);
+    eaddr->addr_bytes[0] = ((value >> 40) & 0xFF);
     return eaddr;
 }
 
