@@ -92,24 +92,6 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <sys/types.h>
-#include <string.h>
-#include <sys/queue.h>
-#include <netinet/in.h>
-#include <setjmp.h>
-#include <stdarg.h>
-#include <ctype.h>
-#include <errno.h>
-#include <getopt.h>
-#include <termios.h>
-#include <fcntl.h>
-
 #include "pktgen.h"
 
 /**************************************************************************//**
@@ -210,6 +192,7 @@ const char * help_info[] = {
 		"pcap <portlist> <state>            - Enable or Disable sending pcap packets on a portlist",
 		"pcap.show                          - Show the PCAP information",
 		"pcap.index                         - Move the PCAP file index to the given packet number,  0 - rewind, -1 - end of file",
+		"pcap.filter <portlist> <string>    - PCAP filter string to filter packets on receive",
 		"script <filename>                  - Execute the Lua script code in file (www.lua.org).",
 		"ping4 <portlist>                   - Send a IPv4 ICMP echo request on the given portlist",
 #ifdef INCLUDE_PING6
@@ -1267,6 +1250,57 @@ cmdline_parse_inst_t cmd_pcap_onoff = {
 		(void *)&cmd_set_pcap_onoff,
 		(void *)&cmd_pcap_onoff_portlist,
 		(void *)&cmd_pcap_onoff_what,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_pcap_filter_result {
+	cmdline_fixed_string_t pcap_filter;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t filter_string;
+};
+
+/**************************************************************************//**
+*
+* cmd_pcap_filter - Set PCAP port filtering on a set of ports.
+*
+* DESCRIPTION
+* Compile a filter for a set of ports.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_pcap_filter_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_pcap_filter_result *res = parsed_result;
+
+	foreach_port( res->portlist.map,
+		pktgen_pcap_filter(info, res->filter_string) );
+
+	pktgen_update_display();
+}
+
+cmdline_parse_token_string_t cmd_set_pcap_filter =
+	TOKEN_STRING_INITIALIZER(struct cmd_pcap_filter_result, pcap_filter, "pcap.filter");
+cmdline_parse_token_portlist_t cmd_pcap_filter_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_pcap_filter_result, portlist);
+cmdline_parse_token_string_t cmd_pcap_filter_string =
+	TOKEN_STRING_INITIALIZER(struct cmd_pcap_filter_result, filter_string, NULL);
+
+cmdline_parse_inst_t cmd_pcap_filter = {
+	.f = cmd_pcap_filter_parsed,
+	.data = NULL,
+	.help_str = "pcap.filter <portlist> <filter-string>",
+	.tokens = {
+		(void *)&cmd_set_pcap_filter,
+		(void *)&cmd_pcap_filter_portlist,
+		(void *)&cmd_pcap_filter_string,
 		NULL,
 	},
 };
@@ -3170,6 +3204,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_pcap_index,
 	    (cmdline_parse_inst_t *)&cmd_pcap_onoff,
 	    (cmdline_parse_inst_t *)&cmd_pcap_show,
+	    (cmdline_parse_inst_t *)&cmd_pcap_filter,
 	    (cmdline_parse_inst_t *)&cmd_pci,
 	    (cmdline_parse_inst_t *)&cmd_ping4,
 #ifdef INCLUDE_PING6

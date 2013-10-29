@@ -1436,8 +1436,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 				pkt->dport = dport;
 			}
 
-            if (unlikely(range->src_ip_inc != 0))
-            {
+            if (unlikely(range->src_ip_inc != 0)) {
                 uint32_t p = pkt->ip_src_addr;
                 p += range->src_ip_inc;
                 if (p < range->src_ip_min)
@@ -1447,8 +1446,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                 pkt->ip_src_addr = p;
             }
 
-            if (unlikely(range->dst_ip_inc != 0))
-            {
+            if (unlikely(range->dst_ip_inc != 0)) {
                 uint32_t p = pkt->ip_dst_addr;
                 p += range->dst_ip_inc;
                 if (p < range->dst_ip_min)
@@ -1458,8 +1456,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                 pkt->ip_dst_addr = p;
             }
 
-            if (unlikely(range->vlan_id_inc != 0))
-            {
+            if (unlikely(range->vlan_id_inc != 0)) {
                 uint32_t p = pkt->vlanid;
                 p += range->vlan_id_inc;
                 if (p < range->vlan_id_min)
@@ -1469,8 +1466,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                 pkt->vlanid = p;
             }
 
-            if (unlikely(range->pkt_size_inc != 0))
-            {
+            if (unlikely(range->pkt_size_inc != 0)) {
                 uint32_t p = pkt->pktSize;
                 p += range->pkt_size_inc;
                 if (p < range->pkt_size_min)
@@ -1479,46 +1475,40 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                     p = range->pkt_size_min;
                 pkt->pktSize = p;
             }
-	    else
-	    {
-        	pkt->pktSize = range->pkt_size;
-	    }
+			else
+				pkt->pktSize = range->pkt_size;
 
-            if (unlikely(range->src_mac_inc != 0))
-            {
-                uint64_t p;
-                inet_mtoh64(&pkt->eth_src_addr, &p);
+			if (unlikely(range->src_mac_inc != 0)) {
+				uint64_t p;
 
-                p += range->src_mac_inc;
-                if (p < range->src_mac_min)
-                    p = range->src_mac_max;
-                else if (p > range->src_mac_max)
-                    p = range->src_mac_min;
+				inet_mtoh64(&pkt->eth_src_addr, &p);
 
-                inet_h64tom(p, &pkt->eth_src_addr);
-            }
-	    else
-	    {
-                inet_h64tom(range->src_mac, &pkt->eth_src_addr);
-	    }
+				p += range->src_mac_inc;
+				if (p < range->src_mac_min)
+					p = range->src_mac_max;
+				else if (p > range->src_mac_max)
+					p = range->src_mac_min;
 
-            if (unlikely(range->dst_mac_inc != 0))
-            {
-                uint64_t p;
-                inet_mtoh64(&pkt->eth_dst_addr, &p);
+				inet_h64tom(p, &pkt->eth_src_addr);
+			}
+			else
+				inet_h64tom(range->src_mac, &pkt->eth_src_addr);
 
-                p += range->dst_mac_inc;
-                if (p < range->dst_mac_min)
-                    p = range->dst_mac_max;
-                else if (p > range->dst_mac_max)
-                    p = range->dst_mac_min;
+			if (unlikely(range->dst_mac_inc != 0)) {
+				uint64_t p;
 
-                inet_h64tom(p, &pkt->eth_dst_addr);
-            }
-	    else
-	    {
-                inet_h64tom(range->dst_mac, &pkt->eth_dst_addr);
-	    }
+				inet_mtoh64(&pkt->eth_dst_addr, &p);
+
+				p += range->dst_mac_inc;
+				if (p < range->dst_mac_min)
+					p = range->dst_mac_max;
+				else if (p > range->dst_mac_max)
+					p = range->dst_mac_min;
+
+				inet_h64tom(p, &pkt->eth_dst_addr);
+			}
+			else
+				inet_h64tom(range->dst_mac, &pkt->eth_dst_addr);
 
 			break;
 		default:
@@ -1912,6 +1902,7 @@ pktgen_main_rx_loop(uint8_t lid)
     printf_info("=== RX processing on lcore %2d, rxcnt %d, port/qid, ",
     		lid, rxcnt);
 
+    memset(infos, '\0', sizeof(infos));
 	for( idx = 0; idx < rxcnt; idx++ ) {
 		pid = wr_get_rx_pid(pktgen.l2p, lid, idx);
     	if ( (infos[idx] = wr_get_port_private(pktgen.l2p, pid)) == NULL )
@@ -2880,7 +2871,7 @@ rte_timer_setup(void)
     rte_timer_reset(&timer0, (pktgen.hz*2), PERIODICAL, lcore_id, pktgen_page_display, NULL);
 
     /* load timer1, every second, on timer lcore, reloaded automatically */
-    rte_timer_reset(&timer1, pktgen.hz, PERIODICAL, lcore_id, pktgen_process_stats, NULL);
+    rte_timer_reset(&timer1, pktgen.hz/4, PERIODICAL, lcore_id, pktgen_process_stats, NULL);
 }
 
 /**************************************************************************//**

@@ -831,6 +831,28 @@ pktgen_pcap_enable_disable(port_info_t * info, char * str)
 
 /**************************************************************************//**
 *
+* pktgen_pcap_filter - Compile a PCAP filter for a portlist
+*
+* DESCRIPTION
+* Compile a pcap filter for a portlist
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_pcap_filter(port_info_t * info, char * str)
+{
+	pcap_t * pc = pcap_open_dead(DLT_EN10MB, 65535);
+
+	info->pcap_result = pcap_compile(pc, &info->pcap_program, str, 1, PCAP_NETMASK_UNKNOWN);
+
+	pcap_close(pc);
+}
+
+/**************************************************************************//**
+*
 * pktgen_blink_enable_disable - Enable or disable a port from blinking.
 *
 * DESCRIPTION

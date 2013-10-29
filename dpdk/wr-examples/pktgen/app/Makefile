@@ -76,6 +76,6 @@ APP = pktgen
 SRCS-y := commands.c lpktgenlib.c pktgen-cmds.c pktgen.c
 
 CFLAGS += -O3 -g -fno-stack-protector
-LDFLAGS += -g
+LDFLAGS += -g -lpcap
 
 include $(RTE_SDK)/mk/rte.extapp.mk

@@ -147,6 +147,9 @@
 #include <wr_lscpu.h>
 #include <wr_utils.h>
 
+#undef BPF_MAJOR_VERSION
+#include <pcap/pcap.h>
+
 #ifndef _PKTGEN_H_
 #define _PKTGEN_H_
 
@@ -242,7 +245,7 @@ enum {
 	NUM_TOTAL_PKTS			= (EXTRA_TX_PKT + NUM_EXTRA_TX_PKTS),
 
 	DEFAULT_PKT_BURST		= 16,		// Increasing this number consumes memory very fast
-	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 32),
+	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 16),
 	DEFAULT_TX_DESC			= DEFAULT_RX_DESC,
 	MAX_MBUFS_PER_PORT		= (DEFAULT_TX_DESC * 8),	// number of buffers to support per port
 	MAX_SPECIAL_MBUFS		= 64,
@@ -430,6 +433,9 @@ typedef struct port_info_s {
 	int32_t					tapfd;				/**< Tap file descriptor */
 	pcap_info_t			  * pcap;				/**< PCAP information header */
 	uint64_t				pcap_cycles;		/**< number of cycles for pcap sending */
+
+	int32_t					pcap_result;		/**< PCAP result of filter compile */
+	struct bpf_program		pcap_program;		/**< PCAP filter program structure */
 } port_info_t;
 
 #define MAX_PORT_DESC_SIZE	132
@@ -441,10 +447,10 @@ typedef struct pktgen_s {
 	void				  * L;					/**< Lua State pointer */
 	rte_scrn_t			  * scrn;				/**< Screen structure pointer */
 	char				  * hostname;			/**< GUI hostname */
-	int32_t					socket_port;		/**< GUI port number */
-	uint64_t				coremask;			/**< Coremask of lcores */
 	char				  * prompt;				/**< Pktgen command line prompt */
+	uint64_t				coremask;			/**< Coremask of lcores */
 
+	int32_t					socket_port;		/**< GUI port number */
 	uint32_t				enabled_port_mask;	/**< mask of enabled ports */
 	uint32_t				blinklist;			/**< Port list for blinking the led */
 	uint32_t				flags;				/**< Flag values */
@@ -596,7 +602,7 @@ strdupf(char * str, char * new) {
 	return (new == NULL) ? NULL : strdup(new);
 }
 
-#define printf_info(...)	scrn_fprintf(0,0,stdout, __VA_ARGS__)
+#define printf_info( ... )	scrn_fprintf(0,0,stdout, __VA_ARGS__)
 
 extern void pktgen_stop_running(void);
 extern void pktgen_send_seq_pkt(port_info_t * info, uint32_t seqnum);
