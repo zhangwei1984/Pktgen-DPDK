@@ -117,7 +117,7 @@ const struct rte_eth_txconf tx_conf = {
     .tx_free_thresh = 0, /* Use PMD default values */
     .txq_flags = IXGBE_SIMPLE_FLAGS,
 };
-
+#if 0
 static struct rte_eth_fc_conf fc_conf = {
     .mode       = RTE_FC_NONE, //RTE_FC_TX_PAUSE
     .high_water = 80 * 510 / 100,
@@ -125,7 +125,7 @@ static struct rte_eth_fc_conf fc_conf = {
     .pause_time = 1337,
     .send_xon   = 0,
 };
-
+#endif
 // Forward declaration of functions.
 static void pktgen_process_arp( struct rte_mbuf * m, uint32_t pid );
 static void pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid );
@@ -3150,11 +3150,11 @@ void pktgen_config_ports(void)
 			ret = rte_eth_tx_queue_setup(pid, q, pktgen.nb_txd, sid, &tx);
 			if (ret < 0)
 				rte_panic("rte_eth_tx_queue_setup: err=%d, port=%d, %s\n", ret, pid, rte_strerror(-ret));
-
+#if 0
 			ret = rte_eth_dev_flow_ctrl_set(pid, &fc_conf);
 			if (ret < 0)
 				rte_panic("rte_eth_dev_flow_ctrl_set: err=%d, port=%d, %s\n", ret, pid, rte_strerror(-ret));
-
+#endif
 			printf_info("\n");
 		}
 		printf_info("%*sPort memory used = %6lu KB\n", 71, " ", (pktgen.mem_used + 1023)/1024);
