@@ -556,13 +556,14 @@ unmap_unneeded_hugepages(struct hugepage *hugepg_tbl,
 					/* if we skipped enough pages, unmap the rest */
 					if (pages_found == hpi[size].num_pages[socket]) {
 						munmap(hp->final_va, hp->size);
+						hp->final_va = NULL;
 #ifdef RTE_EAL_UNLINK_UNNEEDED_HUGEPAGE_FILES
-						if (unlink(hp->filepath) < 0) {
-							RTE_LOG(ERR, EAL, "Failed to unlink %s, %m\n", hp->filepath);
-							// continue
+						if (remove(hp->filepath) == -1) {
+							RTE_LOG(ERR, EAL, "%s(): Removing %s failed: %s\n",
+									__func__, hp->filepath, strerror(errno));
+							return -1;
 						}
 #endif
-						hp->final_va = NULL;
 					}
 					/* lock the page and skip */
 					else

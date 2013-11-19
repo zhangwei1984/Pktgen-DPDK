@@ -3009,7 +3009,7 @@ void pktgen_config_ports(void)
         pktgen.nb_ports = RTE_MAX_ETHPORTS;
 
     if ( pktgen.nb_ports == 0 )
-    	rte_panic("*** Did not find any ports to use ***");
+    	rte_panic("*** Did not find any ports to use ***\n");
 
     pktgen.starting_port = 0;
 

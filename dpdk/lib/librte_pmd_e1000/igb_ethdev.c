@@ -1155,6 +1155,11 @@ eth_igb_infos_get(struct rte_eth_dev *dev,
 		dev_info->max_vmdq_pools = ETH_8_POOLS;
 		break;
 
+	case e1000_i354:
+		dev_info->max_rx_queues = 8;
+		dev_info->max_tx_queues = 8;
+		break;
+
 	case e1000_i210:
 		dev_info->max_rx_queues = 4;
 		dev_info->max_tx_queues = 4;
@@ -1722,6 +1727,7 @@ eth_igb_flow_ctrl_set(struct rte_eth_dev *dev, struct rte_eth_fc_conf *fc_conf)
 	};
 	uint32_t rx_buf_size;
 	uint32_t max_high_water;
+	uint32_t rctl;
 
 	hw = E1000_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 	rx_buf_size = igb_get_rx_buffer_size(hw);
@@ -1744,6 +1750,21 @@ eth_igb_flow_ctrl_set(struct rte_eth_dev *dev, struct rte_eth_fc_conf *fc_conf)
 
 	err = e1000_setup_link_generic(hw);
 	if (err == E1000_SUCCESS) {
+
+		/* check if we want to forward MAC frames - driver doesn't have native
+		 * capability to do that, so we'll write the registers ourselves */
+
+		rctl = E1000_READ_REG(hw, E1000_RCTL);
+
+		/* set or clear MFLCN.PMCF bit depending on configuration */
+		if (fc_conf->mac_ctrl_frame_fwd != 0)
+			rctl |= E1000_RCTL_PMCF;
+		else
+			rctl &= ~E1000_RCTL_PMCF;
+
+		E1000_WRITE_REG(hw, E1000_RCTL, rctl);
+		E1000_WRITE_FLUSH(hw);
+
 		return 0;
 	}
 

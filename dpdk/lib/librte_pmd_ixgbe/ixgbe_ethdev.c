@@ -64,6 +64,7 @@
 #include "ixgbe/ixgbe_vf.h"
 #include "ixgbe/ixgbe_common.h"
 #include "ixgbe_ethdev.h"
+#include "ixgbe_bypass.h"
 
 /*
  * High threshold controlling when to start sending XOFF frames. Must be at
@@ -288,6 +289,17 @@ static struct eth_dev_ops ixgbe_eth_dev_ops = {
 	.fdir_set_masks               = ixgbe_fdir_set_masks,
 	.reta_update          = ixgbe_dev_rss_reta_update,
 	.reta_query           = ixgbe_dev_rss_reta_query,
+#ifdef RTE_NIC_BYPASS
+	.bypass_init          = ixgbe_bypass_init,
+	.bypass_state_set     = ixgbe_bypass_state_store,
+	.bypass_state_show    = ixgbe_bypass_state_show,
+	.bypass_event_set     = ixgbe_bypass_event_store,
+	.bypass_event_show    = ixgbe_bypass_event_show,
+	.bypass_wd_timeout_set  = ixgbe_bypass_wd_timeout_store,
+	.bypass_wd_timeout_show = ixgbe_bypass_wd_timeout_show,
+	.bypass_ver_show      = ixgbe_bypass_ver_show,
+	.bypass_wd_reset      = ixgbe_bypass_wd_reset,
+#endif /* RTE_NIC_BYPASS */
 };
 
 /*
@@ -620,7 +632,12 @@ eth_ixgbe_dev_init(__attribute__((unused)) struct eth_driver *eth_drv,
 #endif
 
 	/* Initialize the shared code */
+#ifdef RTE_NIC_BYPASS
+	diag = ixgbe_bypass_init_shared_code(hw);
+#else
 	diag = ixgbe_init_shared_code(hw);
+#endif /* RTE_NIC_BYPASS */
+
 	if (diag != IXGBE_SUCCESS) {
 		PMD_INIT_LOG(ERR, "Shared code init failed: %d", diag);
 		return -EIO;
@@ -646,7 +663,11 @@ eth_ixgbe_dev_init(__attribute__((unused)) struct eth_driver *eth_drv,
 		return -EIO;
 	}
 
+#ifdef RTE_NIC_BYPASS
+	diag = ixgbe_bypass_init_hw(hw);
+#else
 	diag = ixgbe_init_hw(hw);
+#endif /* RTE_NIC_BYPASS */
 
 	/*
 	 * Devices with copper phys will fail to initialise if ixgbe_init_hw()
@@ -2007,6 +2028,7 @@ ixgbe_flow_ctrl_set(struct rte_eth_dev *dev, struct rte_eth_fc_conf *fc_conf)
 	int err;
 	uint32_t rx_buf_size;
 	uint32_t max_high_water;
+	uint32_t mflcn;
 	enum ixgbe_fc_mode rte_fcmode_2_ixgbe_fcmode[] = {
 		ixgbe_fc_none,
 		ixgbe_fc_rx_pause,
@@ -2039,8 +2061,24 @@ ixgbe_flow_ctrl_set(struct rte_eth_dev *dev, struct rte_eth_fc_conf *fc_conf)
 	hw->fc.send_xon       = fc_conf->send_xon;
 
 	err = ixgbe_fc_enable(hw);
+
 	/* Not negotiated is not an error case */
 	if ((err == IXGBE_SUCCESS) || (err == IXGBE_ERR_FC_NOT_NEGOTIATED)) {
+
+		/* check if we want to forward MAC frames - driver doesn't have native
+		 * capability to do that, so we'll write the registers ourselves */
+
+		mflcn = IXGBE_READ_REG(hw, IXGBE_MFLCN);
+
+		/* set or clear MFLCN.PMCF bit depending on configuration */
+		if (fc_conf->mac_ctrl_frame_fwd != 0)
+			mflcn |= IXGBE_MFLCN_PMCF;
+		else
+			mflcn &= ~IXGBE_MFLCN_PMCF;
+
+		IXGBE_WRITE_REG(hw, IXGBE_MFLCN, mflcn);
+		IXGBE_WRITE_FLUSH(hw);
+
 		return 0;
 	}
 
