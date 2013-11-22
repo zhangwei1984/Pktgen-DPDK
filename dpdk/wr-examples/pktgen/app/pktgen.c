@@ -1436,8 +1436,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 				pkt->dport = dport;
 			}
 
-            if (unlikely(range->src_ip_inc != 0))
-            {
+            if (unlikely(range->src_ip_inc != 0)) {
                 uint32_t p = pkt->ip_src_addr;
                 p += range->src_ip_inc;
                 if (p < range->src_ip_min)
@@ -1447,8 +1446,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                 pkt->ip_src_addr = p;
             }
 
-            if (unlikely(range->dst_ip_inc != 0))
-            {
+            if (unlikely(range->dst_ip_inc != 0)) {
                 uint32_t p = pkt->ip_dst_addr;
                 p += range->dst_ip_inc;
                 if (p < range->dst_ip_min)
@@ -1458,8 +1456,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                 pkt->ip_dst_addr = p;
             }
 
-            if (unlikely(range->vlan_id_inc != 0))
-            {
+            if (unlikely(range->vlan_id_inc != 0)) {
                 uint32_t p = pkt->vlanid;
                 p += range->vlan_id_inc;
                 if (p < range->vlan_id_min)
@@ -1469,8 +1466,7 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                 pkt->vlanid = p;
             }
 
-            if (unlikely(range->pkt_size_inc != 0))
-            {
+            if (unlikely(range->pkt_size_inc != 0)) {
                 uint32_t p = pkt->pktSize;
                 p += range->pkt_size_inc;
                 if (p < range->pkt_size_min)
@@ -1479,46 +1475,40 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                     p = range->pkt_size_min;
                 pkt->pktSize = p;
             }
-	    else
-	    {
-        	pkt->pktSize = range->pkt_size;
-	    }
+			else
+				pkt->pktSize = range->pkt_size;
 
-            if (unlikely(range->src_mac_inc != 0))
-            {
-                uint64_t p;
-                inet_mtoh64(&pkt->eth_src_addr, &p);
+			if (unlikely(range->src_mac_inc != 0)) {
+				uint64_t p;
 
-                p += range->src_mac_inc;
-                if (p < range->src_mac_min)
-                    p = range->src_mac_max;
-                else if (p > range->src_mac_max)
-                    p = range->src_mac_min;
+				inet_mtoh64(&pkt->eth_src_addr, &p);
 
-                inet_h64tom(p, &pkt->eth_src_addr);
-            }
-	    else
-	    {
-                inet_h64tom(range->src_mac, &pkt->eth_src_addr);
-	    }
+				p += range->src_mac_inc;
+				if (p < range->src_mac_min)
+					p = range->src_mac_max;
+				else if (p > range->src_mac_max)
+					p = range->src_mac_min;
 
-            if (unlikely(range->dst_mac_inc != 0))
-            {
-                uint64_t p;
-                inet_mtoh64(&pkt->eth_dst_addr, &p);
+				inet_h64tom(p, &pkt->eth_src_addr);
+			}
+			else
+				inet_h64tom(range->src_mac, &pkt->eth_src_addr);
 
-                p += range->dst_mac_inc;
-                if (p < range->dst_mac_min)
-                    p = range->dst_mac_max;
-                else if (p > range->dst_mac_max)
-                    p = range->dst_mac_min;
+			if (unlikely(range->dst_mac_inc != 0)) {
+				uint64_t p;
 
-                inet_h64tom(p, &pkt->eth_dst_addr);
-            }
-	    else
-	    {
-                inet_h64tom(range->dst_mac, &pkt->eth_dst_addr);
-	    }
+				inet_mtoh64(&pkt->eth_dst_addr, &p);
+
+				p += range->dst_mac_inc;
+				if (p < range->dst_mac_min)
+					p = range->dst_mac_max;
+				else if (p > range->dst_mac_max)
+					p = range->dst_mac_min;
+
+				inet_h64tom(p, &pkt->eth_dst_addr);
+			}
+			else
+				inet_h64tom(range->dst_mac, &pkt->eth_dst_addr);
 
 			break;
 		default:
@@ -1912,6 +1902,7 @@ pktgen_main_rx_loop(uint8_t lid)
     printf_info("=== RX processing on lcore %2d, rxcnt %d, port/qid, ",
     		lid, rxcnt);
 
+    memset(infos, '\0', sizeof(infos));
 	for( idx = 0; idx < rxcnt; idx++ ) {
 		pid = wr_get_rx_pid(pktgen.l2p, lid, idx);
     	if ( (infos[idx] = wr_get_port_private(pktgen.l2p, pid)) == NULL )
@@ -2405,6 +2396,38 @@ pktgen_print_range(void)
 
 /**************************************************************************//**
 *
+* pktgen_get_link_status - Get the port link status.
+*
+* DESCRIPTION
+* Try to get the link status of a port. The <wait> flag if set tells the
+* routine to try and wait for the link status for 3 seconds. If the <wait> flag
+* is zero the try three times to get a link status if the link is not up.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+static __inline__ void
+pktgen_get_link_status(port_info_t * info, int pid, int wait) {
+
+	int		i;
+
+    /* get link status */
+    for(i = 0; i < 3; i++) {
+		memset(&info->link, 0, sizeof(info->link));
+		rte_eth_link_get_nowait(pid, &info->link);
+		if ( info->link.link_status )
+			return;
+		if ( wait )
+			rte_delay_ms(1000);
+	}
+	// Setup a few default values to prevent problems later.
+	info->link.link_speed	= 1000;
+	info->link.link_duplex	= ETH_LINK_FULL_DUPLEX;
+}
+
+/**************************************************************************//**
+*
 * pktgen_page_stats - Display the statistics on the screen for all ports.
 *
 * DESCRIPTION
@@ -2446,8 +2469,9 @@ pktgen_page_stats(void)
         row = LINK_STATE_ROW;
 
         // Grab the link state of the port and display Duplex/Speed and UP/Down
-        rte_eth_link_get_nowait(pid+sp, &info->link);
-       	pktgen_link_state(pid, buff, sizeof(buff));
+        pktgen_get_link_status(info, pid, 0);
+
+        pktgen_link_state(pid, buff, sizeof(buff));
         scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
 
         // Rx/Tx pkts/s rate
@@ -3018,7 +3042,7 @@ void pktgen_config_ports(void)
         pktgen.nb_ports = RTE_MAX_ETHPORTS;
 
     if ( pktgen.nb_ports == 0 )
-    	rte_panic("*** Did not find any ports to use ***");
+    	rte_panic("*** Did not find any ports to use ***\n");
 
     pktgen.starting_port = 0;
 
@@ -3142,8 +3166,7 @@ void pktgen_config_ports(void)
 					rte_panic("Cannot load PCAP file for port %d", pid);
 			}
 			// Find out the link speed to program the WTHRESH value correctly.
-			memset(&info->link, 0, sizeof(info->link));
-			rte_eth_link_get_nowait(pid, &info->link);
+			pktgen_get_link_status(info, pid, 0);
 
 			tx.tx_thresh.wthresh = (info->link.link_speed == 1000)? TX_WTHRESH_1GB : TX_WTHRESH;
 
@@ -3172,9 +3195,7 @@ void pktgen_config_ports(void)
         if ( (ret = rte_eth_dev_start(pid)) < 0 )
             rte_panic("rte_eth_dev_start: port=%d, %s\n", pid, rte_strerror(-ret));
 
-        /* get link status */
-        memset(&info->link, 0, sizeof(info->link));
-        rte_eth_link_get_nowait(pid, &info->link);
+        pktgen_get_link_status(info, pid, 1);
 
         if (info->link.link_status) {
             printf_info("Port %2d: Link Up - speed %u Mbps - %s", pid,
@@ -3183,6 +3204,7 @@ void pktgen_config_ports(void)
                    ("full-duplex") : ("half-duplex"));
         } else
             printf_info("Port %2d: Link Down", pid);
+
 
         // If enabled, put device in promiscuous mode.
         if (pktgen.flags & PROMISCUOUS_ON_FLAG) {
