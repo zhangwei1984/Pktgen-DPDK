@@ -2422,7 +2422,7 @@ pktgen_get_link_status(port_info_t * info, int pid, int wait) {
 			rte_delay_ms(1000);
 	}
 	// Setup a few default values to prevent problems later.
-	info->link.link_speed	= 1000;
+	info->link.link_speed	= 100;
 	info->link.link_duplex	= ETH_LINK_FULL_DUPLEX;
 }
 
