@@ -1546,75 +1546,73 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 */
 
 static __inline__ void
-pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp)
+pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp, uint8_t qid)
 {
 	struct rte_mbuf	* m, * mm;
 	pkt_seq_t * pkt;
-	uint8_t		idx, k;
 
-	for(k = 0, idx = 0; idx < wr_get_lcore_txcnt(pktgen.l2p, rte_lcore_id()); idx++) {
-		if ( mp != info->q[idx].pcap_mp ) {
-			mm	= NULL;
-			pkt = NULL;
-			k++;
+	pktgen_clr_q_flags(info, qid, CLEAR_FAST_ALLOC_FLAG);
 
-			if ( mp == info->q[idx].tx_mp )
-				pkt = &info->seq_pkt[SINGLE_PKT];
-			else if ( mp == info->q[idx].range_mp )
-				pkt = &info->seq_pkt[RANGE_PKT];
-			else if ( mp == info->q[idx].seq_mp )
-				pkt = &info->seq_pkt[info->seqIdx];
+	if ( mp == info->q[qid].pcap_mp )
+		return;
 
-			// allocate each mbuf and put them on a list to be freed.
-			for(;;) {
-				m = rte_pktmbuf_alloc_noreset(mp);
-				if ( unlikely(m == NULL) )
-					break;
+	mm	= NULL;
+	pkt = NULL;
 
-				// Put the allocated mbuf into a list to be freed later
-				m->pkt.next = mm;
-				mm = m;
+	if ( mp == info->q[qid].tx_mp )
+		pkt = &info->seq_pkt[SINGLE_PKT];
+	else if ( mp == info->q[qid].range_mp )
+		pkt = &info->seq_pkt[RANGE_PKT];
+	else if ( mp == info->q[qid].seq_mp )
+		pkt = &info->seq_pkt[info->seqIdx];
 
-				if ( mp == info->q[idx].tx_mp ) {
-					pktgen_packet_ctor(info, SINGLE_PKT, -1);
+	// allocate each mbuf and put them on a list to be freed.
+	for(;;) {
+		m = rte_pktmbuf_alloc_noreset(mp);
+		if ( unlikely(m == NULL) )
+			break;
 
-					rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&pkt->hdr, MAX_PKT_SIZE);
+		// Put the allocated mbuf into a list to be freed later
+		m->pkt.next = mm;
+		mm = m;
 
-					m->pkt.pkt_len  = pkt->pktSize;
-					m->pkt.data_len = pkt->pktSize;
-				} else if ( mp == info->q[idx].range_mp ) {
-					pktgen_range_ctor(info, pkt);
-					pktgen_packet_ctor(info, RANGE_PKT, -1);
+		if ( mp == info->q[qid].tx_mp ) {
+			pktgen_packet_ctor(info, SINGLE_PKT, -1);
 
-					rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&pkt->hdr, MAX_PKT_SIZE);
+			rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&pkt->hdr, MAX_PKT_SIZE);
 
-					m->pkt.pkt_len  = pkt->pktSize;
-					m->pkt.data_len = pkt->pktSize;
-				} else if ( mp == info->q[idx].seq_mp ) {
-					pktgen_packet_ctor(info, info->seqIdx++, -1);
-					if ( unlikely(info->seqIdx >= info->seqCnt) )
-						info->seqIdx = 0;
+			m->pkt.pkt_len  = pkt->pktSize;
+			m->pkt.data_len = pkt->pktSize;
+		} else if ( mp == info->q[qid].range_mp ) {
+			pktgen_range_ctor(info, pkt);
+			pktgen_packet_ctor(info, RANGE_PKT, -1);
 
-					rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&pkt->hdr, MAX_PKT_SIZE);
+			rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&pkt->hdr, MAX_PKT_SIZE);
 
-					m->pkt.pkt_len  = pkt->pktSize;
-					m->pkt.data_len = pkt->pktSize;
+			m->pkt.pkt_len  = pkt->pktSize;
+			m->pkt.data_len = pkt->pktSize;
+		} else if ( mp == info->q[qid].seq_mp ) {
+			pktgen_packet_ctor(info, info->seqIdx++, -1);
+			if ( unlikely(info->seqIdx >= info->seqCnt) )
+				info->seqIdx = 0;
 
-					// move to the next packet in the sequence.
-					pkt = &info->seq_pkt[info->seqIdx];
-				}
-			}
+			rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&pkt->hdr, MAX_PKT_SIZE);
 
-			// Free all of the mbufs
-			if ( likely(mm != 0) ) {
-				while( (m = mm) != NULL ) {
-					mm = m->pkt.next;
-					m->pkt.next = NULL;
-					rte_pktmbuf_free(m);
-				}
-			}
+			m->pkt.pkt_len  = pkt->pktSize;
+			m->pkt.data_len = pkt->pktSize;
+
+			// move to the next packet in the sequence.
+			pkt = &info->seq_pkt[info->seqIdx];
 		}
-		pktgen_clr_q_flags(info, idx, CLEAR_FAST_ALLOC_FLAG);
+	}
+
+	// Free all of the mbufs
+	if ( likely(mm != 0) ) {
+		while( (m = mm) != NULL ) {
+			mm = m->pkt.next;
+			m->pkt.next = NULL;
+			rte_pktmbuf_free(m);
+		}
 	}
 }
 
@@ -1636,7 +1634,7 @@ pktgen_send_pkts(port_info_t * info, uint8_t qid, struct rte_mempool * mp)
 	int			txCnt;
 
 	if ( unlikely(rte_atomic32_read(&info->q[qid].flags) & CLEAR_FAST_ALLOC_FLAG) )
-		pktgen_setup_packets(info, mp);
+		pktgen_setup_packets(info, mp, qid);
 
 	txCnt = info->current_tx_count;
 	if ( likely(txCnt == 0) || unlikely(txCnt > info->tx_burst) )
@@ -2394,6 +2392,19 @@ pktgen_print_range(void)
     pktgen.flags &= ~PRINT_LABELS_FLAG;
 }
 
+/**************************************************************************//**
+*
+* pktgen_get_link_status - Get the port link status.
+*
+* DESCRIPTION
+* Try to get the link status of a port. The <wait> flag if set tells the
+* routine to try and wait for the link status for 3 seconds. If the <wait> flag
+* is zero the try three times to get a link status if the link is not up.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
 static __inline__ void
 pktgen_get_link_status(port_info_t * info, int pid, int wait) {
 
@@ -2404,10 +2415,13 @@ pktgen_get_link_status(port_info_t * info, int pid, int wait) {
 		memset(&info->link, 0, sizeof(info->link));
 		rte_eth_link_get_nowait(pid, &info->link);
 		if ( info->link.link_status )
-			break;
+			return;
 		if ( wait )
 			rte_delay_ms(1000);
 	}
+	// Setup a few default values to prevent problems later.
+	info->link.link_speed	= 100;
+	info->link.link_duplex	= ETH_LINK_FULL_DUPLEX;
 }
 
 /**************************************************************************//**
@@ -3186,13 +3200,9 @@ void pktgen_config_ports(void)
                    (uint32_t) info->link.link_speed,
                    (info->link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
                    ("full-duplex") : ("half-duplex"));
-        } else {
+        } else
             printf_info("Port %2d: Link Down", pid);
 
-            // Setup a few default values to prevent problems later.
-            info->link.link_speed	= 1000;
-            info->link.link_duplex	= ETH_LINK_FULL_DUPLEX;
-        }
 
         // If enabled, put device in promiscuous mode.
         if (pktgen.flags & PROMISCUOUS_ON_FLAG) {

@@ -602,7 +602,7 @@ strdupf(char * str, char * new) {
 	return (new == NULL) ? NULL : strdup(new);
 }
 
-#define printf_info( ... )	scrn_fprintf(0,0,stdout, __VA_ARGS__)
+#define printf_info(...)	scrn_fprintf(0,0,stdout, __VA_ARGS__)
 
 extern void pktgen_stop_running(void);
 extern void pktgen_send_seq_pkt(port_info_t * info, uint32_t seqnum);
