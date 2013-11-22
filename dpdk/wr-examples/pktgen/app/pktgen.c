@@ -2888,7 +2888,7 @@ rte_timer_setup(void)
     rte_timer_reset(&timer0, (pktgen.hz*2), PERIODICAL, lcore_id, pktgen_page_display, NULL);
 
     /* load timer1, every second, on timer lcore, reloaded automatically */
-    rte_timer_reset(&timer1, pktgen.hz/4, PERIODICAL, lcore_id, pktgen_process_stats, NULL);
+    rte_timer_reset(&timer1, pktgen.hz, PERIODICAL, lcore_id, pktgen_process_stats, NULL);
 }
 
 /**************************************************************************//**
