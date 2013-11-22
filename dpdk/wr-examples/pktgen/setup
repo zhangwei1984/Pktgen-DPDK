@@ -48,3 +48,4 @@ rmmod rte_kni
 insmod $sdk/$target/kmod/rte_kni.ko "lo_mode=lo_mode_ring"
 
 $sdk/tools/pci_unbind.py -b igb_uio 04:00.0 04:00.1 07:00.0 07:00.1
+$sdk/tools/pci_unbind.py --status

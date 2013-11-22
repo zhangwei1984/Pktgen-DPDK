@@ -2394,6 +2394,22 @@ pktgen_print_range(void)
     pktgen.flags &= ~PRINT_LABELS_FLAG;
 }
 
+static __inline__ void
+pktgen_get_link_status(port_info_t * info, int pid, int wait) {
+
+	int		i;
+
+    /* get link status */
+    for(i = 0; i < 3; i++) {
+		memset(&info->link, 0, sizeof(info->link));
+		rte_eth_link_get_nowait(pid, &info->link);
+		if ( info->link.link_status )
+			break;
+		if ( wait )
+			rte_delay_ms(1000);
+	}
+}
+
 /**************************************************************************//**
 *
 * pktgen_page_stats - Display the statistics on the screen for all ports.
@@ -2437,8 +2453,9 @@ pktgen_page_stats(void)
         row = LINK_STATE_ROW;
 
         // Grab the link state of the port and display Duplex/Speed and UP/Down
-        rte_eth_link_get_nowait(pid+sp, &info->link);
-       	pktgen_link_state(pid, buff, sizeof(buff));
+        pktgen_get_link_status(info, pid, 0);
+
+        pktgen_link_state(pid, buff, sizeof(buff));
         scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
 
         // Rx/Tx pkts/s rate
@@ -3133,8 +3150,7 @@ void pktgen_config_ports(void)
 					rte_panic("Cannot load PCAP file for port %d", pid);
 			}
 			// Find out the link speed to program the WTHRESH value correctly.
-			memset(&info->link, 0, sizeof(info->link));
-			rte_eth_link_get_nowait(pid, &info->link);
+			pktgen_get_link_status(info, pid, 0);
 
 			tx.tx_thresh.wthresh = (info->link.link_speed == 1000)? TX_WTHRESH_1GB : TX_WTHRESH;
 
@@ -3163,17 +3179,20 @@ void pktgen_config_ports(void)
         if ( (ret = rte_eth_dev_start(pid)) < 0 )
             rte_panic("rte_eth_dev_start: port=%d, %s\n", pid, rte_strerror(-ret));
 
-        /* get link status */
-        memset(&info->link, 0, sizeof(info->link));
-        rte_eth_link_get_nowait(pid, &info->link);
+        pktgen_get_link_status(info, pid, 1);
 
         if (info->link.link_status) {
             printf_info("Port %2d: Link Up - speed %u Mbps - %s", pid,
                    (uint32_t) info->link.link_speed,
                    (info->link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
                    ("full-duplex") : ("half-duplex"));
-        } else
+        } else {
             printf_info("Port %2d: Link Down", pid);
+
+            // Setup a few default values to prevent problems later.
+            info->link.link_speed	= 1000;
+            info->link.link_duplex	= ETH_LINK_FULL_DUPLEX;
+        }
 
         // If enabled, put device in promiscuous mode.
         if (pktgen.flags & PROMISCUOUS_ON_FLAG) {
