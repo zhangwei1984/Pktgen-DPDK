@@ -1,4 +1,4 @@
-Pktgen version 2.2.5 using DPDK-1.5.0
+Pktgen version 2.3.0 using DPDK-1.5.1
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,10 @@ Pktgen version 2.2.5 using DPDK-1.5.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.3.0   - Now supports the VLAN encapsulated packets for ARP replies
+             Also added a special GARP processing to update the destination MAC
+             address to help support a special request for failover support.
+             Added support for DPDK 1.5.1
  - 2.2.7   - Updated the code to handle multiple TX queues per port.
  - 2.2.6   - Fixed a crash if the port is not up with link status
  - 2.2.5   - Remove the flow control code as some systems it does not work.
@@ -200,7 +204,7 @@ Dst  IP Address  :       192.168.1.1       192.168.0.1       192.168.3.1       1
 Src  IP Address  :    192.168.0.1/24    192.168.1.1/24    192.168.2.1/24    192.168.3.1/24
 Dst MAC Address  :    001b:218e:b1e9    001b:218e:b1e8    001b:218e:b761    001b:218e:b760
 Src MAC Address  :    001b:218e:b1e8    001b:218e:b1e9    001b:218e:b760    001b:218e:b761
-- Pktgen Ver:2.2.0(DPDK-1.5.0) --------------------------------------------------------------------------------------
+- Pktgen Ver:2.3.0(DPDK-1.5.1) --------------------------------------------------------------------------------------
 
 
 
@@ -260,6 +264,7 @@ page [0-7]|range|config|seq|pcap|next|cpu- Show the port pages or configuration 
                                      Note: use the 'port <number>' to display a new port sequence
 port <number>                      - Sets the sequence of packets to display for a given port
 process <portlist> <state>         - Enable or Disable processing of ARP/ICMP/IPv4/IPv6 packets
+garp <portlist> <state>            - Enable or Disable processing of GARP packets
 blink <portlist> <state>           - Blink the link led on the given port list
 start <portlist>                   - Start transmitting packets
 stop <portlist>                    - Stop transmitting packets
@@ -312,18 +317,19 @@ pkt.size inc <portlist> value      - Set vlan id increment address
 range <portlist> <state>           - Enable or Disable the given portlist for sending a range of packets
 
 Notes: <state> - Use enable|disable or on|off to set the state.
-       Flags: P----------- - Promiscuous mode enabled
-               E           - ICMP Echo enabled
-                A          - Send ARP Request flag
-                 G         - Send Gratuitous ARP flag
-                  C        - TX Cleanup flag
-                   p       - PCAP enabled flag
-                    S      - Send Sequence packets enabled
-                     R     - Send Range packets enabled
-                      D    - DPI Scanning enabled (If Enabled)
-                       I   - Process packets on input enabled
-                        T  - Using TAP interface for this port
-                         V - Send VLAN ID tag
+       Flags: P------------ - Promiscuous mode enabled
+               E            - ICMP Echo enabled
+                A           - Send ARP Request flag
+                 G          - Send Gratuitous ARP flag
+                  C         - TX Cleanup flag
+                   p        - PCAP enabled flag
+                    S       - Send Sequence packets enabled
+                     R      - Send Range packets enabled
+                      D     - DPI Scanning enabled (If Enabled)
+                       I    - Process packets on input enabled
+                        T   - Using TAP interface for this port
+                         V  - Send VLAN ID tag
+                          g - Special GARP processing of packets
    <Press Return to Continue>
 ```
 ---
