@@ -155,11 +155,7 @@
 
 int main(int argc, char **argv);
 
-<<<<<<< HEAD
 #define PKTGEN_VERSION			"2.3.0"
-=======
-#define PKTGEN_VERSION			"2.2.7"
->>>>>>> d20981f15ad3a9fe2085237fa167e8927fd4297e
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -243,9 +239,9 @@ enum {
 
 	FIRST_SEQ_PKT			= 0,
 	SINGLE_PKT				= (FIRST_SEQ_PKT + NUM_SEQ_PKTS),		// 16
-	RANGE_PKT				= (SINGLE_PKT + 1),						// 17
-	PING_PKT				= (RANGE_PKT + 1),						// 18
-	EXTRA_TX_PKT			= (PING_PKT + 1),						// 19
+	PING_PKT				= (SINGLE_PKT + 1),						// 17
+	RANGE_PKT				= (PING_PKT + 1),						// 18
+	EXTRA_TX_PKT			= (RANGE_PKT + 1),						// 19
 	NUM_TOTAL_PKTS			= (EXTRA_TX_PKT + NUM_EXTRA_TX_PKTS),
 
 	DEFAULT_PKT_BURST		= 16,		// Increasing this number consumes memory very fast

@@ -247,6 +247,43 @@ pktgen_fill_pattern( uint8_t * p, uint32_t len, uint32_t type ) {
 
 /**************************************************************************//**
 *
+* pktgen_find_matching_ipsrc - Find the matching IP source address
+*
+* DESCRIPTION
+* locate and return the pkt_seq_t pointer to the match IP address.
+*
+* RETURNS: pkt_seq_t  * or NULL
+*
+* SEE ALSO:
+*/
+
+static __inline__ pkt_seq_t *
+pktgen_find_matching_ipsrc( port_info_t * info, uint32_t addr ) 
+{
+	pkt_seq_t * pkt = NULL;
+	int		i;
+
+	addr = ntohl(addr);
+
+	/* Search the sequence packets for a match */
+	for(i = 0; i < info->seqCnt; i++) {
+		if ( addr == info->seq_pkt[i].ip_src_addr ) {
+			pkt = &info->seq_pkt[i];
+			break;
+		}
+	}
+
+	/* Now try to match the single packet address */
+	if ( pkt == NULL ) {
+		if ( addr == info->seq_pkt[SINGLE_PKT].ip_src_addr )
+			pkt = &info->seq_pkt[SINGLE_PKT];
+	}
+
+	return pkt;
+}
+
+/**************************************************************************//**
+*
 * pktgen_send_burst - Send a burst of packets.
 *
 * DESCRIPTION
@@ -758,10 +795,10 @@ pktgen_send_mbuf(struct rte_mbuf *m, uint8_t pid, uint8_t qid)
 }
 
 void
-pktgen_send_seq_pkt(port_info_t * info, uint32_t seqnum)
+pktgen_send_seq_pkt(port_info_t * info, uint32_t seq_idx)
 {
     (void)info;
-    (void)seqnum;
+    (void)seq_idx;
 }
 
 /**************************************************************************//**
@@ -913,16 +950,17 @@ pktgen_packet_classify_bulk(struct rte_mbuf ** pkts, int nb_rx, int pid )
 */
 
 void
-pktgen_send_arp( uint32_t pid, uint32_t type, uint8_t seqnum )
+pktgen_send_arp( uint32_t pid, uint32_t type, uint8_t seq_idx )
 {
     port_info_t       * info = &pktgen.info[pid];
-    pkt_seq_t         * pkt = &info->seq_pkt[seqnum];
+    pkt_seq_t         * pkt;
     struct rte_mbuf   * m ;
     struct ether_hdr  * eth;
     arpPkt_t          * arp;
     uint32_t            addr;
     uint8_t				qid = 0;
 
+    pkt = &info->seq_pkt[seq_idx];
     m   = rte_pktmbuf_alloc(info->q[qid].special_mp);
     if ( unlikely(m == NULL) ) {
         scrn_fprintf(0,0, stdout, "%s: No packet buffers found\n", __FUNCTION__);
@@ -983,7 +1021,8 @@ void
 pktgen_send_ping4( uint32_t pid, uint8_t seq_idx )
 {
     port_info_t       * info = &pktgen.info[pid];
-    pkt_seq_t         * pkt = &info->seq_pkt[seq_idx];
+    pkt_seq_t         * ppkt = &info->seq_pkt[PING_PKT];
+    pkt_seq_t         * spkt = &info->seq_pkt[seq_idx];
     struct rte_mbuf   * m ;
     uint8_t				qid = 0;
 
@@ -992,11 +1031,12 @@ pktgen_send_ping4( uint32_t pid, uint8_t seq_idx )
         scrn_fprintf(0,0,stdout,"%s: No packet buffers found\n", __FUNCTION__);
         return;
     }
-    pktgen_packet_ctor(info, seq_idx, ICMP4_ECHO);
-	rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&pkt->hdr, pkt->pktSize);
+	*ppkt = *spkt;		// Copy the sequence setup to the ping setup.
+    pktgen_packet_ctor(info, PING_PKT, ICMP4_ECHO);
+	rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&ppkt->hdr, ppkt->pktSize);
 
-    m->pkt.pkt_len  = pkt->pktSize;
-    m->pkt.data_len = pkt->pktSize;
+    m->pkt.pkt_len  = ppkt->pktSize;
+    m->pkt.data_len = ppkt->pktSize;
 
     pktgen_send_mbuf(m, pid, qid);
 
@@ -1096,24 +1136,32 @@ pktgen_process_arp( struct rte_mbuf * m, uint32_t pid )
     // Process all ARP requests if they are for us.
     if ( arp->op == htons(ARP_REQUEST) ) {
         pkt = NULL;
-        for(i = 0; i <= info->seqCnt; i++) {
-        	if ( ntohl(arp->tpa._32) == info->seq_pkt[i].ip_src_addr ) {
-        		pkt = &info->seq_pkt[i];
-        		break;
-        	}
-        }
-		// Now match the single packet address
-		if ( (pkt == NULL) && (ntohl(arp->tpa._32) == info->seq_pkt[SINGLE_PKT].ip_src_addr) )
-			pkt = &info->seq_pkt[SINGLE_PKT];
 
-		// ARP request not for this interface.
+		if ( arp->tpa._32 == arp->spa._32 ) {		/* Must be a GARP packet */
+
+			pkt = pktgen_find_matching_ipsrc(info, arp->tpa._32);
+
+			rte_pktmbuf_free(m);
+
+			/* Found a matching packet, replace the dst address */
+			if ( pkt ) {
+				rte_memcpy(&pkt->eth_dst_addr, &arp->sha, 6);
+				pktgen_tx_cleanup(info, wr_get_txque(pktgen.l2p, rte_lcore_id(), info->pid));
+				pktgen_redisplay(0);
+			}
+			return;
+		}
+
+		pkt = pktgen_find_matching_ipsrc(info, arp->tpa._32);
+
+		/* ARP request not for this interface. */
 		if ( likely(pkt != NULL) ) {
-			// Grab the source MAC address as the destination address for the port.
+			/* Grab the source MAC address as the destination address for the port. */
 			if ( unlikely(pktgen.flags & MAC_FROM_ARP_FLAG) ) {
 				uint32_t    i;
 
 				rte_memcpy(&pkt->eth_dst_addr, &arp->sha, 6);
-				for (i = 0; i <= info->seqCnt; i++)
+				for (i = 0; i < info->seqCnt; i++)
 					pktgen_packet_ctor(info, i, -1);
 			}
 
@@ -1142,13 +1190,8 @@ pktgen_process_arp( struct rte_mbuf * m, uint32_t pid )
 			return;
 		}
 	} else if ( arp->op == htons(ARP_REPLY) ) {
-		pkt = NULL;
-		for(i = 0; i <= info->seqCnt; i++) {
-			if ( ntohl(arp->tpa._32) == info->seq_pkt[i].ip_src_addr ) {
-				pkt = &info->seq_pkt[i];
-				break;
-			}
-		}
+		pkt = pktgen_find_matching_ipsrc(info, arp->tpa._32);
+
 		// ARP request not for this interface.
 		if ( likely(pkt != NULL) ) {
 			// Grab the real destination MAC address
@@ -1205,17 +1248,8 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid )
                 goto leave;
             }
 
-            pkt = NULL;
             // Toss all broadcast addresses and requests not for this port
-            for(i = 0; i <= info->seqCnt; i++) {
-                if ( ntohl(ip->dst) == info->seq_pkt[i].ip_src_addr ) {
-                    pkt = &info->seq_pkt[i];
-                    break;
-                }
-            }
-			// Now match the single packet address
-			if ( (pkt == NULL) && (ntohl(ip->dst) == info->seq_pkt[SINGLE_PKT].ip_src_addr))
-				pkt = &info->seq_pkt[SINGLE_PKT];
+            pkt = pktgen_find_matching_ipsrc(info, ip->dst);
 
             // ARP request not for this interface.
             if ( unlikely(pkt == NULL) ) {
@@ -1352,9 +1386,28 @@ leave:
 */
 
 static void
-pktgen_process_vlan( struct rte_mbuf * m, __attribute__ ((unused)) uint32_t pid )
+pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid )
 {
-    rte_pktmbuf_free(m);
+	pktType_e        pType;
+    struct ether_hdr *eth;
+    struct vlan_hdr  *vlan_hdr;
+    port_info_t      *info = &pktgen.info[pid];
+ 
+    eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
+   
+    /* Now dealing with the inner header */
+    vlan_hdr = (struct vlan_hdr*)(eth+1);
+
+    pType = ntohs(vlan_hdr->eth_proto);
+ 
+	/* No support for nested tunnel */
+	switch((int)pType) {
+	case ETHER_TYPE_ARP:    info->stats.arp_pkts++;         pktgen_process_arp(m, pid);     break;
+	case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;          pktgen_process_ping4(m, pid);   break;
+	case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;        pktgen_process_ping6(m, pid);   break;
+	case UNKNOWN_PACKET:    /* FALL THRU */
+	default:                rte_pktmbuf_free(m);    break;
+	};
 }
 
 /**************************************************************************//**
@@ -1380,18 +1433,31 @@ pktgen_send_special(port_info_t * info)
 
     pktgen_clr_port_flags(info, SEND_SPECIAL_REQUEST);
 
-    for(s=0; s <= info->seqCnt; s++) {
+    for(s=0; s < info->seqCnt; s++) {
         if ( unlikely(flags & SEND_GRATUITOUS_ARP) )
             pktgen_send_arp(info->pid, GRATUITOUS_ARP, s);
         if ( likely(flags & SEND_ARP_REQUEST) )
             pktgen_send_arp(info->pid, 0, s);
+
         if ( likely(flags & SEND_PING4_REQUEST) )
-            pktgen_send_ping4(info->pid, PING_PKT);
+            pktgen_send_ping4(info->pid, s);
 #ifdef INCLUDE_PING6
         if ( flags & SEND_PING6_REQUEST )
-            pktgen_send_ping6(info->pid, PING_PKT);
+            pktgen_send_ping6(info->pid, s);
 #endif
     }
+	
+	if ( unlikely(flags & SEND_GRATUITOUS_ARP) )
+		pktgen_send_arp(info->pid, GRATUITOUS_ARP, SINGLE_PKT);
+	if ( likely(flags & SEND_ARP_REQUEST) )
+		pktgen_send_arp(info->pid, 0, SINGLE_PKT);
+
+	if ( likely(flags & SEND_PING4_REQUEST) )
+		pktgen_send_ping4(info->pid, SINGLE_PKT);
+#ifdef INCLUDE_PING6
+	if ( flags & SEND_PING6_REQUEST )
+		pktgen_send_ping6(info->pid, SINGLE_PKT);
+#endif
 }
 
 /**************************************************************************//**

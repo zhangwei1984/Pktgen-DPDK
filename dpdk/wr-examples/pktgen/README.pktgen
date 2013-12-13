@@ -2,18 +2,18 @@
                           *** Pktgen ****
           Copyright (c) <2010-2013>, Wind River Systems, Inc.
 
-README for setting up Pktgen with DPDK on Ubuntu 10.04 to 12.10 desktop, it
-should work on most Linux systems as long as the kernel has hugeTLB support.
+README for setting up Pktgen with DPDK on Ubuntu 10.04 to 13.10 desktop, it
+should work on most Linux systems as long as the kernel has hugeTLB page support.
 
-*** Note: Tested with Ubuntu 12.10 kernel version
+*** Note: Tested with Ubuntu 13.10 kernel version
     Linux 3.5.0-25-generic #39-Ubuntu SMP Mon Feb 25 18:26:58 UTC 2013 x86_64
 
-I am using Ubuntu 12.10 x86_64 (64 bit support) for running pktgen/DPDK on a
+I am using Ubuntu 13.10 x86_64 (64 bit support) for running pktgen/DPDK on a
 Westmere Dual socket board running at 2.4GHz with 12GB of ram 6GB per socket.
 The current kernel version is 3.5.0-25 (as of 2013-03-18) support, but should
 work on just about any new Linux kernel version.
 
-To get hugeTLB support your Linux kernel must be at least 2.6.33 and in the
+To get hugeTLB page support your Linux kernel must be at least 2.6.33 and in the
 DPDK documents it talks about how you can upgrade your Linux kernel.
 
 Here is another document on how to upgrade your Linux kernel.
@@ -557,11 +557,7 @@ Dst  IP Address  :       192.168.1.1       192.168.0.1       192.168.3.1       1
 Src  IP Address  :    192.168.0.1/24    192.168.1.1/24    192.168.2.1/24    192.168.3.1/24
 Dst MAC Address  :    001b:218e:b1e9    001b:218e:b1e8    001b:218e:b761    001b:218e:b760
 Src MAC Address  :    001b:218e:b1e8    001b:218e:b1e9    001b:218e:b760    001b:218e:b761
-<<<<<<< HEAD
 - Pktgen Ver:2.3.0(DPDK-1.5.1) --------------------------------------------------------------------------------------
-=======
-- Pktgen Ver:2.2.7(DPDK-1.5.0) --------------------------------------------------------------------------------------
->>>>>>> d20981f15ad3a9fe2085237fa167e8927fd4297e
 
 
 
@@ -716,11 +712,7 @@ Port: 0, PCAP Count: 0 of 9716, skipped 0
    23:    0013:720b:515b    000f:ea34:177e     203.84.217.32     192.168.117.213    40202/80  IPv4/UDP:   0   66
    24:    000f:ea34:177e    0013:720b:515b   192.168.117.213       203.84.217.32    80/40202  IPv4/UDP:   0 1466
 
-<<<<<<< HEAD
 - Pktgen Ver:2.3.0(DPDK-1.5.1) --------------------------------------------------------------------------------------
-=======
-- Pktgen Ver:2.2.7(DPDK-1.5.0) --------------------------------------------------------------------------------------
->>>>>>> d20981f15ad3a9fe2085237fa167e8927fd4297e
 
 
 
