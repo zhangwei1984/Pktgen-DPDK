@@ -425,7 +425,7 @@ pktgen_flags_string( port_info_t * info )
     static char buff[32];
     uint32_t	flags = rte_atomic32_read(&info->port_flags);
 
-    snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c",
+    snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c%c",
             (pktgen.flags & PROMISCUOUS_ON_FLAG)? 'P' : '-',
             (flags & ICMP_ECHO_ENABLE_FLAG)? 'E' : '-',
             (flags & SEND_ARP_REQUEST)? 'A' : '-',
@@ -435,7 +435,8 @@ pktgen_flags_string( port_info_t * info )
             (flags & SEND_RANGE_PKTS)? 'R' : '-',
             (flags & PROCESS_INPUT_PKTS)? 'I' : '-',
             (flags & PROCESS_TAP_PKTS)? 'T' : '-',
-            (flags & SEND_VLAN_ID)? 'V' : '-');
+            (flags & SEND_VLAN_ID)? 'V' : '-',
+			(flags & PROCESS_GARP_PKTS)? 'g' : '-');
 
     return buff;
 }
@@ -893,6 +894,27 @@ pktgen_process_enable_disable(port_info_t * info, char * str)
 		pktgen_set_port_flags(info, PROCESS_INPUT_PKTS);
 	else
 		pktgen_clr_port_flags(info, PROCESS_INPUT_PKTS);
+}
+
+/**************************************************************************//**
+*
+* pktgen_garp_enable_disable - Enable or disable GARP packet processing.
+*
+* DESCRIPTION
+* Enable or disable GARP packet processing of ICMP, ARP, ...
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_garp_enable_disable(port_info_t * info, char * str)
+{
+	if ( parseState(str) == ENABLE_STATE )
+		pktgen_set_port_flags(info, PROCESS_GARP_PKTS | PROCESS_INPUT_PKTS);
+	else
+		pktgen_clr_port_flags(info, PROCESS_GARP_PKTS | PROCESS_INPUT_PKTS);
 }
 
 /**************************************************************************//**

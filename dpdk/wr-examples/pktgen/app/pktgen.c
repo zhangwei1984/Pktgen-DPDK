@@ -1137,7 +1137,8 @@ pktgen_process_arp( struct rte_mbuf * m, uint32_t pid )
     if ( arp->op == htons(ARP_REQUEST) ) {
         pkt = NULL;
 
-		if ( arp->tpa._32 == arp->spa._32 ) {		/* Must be a GARP packet */
+		if ((rte_atomic32_read(&info->port_flags) & PROCESS_GARP_PKTS) &&
+ 			(arp->tpa._32 == arp->spa._32) ) {		/* Must be a GARP packet */
 
 			pkt = pktgen_find_matching_ipsrc(info, arp->tpa._32);
 

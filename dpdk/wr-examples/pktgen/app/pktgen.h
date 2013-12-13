@@ -507,7 +507,8 @@ enum {		// Per port flag bits
 	SEND_PING6_REQUEST		= 0x00000100,		/**< Send a IPv6 Ping request */
 	SEND_SPECIAL_REQUEST	= (SEND_ARP_REQUEST | SEND_GRATUITOUS_ARP | SEND_PING4_REQUEST | SEND_PING6_REQUEST),
 	PROCESS_TAP_PKTS		= 0x00000200,		/**< Handle TAP interface packets */
-	SEND_VLAN_ID			= 0x00000400		/**< Send packets with VLAN ID */
+	SEND_VLAN_ID			= 0x00000400,		/**< Send packets with VLAN ID */
+	PROCESS_GARP_PKTS		= 0x00000800		/**< Process GARP packets and update the dst MAC address */
 };
 
 enum {	// Queue flags

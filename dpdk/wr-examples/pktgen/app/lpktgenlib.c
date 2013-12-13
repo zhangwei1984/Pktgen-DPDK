@@ -1545,6 +1545,35 @@ static int pktgen_process (lua_State *L) {
 
 /**************************************************************************//**
 *
+* pktgen_garp - Enable or Disable GARP packet processing.
+*
+* DESCRIPTION
+* Enable or disable GARP packet processing.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_garp (lua_State *L) {
+	uint32_t	portlist;
+	
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "process, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+
+	foreach_port( portlist,
+		pktgen_garp_enable_disable(info, (char *)luaL_checkstring(L, 2)) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
 * pktgen_blink - Enable or disable port Led blinking.
 *
 * DESCRIPTION
@@ -2175,6 +2204,7 @@ static char * lua_help_info[] = {
 	"page           - Select a page to display, seq, range, pcap and a number from 0-N\n",
 	"port           - select a different port number used for sequence and range pages.\n",
 	"process        - Enable or disable input packet processing on a port\n",
+	"garp           - Enable or disable GARP packet processing on a port\n",
 	"blink          - Blink an led on a port\n",
 	"help           - Return the help text\n",
 	"Lua.help       - Lua command help text\n",
@@ -2312,6 +2342,7 @@ static const luaL_Reg pktgenlib[] = {
   {"page",			pktgen_page},			// Select a page to display, seq, range, pcap and a number from 0-N
   {"port",			pktgen_port},			// select a different port number used for sequence and range pages.
   {"process",		pktgen_process},		// Enable or disable input packet processing on a port
+  {"garp",			pktgen_garp},			// Enable or disable GARP packet processing on a port
   {"blink",			pktgen_blink},			// Blink an led on a port
   {"help",			pktgen_help},			// Return the help text
   {"Lua.help",		pktgen_lua_help},		// Lua command help text

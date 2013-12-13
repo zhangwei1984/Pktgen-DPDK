@@ -210,6 +210,7 @@ const char * help_info[] = {
 		"                                     Note: use the 'port <number>' to display a new port sequence",
 		"port <number>                      - Sets the sequence of packets to display for a given port",
 		"process <portlist> <state>         - Enable or Disable processing of ARP/ICMP/IPv4/IPv6 packets",
+		"garp <portlist> <state>            - Enable or Disable GARP packet processing and update MAC address",
 		"blink <portlist> <state>           - Blink the link led on the given port list",
 		"start <portlist>                   - Start transmitting packets",
 		"stop <portlist>                    - Stop transmitting packets",
@@ -264,18 +265,19 @@ const char * help_info[] = {
 		"",
 		"<<PageBreak>>",
 		"Notes: <state> - Use enable|disable or on|off to set the state.",
-		"       Flags: P----------- - Promiscuous mode enabled",
-		"               E           - ICMP Echo enabled",
-		"                A          - Send ARP Request flag",
-		"                 G         - Send Gratuitous ARP flag",
-		"                  C        - TX Cleanup flag",
-		"                   p       - PCAP enabled flag",
-		"                    S      - Send Sequence packets enabled",
-		"                     R     - Send Range packets enabled",
-		"                      D    - DPI Scanning enabled (If Enabled)",
-		"                       I   - Process packets on input enabled",
-		"                        T  - Using TAP interface for this port",
-		"                         V - Send VLAN ID tag",
+		"       Flags: P------------ - Promiscuous mode enabled",
+		"               E            - ICMP Echo enabled",
+		"                A           - Send ARP Request flag",
+		"                 G          - Send Gratuitous ARP flag",
+		"                  C         - TX Cleanup flag",
+		"                   p        - PCAP enabled flag",
+		"                    S       - Send Sequence packets enabled",
+		"                     R      - Send Range packets enabled",
+		"                      D     - DPI Scanning enabled (If Enabled)",
+		"                       I    - Process packets on input enabled",
+		"                        T   - Using TAP interface for this port",
+		"                         V  - Send VLAN ID tag",
+		"                          g - Process GARP packets",
 		"",
 		"*** To see a set of example Lua commands see the files in wr-examples/pktgen/test",
 		NULL
@@ -1450,6 +1452,58 @@ cmdline_parse_inst_t cmd_blink_onoff = {
 		(void *)&cmd_set_blink_onoff,
 		(void *)&cmd_blink_onoff_portlist,
 		(void *)&cmd_blink_onoff_what,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_garp_onoff_result {
+	cmdline_fixed_string_t garp;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t what;
+};
+
+/**************************************************************************//**
+*
+* cmd_garp_onoff - Enable/Disable GARP packet processing
+*
+* DESCRIPTION
+* Enable/Disable packet GARP processing for ARP, ICMP and a number of other
+* related processing for a given port list.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_garp_onoff_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_garp_onoff_result *res = parsed_result;
+
+	foreach_port( res->portlist.map,
+		pktgen_garp_enable_disable(info, res->what) );
+
+	pktgen_update_display();
+}
+
+cmdline_parse_token_string_t cmd_set_garp_onoff =
+	TOKEN_STRING_INITIALIZER(struct cmd_garp_onoff_result, garp, "garp");
+cmdline_parse_token_portlist_t cmd_garp_onoff_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_garp_onoff_result, portlist);
+cmdline_parse_token_string_t cmd_garp_onoff_what =
+	TOKEN_STRING_INITIALIZER(struct cmd_garp_onoff_result, what, "enable#disable#on#off");
+
+cmdline_parse_inst_t cmd_garp_onoff = {
+	.f = cmd_garp_onoff_parsed,
+	.data = NULL,
+	.help_str = "garp <portlist> <state>",
+	.tokens = {
+		(void *)&cmd_set_garp_onoff,
+		(void *)&cmd_garp_onoff_portlist,
+		(void *)&cmd_garp_onoff_what,
 		NULL,
 	},
 };
@@ -3214,6 +3268,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_pkt_type,
 	    (cmdline_parse_inst_t *)&cmd_prime,
 	    (cmdline_parse_inst_t *)&cmd_process_onoff,
+	    (cmdline_parse_inst_t *)&cmd_garp_onoff,
 	    (cmdline_parse_inst_t *)&cmd_proto,
 	    (cmdline_parse_inst_t *)&cmd_quit,
 	    (cmdline_parse_inst_t *)&cmd_range,
