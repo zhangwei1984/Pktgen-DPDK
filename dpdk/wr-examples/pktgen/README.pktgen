@@ -616,6 +616,7 @@ page [0-7]|range|config|seq|pcap|next|cpu- Show the port pages or configuration 
                                      Note: use the 'port <number>' to display a new port sequence
 port <number>                      - Sets the sequence of packets to display for a given port
 process <portlist> <state>         - Enable or Disable processing of ARP/ICMP/IPv4/IPv6 packets
+garp <portlist> <state>            - Enable or Disable processing of GARP packets and update dest MAC address
 blink <portlist> <state>           - Blink the link led on the given port list
 start <portlist>                   - Start transmitting packets
 stop <portlist>                    - Stop transmitting packets
