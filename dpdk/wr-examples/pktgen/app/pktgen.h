@@ -155,7 +155,7 @@
 
 int main(int argc, char **argv);
 
-#define PKTGEN_VERSION			"2.3.0"
+#define PKTGEN_VERSION			"2.3.1"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -394,7 +394,6 @@ typedef struct port_info_s {
 	uint64_t				transmit_count;		/**< Packets to transmit loaded into current_tx_count */
 	uint64_t				current_tx_count;	/**< Current number of packets to send */
 	uint64_t				tx_cycles;			/**< Number cycles between TX bursts */
-	uint64_t				rx_cycles;			/**< Number cycles between RX bursts */
 	uint64_t				tx_pps;				/**< Transmit packets per seconds */
 	uint64_t				delta;				/**< Delta value for latency testing */
 	uint64_t				tx_count;			/**< Total count of tx attempts */

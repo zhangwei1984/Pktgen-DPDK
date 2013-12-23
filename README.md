@@ -1,4 +1,4 @@
-Pktgen version 2.3.0 using DPDK-1.5.1
+Pktgen version 2.3.1 using DPDK-1.5.1
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,7 @@ Pktgen version 2.3.0 using DPDK-1.5.1
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.3.1   - Getting closer to line rate tx speed.
  - 2.3.0   - Now supports the VLAN encapsulated packets for ARP replies
              Also added a special GARP processing to update the destination MAC
              address to help support a special request for failover support.
@@ -204,7 +205,7 @@ Dst  IP Address  :       192.168.1.1       192.168.0.1       192.168.3.1       1
 Src  IP Address  :    192.168.0.1/24    192.168.1.1/24    192.168.2.1/24    192.168.3.1/24
 Dst MAC Address  :    001b:218e:b1e9    001b:218e:b1e8    001b:218e:b761    001b:218e:b760
 Src MAC Address  :    001b:218e:b1e8    001b:218e:b1e9    001b:218e:b760    001b:218e:b761
-- Pktgen Ver:2.3.0(DPDK-1.5.1) --------------------------------------------------------------------------------------
+- Pktgen Ver:2.3.1(DPDK-1.5.1) --------------------------------------------------------------------------------------
 
 
 

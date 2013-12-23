@@ -1297,23 +1297,6 @@ void pktgen_set_tx_cycles(port_info_t * info, uint32_t cycles)
 
 /**************************************************************************//**
 *
-* pktgen_set_rx_cycles - Set the number of recieve cycles to use.
-*
-* DESCRIPTION
-* Set the number of receive cycles for the given port list.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
-
-void pktgen_set_rx_cycles(port_info_t * info, uint32_t cycles)
-{
-	info->rx_cycles		= cycles;
-}
-
-/**************************************************************************//**
-*
 * pktgen_set_pkt_size - Set the size of the packets to send.
 *
 * DESCRIPTION

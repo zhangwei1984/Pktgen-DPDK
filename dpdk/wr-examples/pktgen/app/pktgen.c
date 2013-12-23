@@ -210,14 +210,16 @@ pktgen_wire_size( port_info_t * info ) {
 void
 pktgen_packet_rate(port_info_t * info)
 {
+                          /*   0   1   2   3   4   5   6   7   8   9  10 */
+	static int64_t ff[11] = { 31, 30, 25, 30, 17, 17, 17, 20, 50, 60, 90 };
     uint64_t    wire_size = (pktgen_wire_size(info) * 8);
     uint64_t	link = (uint64_t)info->link.link_speed * Million;
     uint64_t    pps = ((link/wire_size) * info->tx_rate)/100;
-    uint64_t	cps = (pps > 0) ? ((pktgen.hz * info->tx_burst)/pps) : pktgen.hz;
+    uint64_t	cpp = (pps > 0) ? (pktgen.hz/pps) : (pktgen.hz / 4);
 
     info->tx_pps		= pps;
-    info->tx_cycles 	= (cps * wr_get_port_txcnt(pktgen.l2p, info->pid)) /* + (pktgen.hz/pps)*/;
-    info->rx_cycles 	= (cps * wr_get_port_txcnt(pktgen.l2p, info->pid)) - (pktgen.hz/pps);
+    info->tx_cycles 	= ((cpp * info->tx_burst) / wr_get_port_txcnt(pktgen.l2p, info->pid));
+	info->tx_cycles		-= ff[info->tx_rate/10];
 }
 
 /**************************************************************************//**
@@ -298,19 +300,18 @@ static __inline__ void
 pktgen_send_burst(port_info_t * info, uint8_t qid)
 {
 	struct mbuf_table	* mtab = &info->q[qid].tx_mbufs;
+	struct rte_mbuf **pkts = mtab->m_table;
     unsigned int ret, cnt;
 
     if ( (cnt = mtab->len) == 0 )
     	return;
 
     mtab->len = 0;
-    ret = rte_eth_tx_burst(info->pid, qid, mtab->m_table, cnt);
-
-    if (unlikely(ret < cnt)) {
-    	info->stats.tx_failed += (cnt - ret);
-        while (ret < cnt)
-            rte_pktmbuf_free(mtab->m_table[ret++]);
-    }
+	do {
+    	ret = rte_eth_tx_burst(info->pid, qid, pkts, cnt);
+		pkts += ret;
+		cnt -= ret;
+	} while( cnt > 0 );
 }
 
 /**************************************************************************//**
@@ -1786,9 +1787,8 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 */
 
 static __inline__ void
-pktgen_main_receive(port_info_t * info, uint8_t idx, struct rte_mbuf *pkts_burst[])
+pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbuf *pkts_burst[])
 {
-    uint8_t			lid = rte_lcore_id();
     uint32_t		nb_rx, pid, qid;
 
 	pid		= info->pid;
@@ -1824,9 +1824,8 @@ pktgen_main_rxtx_loop(uint8_t lid)
 	port_info_t	  * infos[RTE_MAX_ETHPORTS];
 	uint8_t		 	qids[RTE_MAX_ETHPORTS];
     uint8_t			idx, pid, txcnt, rxcnt;
-    uint64_t		curr_tsc;
+    uint64_t		 curr_tsc;
 	uint64_t		tx_next_cycle;		/**< Next cycle to send a burst of traffic */
-	uint64_t		rx_next_cycle;		/**< Next cycle to receive a burst of traffic */
 
     txcnt	= wr_get_lcore_txcnt(pktgen.l2p, lid);
 	rxcnt	= wr_get_lcore_rxcnt(pktgen.l2p, lid);
@@ -1842,23 +1841,19 @@ pktgen_main_rxtx_loop(uint8_t lid)
 	}
 	printf_info("\n");
 
-    curr_tsc		= rte_rdtsc();
-    tx_next_cycle	= curr_tsc + infos[0]->tx_cycles;
-	rx_next_cycle	= curr_tsc + infos[0]->rx_cycles;
+    tx_next_cycle	= 0;
 
     wr_start_lcore(pktgen.l2p, lid);
     do {
-		if ( unlikely(curr_tsc >= rx_next_cycle) ) {
-
-			rx_next_cycle = curr_tsc + infos[0]->rx_cycles;
-
-			for(idx = 0; idx < rxcnt; idx++) {
-				/*
-				 * Read packet from RX queues and free the mbufs
-				 */
-				pktgen_main_receive(infos[idx], idx, pkts_burst);
-			}
+		for(idx = 0; idx < rxcnt; idx++) {
+			/*
+			 * Read packet from RX queues and free the mbufs
+			 */
+			pktgen_main_receive(infos[idx], lid, idx, pkts_burst);
 		}
+
+        curr_tsc = rte_rdtsc();
+
 		// Determine when is the next time to send packets
 		if ( unlikely(curr_tsc >= tx_next_cycle) ) {
 
@@ -1871,8 +1866,6 @@ pktgen_main_rxtx_loop(uint8_t lid)
 				pktgen_main_transmit(infos[idx], qids[idx]);
 	    	}
 		}
-
-        curr_tsc = rte_rdtsc();
 
 		// Exit loop when flag is set.
     } while ( wr_lcore_is_running(pktgen.l2p, lid) );
@@ -1914,11 +1907,11 @@ pktgen_main_tx_loop(uint8_t lid)
 	}
 	printf_info("\n");
 
-    curr_tsc		= rte_rdtsc();
-    tx_next_cycle	= curr_tsc + infos[0]->tx_cycles;
+	tx_next_cycle = 0;
 
 	wr_start_lcore(pktgen.l2p, lid);
     do {
+		curr_tsc = rte_rdtsc();
 
 		// Determine when is the next time to send packets
 		if ( unlikely(curr_tsc >= tx_next_cycle) ) {
@@ -1930,8 +1923,6 @@ pktgen_main_tx_loop(uint8_t lid)
 				pktgen_main_transmit(infos[idx], qids[idx]);
 	    	}
     	}
-
-		curr_tsc = rte_rdtsc();
 
 		// Exit loop when flag is set.
     } while( wr_lcore_is_running(pktgen.l2p, lid) );
@@ -1960,8 +1951,6 @@ pktgen_main_rx_loop(uint8_t lid)
     struct rte_mbuf *pkts_burst[DEFAULT_PKT_BURST];
 	uint8_t			pid, idx, rxcnt;
 	port_info_t	  * infos[RTE_MAX_ETHPORTS];
-    uint64_t		curr_tsc;
-	uint64_t		rx_next_cycle;		/**< Next cycle to receive a burst of traffic */
 
 	rxcnt = wr_get_lcore_rxcnt(pktgen.l2p, lid);
     printf_info("=== RX processing on lcore %2d, rxcnt %d, port/qid, ",
@@ -1976,23 +1965,12 @@ pktgen_main_rx_loop(uint8_t lid)
 	}
 	printf_info("\n");
 
-    curr_tsc		= rte_rdtsc();
-	rx_next_cycle	= curr_tsc + infos[0]->rx_cycles;
-
 	wr_start_lcore(pktgen.l2p, lid);
     do {
-		if ( unlikely(curr_tsc >= rx_next_cycle) ) {
-
-			rx_next_cycle = curr_tsc + infos[0]->rx_cycles;
-
-			for(idx = 0; idx < rxcnt; idx++) {
-				// Read packet from RX queues and free the mbufs
-				pktgen_main_receive(infos[idx], idx, pkts_burst);
-			}
+		for(idx = 0; idx < rxcnt; idx++) {
+			// Read packet from RX queues and free the mbufs
+			pktgen_main_receive(infos[idx], lid, idx, pkts_burst);
 		}
-
-        curr_tsc = rte_rdtsc();
-
 		// Exit loop when flag is set.
     } while( wr_lcore_is_running(pktgen.l2p, lid) );
 
@@ -2123,7 +2101,7 @@ pktgen_print_static_data(void)
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "ARP/ICMP Pkts");
 	if ( pktgen.flags & TX_DEBUG_FLAG ) {
 		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Tx Overrun");
-		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Cycles per Rx/Tx");
+		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Cycles per Tx");
 	}
 
     ip_row = ++row;
@@ -2583,10 +2561,11 @@ pktgen_page_stats(void)
 
         scrn_snprintf(buff, sizeof(buff), "%llu/%llu", info->stats.arp_pkts, info->stats.echo_pkts);
         scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+
 		if ( pktgen.flags & TX_DEBUG_FLAG ) {
 			scrn_snprintf(buff, sizeof(buff), "%llu", info->stats.tx_failed);
 			scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
-			scrn_snprintf(buff, sizeof(buff), "%llu/%llu", info->rx_cycles, info->tx_cycles);
+			scrn_snprintf(buff, sizeof(buff), "%llu/%llu", info->tx_pps, info->tx_cycles);
 			scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 		}
     }

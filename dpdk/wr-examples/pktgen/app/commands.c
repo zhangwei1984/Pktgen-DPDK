@@ -1167,8 +1167,6 @@ static void cmd_set_parsed(void *parsed_result,
 			pktgen_set_tx_burst(info, res->value);
 		else if (!strcmp(res->what, "tx_cycles"))
 			pktgen_set_tx_cycles(info, res->value);
-		else if (!strcmp(res->what, "rx_cycles"))
-			pktgen_set_rx_cycles(info, res->value);
 		else if (!strcmp(res->what, "sport"))
 			pktgen_set_port_value(info, res->what[0], res->value);
 		else if (!strcmp(res->what, "dport"))
@@ -1188,14 +1186,14 @@ cmdline_parse_token_portlist_t cmd_set_portlist =
 	TOKEN_PORTLIST_INITIALIZER(struct cmd_set_result, portlist);
 cmdline_parse_token_string_t cmd_set_what =
 	TOKEN_STRING_INITIALIZER(struct cmd_set_result, what,
-				 "count#size#rate#burst#tx_cycles#rx_cycles#sport#dport#seqCnt#prime");
+				 "count#size#rate#burst#tx_cycles#sport#dport#seqCnt#prime");
 cmdline_parse_token_num_t cmd_set_value =
 	TOKEN_NUM_INITIALIZER(struct cmd_set_result, value, UINT32);
 
 cmdline_parse_inst_t cmd_set = {
 	.f = cmd_set_parsed,
 	.data = NULL,
-	.help_str = "set <portlist> count|size|rate|burst|tx_cycles|rx_cycles|sport|dport|seqCnt|prime value",
+	.help_str = "set <portlist> count|size|rate|burst|tx_cycles|sport|dport|seqCnt|prime value",
 	.tokens = {
 		(void *)&cmd_set_set,
 		(void *)&cmd_set_portlist,
