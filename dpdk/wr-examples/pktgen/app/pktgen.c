@@ -127,9 +127,9 @@ static struct rte_eth_fc_conf fc_conf = {
 };
 #endif
 // Forward declaration of functions.
-static void pktgen_process_arp( struct rte_mbuf * m, uint32_t pid );
-static void pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid );
-static void pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid );
+static void pktgen_process_arp( struct rte_mbuf * m, uint32_t pid, uint32_t vlan );
+static void pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan);
+static void pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan );
 static void pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid );
 
 /**************************************************************************//**
@@ -278,6 +278,43 @@ pktgen_find_matching_ipsrc( port_info_t * info, uint32_t addr )
 	/* Now try to match the single packet address */
 	if ( pkt == NULL ) {
 		if ( addr == info->seq_pkt[SINGLE_PKT].ip_src_addr )
+			pkt = &info->seq_pkt[SINGLE_PKT];
+	}
+
+	return pkt;
+}
+
+/**************************************************************************//**
+*
+* pktgen_find_matching_ipdst - Find the matching IP destination address
+*
+* DESCRIPTION
+* locate and return the pkt_seq_t pointer to the match IP address.
+*
+* RETURNS: pkt_seq_t  * or NULL
+*
+* SEE ALSO:
+*/
+
+static __inline__ pkt_seq_t *
+pktgen_find_matching_ipdst( port_info_t * info, uint32_t addr ) 
+{
+	pkt_seq_t * pkt = NULL;
+	int		i;
+
+	addr = ntohl(addr);
+
+	/* Search the sequence packets for a match */
+	for(i = 0; i < info->seqCnt; i++) {
+		if ( addr == info->seq_pkt[i].ip_dst_addr ) {
+			pkt = &info->seq_pkt[i];
+			break;
+		}
+	}
+
+	/* Now try to match the single packet address */
+	if ( pkt == NULL ) {
+		if ( addr == info->seq_pkt[SINGLE_PKT].ip_dst_addr )
 			pkt = &info->seq_pkt[SINGLE_PKT];
 	}
 
@@ -859,10 +896,10 @@ pktgen_packet_classify( struct rte_mbuf * m, int pid )
 		}
 
 		switch((int)pType) {
-		case ETHER_TYPE_ARP:	info->stats.arp_pkts++;		pktgen_process_arp(m, pid);     break;
-		case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;		pktgen_process_ping4(m, pid);   break;
-		case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;	pktgen_process_ping6(m, pid);   break;
-		case ETHER_TYPE_VLAN:   info->stats.vlan_pkts++;	pktgen_process_vlan(m, pid);    break;
+		case ETHER_TYPE_ARP:	info->stats.arp_pkts++;		pktgen_process_arp(m, pid, 0);     break;
+		case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;		pktgen_process_ping4(m, pid, 0);   break;
+		case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;	pktgen_process_ping6(m, pid, 0);   break;
+		case ETHER_TYPE_VLAN:   info->stats.vlan_pkts++;	pktgen_process_vlan(m, pid);       break;
 		case UNKNOWN_PACKET:    /* FALL THRU */
 		default: 				rte_pktmbuf_free(m);	break;
 		}
@@ -1126,7 +1163,7 @@ pktgen_send_ping6( uint32_t pid, uint32_t type, uint8_t seq_idx )
 */
 
 static void
-pktgen_process_arp( struct rte_mbuf * m, uint32_t pid )
+pktgen_process_arp( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 {
     port_info_t   * info = &pktgen.info[pid];
     pkt_seq_t     * pkt;
@@ -1134,21 +1171,23 @@ pktgen_process_arp( struct rte_mbuf * m, uint32_t pid )
     struct ether_hdr *eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
     arpPkt_t      * arp = (arpPkt_t *)&eth[1];
 
+	/* Adjust for a vlan header if present */
+	if ( vlan )
+		arp = (arpPkt_t *)((char *)arp + sizeof(struct vlan_hdr));
+
     // Process all ARP requests if they are for us.
     if ( arp->op == htons(ARP_REQUEST) ) {
-        pkt = NULL;
-
 		if ((rte_atomic32_read(&info->port_flags) & PROCESS_GARP_PKTS) &&
  			(arp->tpa._32 == arp->spa._32) ) {		/* Must be a GARP packet */
 
-			pkt = pktgen_find_matching_ipsrc(info, arp->tpa._32);
+			pkt = pktgen_find_matching_ipdst(info, arp->spa._32);
 
 			rte_pktmbuf_free(m);
 
 			/* Found a matching packet, replace the dst address */
 			if ( pkt ) {
 				rte_memcpy(&pkt->eth_dst_addr, &arp->sha, 6);
-				pktgen_tx_cleanup(info, wr_get_txque(pktgen.l2p, rte_lcore_id(), info->pid));
+				pktgen_set_q_flags(info, wr_get_txque(pktgen.l2p, rte_lcore_id(), pid), DO_TX_CLEANUP);
 				pktgen_redisplay(0);
 			}
 			return;
@@ -1219,7 +1258,7 @@ pktgen_process_arp( struct rte_mbuf * m, uint32_t pid )
 */
 
 static void
-pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid )
+pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 {
     port_info_t   * info = &pktgen.info[pid];
     pkt_seq_t     * pkt;
@@ -1227,6 +1266,10 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid )
     struct ether_hdr *eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
     ipHdr_t       * ip = (ipHdr_t *)&eth[1];
     char            buff[24];
+
+	/* Adjust for a vlan header if present */
+	if ( vlan )
+		ip = (ipHdr_t *)((char *)ip + sizeof(struct vlan_hdr));
 
     // Look for a ICMP echo requests, but only if enabled.
     if ( (rte_atomic32_read(&info->port_flags) & ICMP_ECHO_ENABLE_FLAG) &&
@@ -1308,12 +1351,16 @@ leave:
 */
 
 static void
-pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid )
+pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 {
 #if 0 /* Broken needs to be updated to do IPv6 packets */
     port_info_t     * info = &pktgen.info[pid];
     struct ether_hdr *eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
     ipv6Hdr_t       * ip = (ipv6Hdr_t *)&eth[1];
+
+	/* Adjust for a vlan header if present */
+	if ( vlan )
+		ip = (ipv6Hdr_t *)((char *)ip + sizeof(struct vlan_hdr));
 
     // Look for a ICMP echo requests, but only if enabled.
     if ( (rte_atomic32_read(&info->port_flags) & ICMP_ECHO_ENABLE_FLAG) &&
@@ -1404,9 +1451,9 @@ pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid )
  
 	/* No support for nested tunnel */
 	switch((int)pType) {
-	case ETHER_TYPE_ARP:    info->stats.arp_pkts++;         pktgen_process_arp(m, pid);     break;
-	case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;          pktgen_process_ping4(m, pid);   break;
-	case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;        pktgen_process_ping6(m, pid);   break;
+	case ETHER_TYPE_ARP:    info->stats.arp_pkts++;         pktgen_process_arp(m, pid, 1);		break;
+	case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;          pktgen_process_ping4(m, pid, 1);    break;
+	case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;        pktgen_process_ping6(m, pid, 1);    break;
 	case UNKNOWN_PACKET:    /* FALL THRU */
 	default:                rte_pktmbuf_free(m);    break;
 	};
