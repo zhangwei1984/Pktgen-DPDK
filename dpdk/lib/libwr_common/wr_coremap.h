@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2012>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -63,7 +63,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/* Created 2012 by Keith Wiles @ windriver.com */
+/* Created 2014 by Keith Wiles @ windriver.com */
 
 #ifndef __INC_COREMAP_H
 #define __INC_COREMAP_H
