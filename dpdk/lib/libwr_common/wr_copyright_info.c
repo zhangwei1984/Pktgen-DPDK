@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) <2010-2013>, Intel Corporation
+ * Copyright (c) <2010-2014>, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2013>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -83,14 +83,14 @@
 
 #include "wr_copyright_info.h"
 
-#define COPYRIGHT_MSG			"Copyright (c) <2010-2013>, Wind River Systems, Inc."
+#define COPYRIGHT_MSG			"Copyright (c) <2010-2014>, Wind River Systems, Inc."
 #define POWERED_BY_DPDK			"Powered by Intel® DPDK"
 
 static const char * intel_copyright[] = {
 	"",
 	"   BSD LICENSE",
 	"",
-	"   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.",
+	"   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.",
 	"   All rights reserved.",
 	"",
 	"   Redistribution and use in source and binary forms, with or without",

@@ -129,7 +129,7 @@
 #define rte_mcos_H_										/**< Used to not have recursive includes */
 
 #define MCOS_VERSION			"1.2.0"					/**< MCOS version number */
-#define MCOS_COPYRIGHT_MSG		"Copyright (c) <2011-2013>, Wind River Systems, Inc."
+#define MCOS_COPYRIGHT_MSG		"Copyright (c) <2011-2014>, Wind River Systems, Inc."
 #define MCOS_POWERED_BY_DPDK	"Powered by Intel® DPDK"
 
 #define MCOS_MASTER_INFO		"Master-info"			/**< Master structure memory name */
