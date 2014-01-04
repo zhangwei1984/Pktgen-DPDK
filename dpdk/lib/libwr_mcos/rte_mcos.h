@@ -2,7 +2,7 @@
  * <COPYRIGHT_TAG>
  */
 /**
- * Copyright (c) <2010-2012>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -100,7 +100,7 @@
  * I have not tested this version with icc compiler and the code will only
  * runs in Linux user space.
  *
- * Created by Keith Wiles @ Wind River Systems (2012)
+ * Created by Keith Wiles @ Wind River Systems (2014)
  *
  * \li \#include \<ucontext.h\>
  * \li \#include \<assert.h\>
