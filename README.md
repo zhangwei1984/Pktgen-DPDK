@@ -27,7 +27,7 @@ Pktgen version 2.3.3 using DPDK-1.5.2
 Please look at the product eval PDF and the 3rd party PDF for license information.
 
 ---
-**Copyright &copy; \<2010-2013\>, Intel Corporation All rights reserved.**
+**Copyright &copy; \<2010-2014\>, Intel Corporation All rights reserved.**
  
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -59,7 +59,7 @@ Please look at the product eval PDF and the 3rd party PDF for license informatio
  OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ---
-**Copyright &copy; \<2010-2013\>, Wind River Systems, Inc.**
+**Copyright &copy; \<2010-2014\>, Wind River Systems, Inc.**
 
  Redistribution and use in source and binary forms, with or without modification, are
  permitted provided that the following conditions are met:
@@ -96,7 +96,7 @@ Please look at the product eval PDF and the 3rd party PDF for license informatio
 
 Pktgen
 ------
-Copyright &copy; \<2010-2013\>, Wind River Systems, Inc.
+Copyright &copy; \<2010-2014\>, Wind River Systems, Inc.
 
        Contact me if you have questions @ pktgen.dpdk@gmail.com<br>
        Source can be found on GitHub: http://github.com/Pktgen/Pktgen-DPDK
@@ -175,7 +175,7 @@ Example screen of Pktgen:
 -------------------------
 
 ```
--  Ports 0-3 of 4 ** Main Page **   Copyright (c) <2010-2013>, Wind River Systems, Inc., Powered by Intel® DPDK
+-  Ports 0-3 of 4 ** Main Page **   Copyright (c) <2010-2014>, Wind River Systems, Inc., Powered by Intel® DPDK
   Flags:Port     :    P-----------:0    P-----------:1    P-----------:2    P-----------:3
 Link State       :     <UP-10000-FD>     <UP-10000-FD>     <UP-10000-FD>     <UP-10000-FD>   ---TotalRate---
 Pkts/s  Rx       :                 0                 0                 0                 0                 0
@@ -222,7 +222,7 @@ pktgen> quit
 ```
 Here is the help screen:
 
-   *** Help Information for Pktgen ***         Copyright (c) <2010-2013>, Wind River Systems, Inc.
+   *** Help Information for Pktgen ***         Copyright (c) <2010-2014>, Wind River Systems, Inc.
 set <portlist> <xxx> value         - Set a few port values
   <portlist>                       - a list of ports as 2,4,6-9,12 or the word 'all'
   <xxx>          count             - number of packets to transmit
