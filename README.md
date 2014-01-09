@@ -1,4 +1,4 @@
-Pktgen version 2.3.3 using DPDK-1.5.2
+Pktgen version 2.3.4 using DPDK-1.5.2
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,7 @@ Pktgen version 2.3.3 using DPDK-1.5.2
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.3.4   - Minor update to help eliminate RX errors and be able to receive at wire rate.
  - 2.3.3   - Update to minor release 1.5.2
  - 2.3.2   - Fixed VLAN detection problem in ARP and special GARP support.
  - 2.3.1   - Getting closer to line rate tx speed.

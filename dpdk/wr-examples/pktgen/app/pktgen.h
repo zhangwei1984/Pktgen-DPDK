@@ -155,7 +155,7 @@
 
 int main(int argc, char **argv);
 
-#define PKTGEN_VERSION			"2.3.3"
+#define PKTGEN_VERSION			"2.3.4"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 

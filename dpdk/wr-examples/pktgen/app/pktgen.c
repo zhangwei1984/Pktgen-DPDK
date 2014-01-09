@@ -101,7 +101,7 @@ const struct rte_eth_rxconf rx_conf = {
         .hthresh = RX_HTHRESH,
         .wthresh = RX_WTHRESH,
     },
-    //.rx_free_thresh = 255,
+    .rx_free_thresh = 32,
 };
 
 #define IXGBE_SIMPLE_FLAGS ((uint32_t)ETH_TXQ_FLAGS_NOMULTSEGS | \
