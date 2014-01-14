@@ -186,7 +186,8 @@ const char * help_info[] = {
 		"set ipv4|ipv6|vlan <portlist>      - Set the packet type to IPv4 or IPv6 or VLAN",
 		"set ip src|dst <portlist> ipaddr   - Set IP addresses",
 		"geometry <geom>                    - Set the display geometry Columns by Rows (ColxRow)",
-		"tap <portlist> <state>             - Enable/disable tap interface support",
+		"rxtap <portlist> <state>            - Enable/disable Rx tap interface support pg_rxtapN",
+		"txtap <portlist> <state>            - Enable/disable Tx tap interface support pg_txtapN",
 		"vlan <portlist> <state>            - Enable/disable sending VLAN ID in packets",
 		"vlanid <portlist> <vlanid>         - Set the VLAN ID for the portlist",
 		"pcap <portlist> <state>            - Enable or Disable sending pcap packets on a portlist",
@@ -2431,49 +2432,98 @@ cmdline_parse_inst_t cmd_icmp_echo = {
 
 /**********************************************************/
 
-struct cmd_tap_result {
-	cmdline_fixed_string_t tap;
+struct cmd_rx_tap_result {
+	cmdline_fixed_string_t rxtap;
 	cmdline_portlist_t portlist;
 	cmdline_fixed_string_t onOff;
 };
 
 /**************************************************************************//**
 *
-* cmd_tap_parsed - Enable or Disable the TAP interface option
+* cmd_rx_tap_parsed - Enable or Disable the Rx TAP interface option
 *
 * DESCRIPTION
-* Enable or Disable the TAP interface option
+* Enable or Disable the Rx TAP interface option
 *
 * RETURNS: N/A
 *
 * SEE ALSO:
 */
 
-static void cmd_tap_parsed(void *parsed_result,
+static void cmd_rx_tap_parsed(void *parsed_result,
 			   __attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
-	struct cmd_tap_result *res = parsed_result;
+	struct cmd_rx_tap_result *res = parsed_result;
 
 	foreach_port( res->portlist.map,
-		pktgen_set_tap(info, parseState(res->onOff)) );
+		pktgen_set_rx_tap(info, parseState(res->onOff)) );
 }
 
-cmdline_parse_token_string_t cmd_set_tap =
-	TOKEN_STRING_INITIALIZER(struct cmd_tap_result, tap, "tap");
-cmdline_parse_token_portlist_t cmd_set_tap_portlist =
-	TOKEN_PORTLIST_INITIALIZER(struct cmd_tap_result, portlist);
-cmdline_parse_token_string_t cmd_set_tap_onoff =
-	TOKEN_STRING_INITIALIZER(struct cmd_tap_result, onOff, "on#off#enable#disable");
+cmdline_parse_token_string_t cmd_set_rx_tap =
+	TOKEN_STRING_INITIALIZER(struct cmd_rx_tap_result, rxtap, "rxtap");
+cmdline_parse_token_portlist_t cmd_set_rx_tap_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_rx_tap_result, portlist);
+cmdline_parse_token_string_t cmd_set_rx_tap_onoff =
+	TOKEN_STRING_INITIALIZER(struct cmd_rx_tap_result, onOff, "on#off#enable#disable");
 
-cmdline_parse_inst_t cmd_tap = {
-	.f = cmd_tap_parsed,
+cmdline_parse_inst_t cmd_rx_tap = {
+	.f = cmd_rx_tap_parsed,
 	.data = NULL,
-	.help_str = "tap <portlist> <state>",
+	.help_str = "rxtap <portlist> <state>",
 	.tokens = {
-		(void *)&cmd_set_tap,
-		(void *)&cmd_set_tap_portlist,
-		(void *)&cmd_set_tap_onoff,
+		(void *)&cmd_set_rx_tap,
+		(void *)&cmd_set_rx_tap_portlist,
+		(void *)&cmd_set_rx_tap_onoff,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_tx_tap_result {
+	cmdline_fixed_string_t txtap;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t onOff;
+};
+
+/**************************************************************************//**
+*
+* cmd_tx_tap_parsed - Enable or Disable the Tx TAP interface option
+*
+* DESCRIPTION
+* Enable or Disable the Tx TAP interface option
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_tx_tap_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_tx_tap_result *res = parsed_result;
+
+	foreach_port( res->portlist.map,
+		pktgen_set_tx_tap(info, parseState(res->onOff)) );
+}
+
+cmdline_parse_token_string_t cmd_set_tx_tap =
+	TOKEN_STRING_INITIALIZER(struct cmd_tx_tap_result, txtap, "txtap");
+cmdline_parse_token_portlist_t cmd_set_tx_tap_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_tx_tap_result, portlist);
+cmdline_parse_token_string_t cmd_set_tx_tap_onoff =
+	TOKEN_STRING_INITIALIZER(struct cmd_tx_tap_result, onOff, "on#off#enable#disable");
+
+cmdline_parse_inst_t cmd_tx_tap = {
+	.f = cmd_tx_tap_parsed,
+	.data = NULL,
+	.help_str = "txtap <portlist> <state>",
+	.tokens = {
+		(void *)&cmd_set_tx_tap,
+		(void *)&cmd_set_tx_tap_portlist,
+		(void *)&cmd_set_tx_tap_onoff,
 		NULL,
 	},
 };
@@ -3288,7 +3338,8 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_src_port,
 	    (cmdline_parse_inst_t *)&cmd_start,
 	    (cmdline_parse_inst_t *)&cmd_stop,
-	    (cmdline_parse_inst_t *)&cmd_tap,
+	    (cmdline_parse_inst_t *)&cmd_rx_tap,
+	    (cmdline_parse_inst_t *)&cmd_tx_tap,
 	    (cmdline_parse_inst_t *)&cmd_vlan,
 	    (cmdline_parse_inst_t *)&cmd_vlan_id,
 	    (cmdline_parse_inst_t *)&cmd_vlanid,

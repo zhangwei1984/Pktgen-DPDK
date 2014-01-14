@@ -338,14 +338,21 @@ pktgen_send_burst(port_info_t * info, uint8_t qid)
 {
 	struct mbuf_table	* mtab = &info->q[qid].tx_mbufs;
 	struct rte_mbuf **pkts = mtab->m_table;
-    unsigned int ret, cnt;
+    uint32_t ret, cnt, i, flags;
 
     if ( (cnt = mtab->len) == 0 )
     	return;
 
+	flags = rte_atomic32_read(&info->port_flags);
     mtab->len = 0;
 	do {
     	ret = rte_eth_tx_burst(info->pid, qid, pkts, cnt);
+		if ( unlikely(flags & PROCESS_TX_TAP_PKTS) ) {
+			for(i = 0; i < ret; i++) {
+				if ( write(info->tx_tapfd, rte_pktmbuf_mtod(pkts[i], char *), pkts[i]->pkt.pkt_len) < 0 )
+					printf_info("Write failed for tx_tap%d", info->pid);
+			}
+		}
 		pkts += ret;
 		cnt -= ret;
 	} while( cnt > 0 );
@@ -889,10 +896,10 @@ pktgen_packet_classify( struct rte_mbuf * m, int pid )
     pType = pktgen_packet_type(m);
 
 	flags = rte_atomic32_read(&info->port_flags);
-	if ( unlikely(flags & (PROCESS_INPUT_PKTS | PROCESS_TAP_PKTS)) ) {
-		if ( unlikely(flags & PROCESS_TAP_PKTS) ) {
-			if ( write(info->tapfd, rte_pktmbuf_mtod(m, char *), m->pkt.pkt_len) < 0 )
-				printf_info("Write failed for tap%d", pid);
+	if ( unlikely(flags & (PROCESS_INPUT_PKTS | PROCESS_RX_TAP_PKTS)) ) {
+		if ( unlikely(flags & PROCESS_RX_TAP_PKTS) ) {
+			if ( write(info->rx_tapfd, rte_pktmbuf_mtod(m, char *), m->pkt.pkt_len) < 0 )
+				printf_info("Write failed for rx_tap%d", pid);
 		}
 
 		switch((int)pType) {

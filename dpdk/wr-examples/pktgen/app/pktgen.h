@@ -155,7 +155,7 @@
 
 int main(int argc, char **argv);
 
-#define PKTGEN_VERSION			"2.3.4"
+#define PKTGEN_VERSION			"2.4.0"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -429,7 +429,8 @@ typedef struct port_info_s {
 		struct rte_mempool * special_mp;		/**< Pool pointer for special TX mbufs */
 	} q[NUM_Q];
 
-	int32_t					tapfd;				/**< Tap file descriptor */
+	int32_t					rx_tapfd;			/**< Rx Tap file descriptor */
+	int32_t					tx_tapfd;			/**< Tx Tap file descriptor */
 	pcap_info_t			  * pcap;				/**< PCAP information header */
 	uint64_t				pcap_cycles;		/**< number of cycles for pcap sending */
 
@@ -505,9 +506,10 @@ enum {		// Per port flag bits
 	SEND_PING4_REQUEST		= 0x00000080,		/**< Send a IPv4 Ping request */
 	SEND_PING6_REQUEST		= 0x00000100,		/**< Send a IPv6 Ping request */
 	SEND_SPECIAL_REQUEST	= (SEND_ARP_REQUEST | SEND_GRATUITOUS_ARP | SEND_PING4_REQUEST | SEND_PING6_REQUEST),
-	PROCESS_TAP_PKTS		= 0x00000200,		/**< Handle TAP interface packets */
-	SEND_VLAN_ID			= 0x00000400,		/**< Send packets with VLAN ID */
-	PROCESS_GARP_PKTS		= 0x00000800		/**< Process GARP packets and update the dst MAC address */
+	PROCESS_RX_TAP_PKTS		= 0x00000200,		/**< Handle RX TAP interface packets */
+	PROCESS_TX_TAP_PKTS		= 0x00000400,		/**< Handle TX TAP interface packets */
+	SEND_VLAN_ID			= 0x00000800,		/**< Send packets with VLAN ID */
+	PROCESS_GARP_PKTS		= 0x00001000		/**< Process GARP packets and update the dst MAC address */
 };
 
 enum {	// Queue flags

@@ -186,7 +186,8 @@ pktgen_save(char * path)
 		fprintf(fd, "pcap %d %sable\n", i, (flags & SEND_PCAP_PKTS)? "en" : "dis");
 		fprintf(fd, "range %d %sable\n", i, (flags & SEND_RANGE_PKTS)? "en" : "dis");
 		fprintf(fd, "process %d %sable\n", i, (flags & PROCESS_INPUT_PKTS)? "en" : "dis");
-		fprintf(fd, "tap %d %sable\n", i, (flags & PROCESS_TAP_PKTS)? "en" : "dis");
+		fprintf(fd, "rxtap %d %sable\n", i, (flags & PROCESS_RX_TAP_PKTS)? "en" : "dis");
+		fprintf(fd, "txtap %d %sable\n", i, (flags & PROCESS_TX_TAP_PKTS)? "en" : "dis");
 		fprintf(fd, "vlan %d %sable\n\n", i, (flags & SEND_VLAN_ID)? "en" : "dis");
 
 		fprintf(fd, "#\n# Range packet information:\n");
@@ -434,7 +435,7 @@ pktgen_flags_string( port_info_t * info )
             (flags & SEND_SEQ_PKTS)? 'S' : '-',
             (flags & SEND_RANGE_PKTS)? 'R' : '-',
             (flags & PROCESS_INPUT_PKTS)? 'I' : '-',
-            (flags & PROCESS_TAP_PKTS)? 'T' : '-',
+            "-rt*"[(flags & (PROCESS_RX_TAP_PKTS | PROCESS_TX_TAP_PKTS)) >> 9],
             (flags & SEND_VLAN_ID)? 'V' : '-',
 			(flags & PROCESS_GARP_PKTS)? 'g' : '-');
 
@@ -587,10 +588,10 @@ pktgen_set_icmp_echo(port_info_t * info, uint32_t onOff)
 
 /**************************************************************************//**
 *
-* pktgen_set_tap - Enable or disable the TAP interface
+* pktgen_set_rx_tap - Enable or disable the Rx TAP interface
 *
 * DESCRIPTION
-* Create and setup the TAP interface.
+* Create and setup the Rx TAP interface.
 *
 * RETURNS: N/A
 *
@@ -598,7 +599,7 @@ pktgen_set_icmp_echo(port_info_t * info, uint32_t onOff)
 */
 
 void
-pktgen_set_tap(port_info_t * info, uint32_t onOff)
+pktgen_set_rx_tap(port_info_t * info, uint32_t onOff)
 {
 	if ( onOff == ENABLE_STATE ) {
 		struct ifreq	ifr;
@@ -607,7 +608,7 @@ pktgen_set_tap(port_info_t * info, uint32_t onOff)
 		static char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
 
 		for(i = 0; tapdevs[i]; i++) {
-			if ( (info->tapfd = open(tapdevs[i], O_RDWR)) >= 0 ) {
+			if ( (info->rx_tapfd = open(tapdevs[i], O_RDWR)) >= 0 ) {
 				break;
 			}
 		}
@@ -619,11 +620,11 @@ pktgen_set_tap(port_info_t * info, uint32_t onOff)
 
 		ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
 
-		snprintf(ifr.ifr_name, IFNAMSIZ, "%s%d", "pgtap", info->pid);
-		if ( ioctl(info->tapfd, TUNSETIFF, (void *)&ifr) < 0 ) {
+		snprintf(ifr.ifr_name, IFNAMSIZ, "%s%d", "pg_rxtap", info->pid);
+		if ( ioctl(info->rx_tapfd, TUNSETIFF, (void *)&ifr) < 0 ) {
 			printf("Unable to set TUNSETIFF for %s\n", ifr.ifr_name);
-			close(info->tapfd);
-			info->tapfd = 0;
+			close(info->rx_tapfd);
+			info->rx_tapfd = 0;
 			return;
 		}
 
@@ -633,18 +634,81 @@ pktgen_set_tap(port_info_t * info, uint32_t onOff)
 		if ( ioctl(sockfd, SIOCSIFFLAGS, (void *)&ifr) < 0 ) {
 			printf("Unable to set SIOCSIFFLAGS for %s\n", ifr.ifr_name);
 			close(sockfd);
-			close(info->tapfd);
-			info->tapfd = 0;
+			close(info->rx_tapfd);
+			info->rx_tapfd = 0;
 			return;
 		}
 		close(sockfd);
-		pktgen_set_port_flags(info, PROCESS_TAP_PKTS);
+		pktgen_set_port_flags(info, PROCESS_RX_TAP_PKTS);
 	} else {
-		if ( rte_atomic32_read(&info->port_flags) & PROCESS_TAP_PKTS ) {
-			close(info->tapfd);
-			info->tapfd = 0;
+		if ( rte_atomic32_read(&info->port_flags) & PROCESS_RX_TAP_PKTS ) {
+			close(info->rx_tapfd);
+			info->rx_tapfd = 0;
 		}
-		pktgen_clr_port_flags(info, PROCESS_TAP_PKTS);
+		pktgen_clr_port_flags(info, PROCESS_RX_TAP_PKTS);
+	}
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_tx_tap - Enable or disable the Tx TAP interface
+*
+* DESCRIPTION
+* Create and setup the Tx TAP interface.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_tx_tap(port_info_t * info, uint32_t onOff)
+{
+	if ( onOff == ENABLE_STATE ) {
+		struct ifreq	ifr;
+		int sockfd, i;
+		struct sockaddr_in	sai;
+		static char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
+
+		for(i = 0; tapdevs[i]; i++) {
+			if ( (info->tx_tapfd = open(tapdevs[i], O_RDWR)) >= 0 ) {
+				break;
+			}
+		}
+		if ( tapdevs[i] == NULL ) {
+			printf("Unable to create TUN/TAP interface.\n");
+			return;
+		}
+		memset(&ifr, 0, sizeof(struct ifreq));
+
+		ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+
+		snprintf(ifr.ifr_name, IFNAMSIZ, "%s%d", "pg_txtap", info->pid);
+		if ( ioctl(info->tx_tapfd, TUNSETIFF, (void *)&ifr) < 0 ) {
+			printf("Unable to set TUNSETIFF for %s\n", ifr.ifr_name);
+			close(info->tx_tapfd);
+			info->tx_tapfd = 0;
+			return;
+		}
+
+		sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+		ifr.ifr_flags = IFF_UP | IFF_RUNNING;
+		if ( ioctl(sockfd, SIOCSIFFLAGS, (void *)&ifr) < 0 ) {
+			printf("Unable to set SIOCSIFFLAGS for %s\n", ifr.ifr_name);
+			close(sockfd);
+			close(info->tx_tapfd);
+			info->tx_tapfd = 0;
+			return;
+		}
+		close(sockfd);
+		pktgen_set_port_flags(info, PROCESS_TX_TAP_PKTS);
+	} else {
+		if ( rte_atomic32_read(&info->port_flags) & PROCESS_TX_TAP_PKTS ) {
+			close(info->tx_tapfd);
+			info->tx_tapfd = 0;
+		}
+		pktgen_clr_port_flags(info, PROCESS_TX_TAP_PKTS);
 	}
 }
 
