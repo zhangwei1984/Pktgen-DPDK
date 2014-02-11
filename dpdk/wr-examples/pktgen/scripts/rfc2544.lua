@@ -61,7 +61,7 @@ function main()
 		cnt = 1;
 		flag = true;
 		
-		while( (flag == true) and (cnt < 10 ) do
+		while( (flag == true) and (cnt < 10 ) ) do
 			flag = doTest(size, rate, 0, rate);
 			cnt = cnt + 1;
 		end

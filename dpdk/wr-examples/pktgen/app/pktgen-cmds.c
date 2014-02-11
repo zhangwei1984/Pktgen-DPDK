@@ -124,7 +124,7 @@ pktgen_save(char * path)
 
 	fprintf(fd, "# Port Descriptions (-- = blacklisted port):\n");
 	for(i=0; i < RTE_MAX_ETHPORTS; i++) {
-		if ( strlen(pktgen.portdesc[i]) ) {
+		if ( pktgen.portdesc[i] && strlen(pktgen.portdesc[i]) ) {
 	    	if ( (pktgen.enabled_port_mask & (1 << i)) == 0 )
 	    		strcpy(buff, "--");
 	    	else

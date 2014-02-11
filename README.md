@@ -6,6 +6,7 @@ Pktgen version 2.4.0 using DPDK-1.5.2
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.4.1   - Fixed a bug in range packets when 'inc' value is zero use start values.
  - 2.4.0   - Add support for TX tap packets. Change 'tap' command to rxtap and txtap.
  - 2.3.4   - Minor update to help eliminate RX errors and be able to receive at wire rate.
  - 2.3.3   - Update to minor release 1.5.2

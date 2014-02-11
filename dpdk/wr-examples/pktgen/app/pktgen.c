@@ -318,6 +318,12 @@ pktgen_find_matching_ipdst( port_info_t * info, uint32_t addr )
 			pkt = &info->seq_pkt[SINGLE_PKT];
 	}
 
+	/* Now try to match the range packet address */
+	if ( pkt == NULL ) {
+		if ( addr == info->seq_pkt[RANGE_PKT].ip_dst_addr )
+			pkt = &info->seq_pkt[RANGE_PKT];
+	}
+
 	return pkt;
 }
 
@@ -468,23 +474,26 @@ static __inline__ char *
 pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * eth)
 {
     struct vlan_hdr *vlan_hdr;
+	uint32_t	flags;
 
     /* src and dest addr */
     ether_addr_copy(&pkt->eth_src_addr, &eth->s_addr);
     ether_addr_copy(&pkt->eth_dst_addr, &eth->d_addr);
-    if ( rte_atomic32_read(&info->port_flags) & SEND_VLAN_ID ) {
-        /* vlan ethernet header */
-        eth->ether_type = htons(ETHER_TYPE_VLAN);
 
-        /* only set the TCI field for now; don't bother with PCP/DEI */
-        struct vlan_hdr *vlan_hdr = (struct vlan_hdr *)(eth+1);
-        vlan_hdr->vlan_tci = htons(pkt->vlanid);
-        vlan_hdr->eth_proto = htons(pkt->ethType);
+    flags = rte_atomic32_read(&info->port_flags);
+    if ( flags & SEND_VLAN_ID ) {
+		/* vlan ethernet header */
+		eth->ether_type = htons(ETHER_TYPE_VLAN);
 
-        /* adjust header size for VLAN tag */
-        pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(struct vlan_hdr);
+		/* only set the TCI field for now; don't bother with PCP/DEI */
+		struct vlan_hdr *vlan_hdr = (struct vlan_hdr *)(eth+1);
+		vlan_hdr->vlan_tci = htons(pkt->vlanid);
+		vlan_hdr->eth_proto = htons(pkt->ethType);
 
-        return (char *)(vlan_hdr+1);
+		/* adjust header size for VLAN tag */
+		pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(struct vlan_hdr);
+
+		return (char *)(vlan_hdr+1);
     }
     else {
         /* normal ethernet header */
@@ -1547,6 +1556,8 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 					sport = range->src_port_min;
 				pkt->sport = sport;
 			}
+			else
+				pkt->sport = range->src_port;
 
 			if ( unlikely(range->dst_port_inc != 0) ) {
 				uint16_t dport = pkt->dport;
@@ -1557,6 +1568,8 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
 					dport = range->dst_port_min;
 				pkt->dport = dport;
 			}
+			else
+				pkt->dport = range->dst_port;
 
             if (unlikely(range->src_ip_inc != 0)) {
                 uint32_t p = pkt->ip_src_addr;
@@ -1567,6 +1580,8 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                     p = range->src_ip_min;
                 pkt->ip_src_addr = p;
             }
+			else 
+				pkt->ip_src_addr = range->src_ip;
 
             if (unlikely(range->dst_ip_inc != 0)) {
                 uint32_t p = pkt->ip_dst_addr;
@@ -1577,6 +1592,8 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                     p = range->dst_ip_min;
                 pkt->ip_dst_addr = p;
             }
+			else 
+				pkt->ip_dst_addr = range->dst_ip;
 
             if (unlikely(range->vlan_id_inc != 0)) {
                 uint32_t p = pkt->vlanid;
@@ -1587,6 +1604,8 @@ pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt)
                     p = range->vlan_id_min;
                 pkt->vlanid = p;
             }
+			else
+				pkt->vlanid = range->vlan_id;
 
             if (unlikely(range->pkt_size_inc != 0)) {
                 uint32_t p = pkt->pktSize;
