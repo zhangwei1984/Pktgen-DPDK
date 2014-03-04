@@ -6,6 +6,7 @@ Pktgen version 2.4.0 using DPDK-1.5.2
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.5.0   - Update to DPDK 1.6.0 plus a few bug fixes.
  - 2.4.1   - Fixed a bug in range packets when 'inc' value is zero use start values.
  - 2.4.0   - Add support for TX tap packets. Change 'tap' command to rxtap and txtap.
  - 2.3.4   - Minor update to help eliminate RX errors and be able to receive at wire rate.
@@ -210,7 +211,7 @@ Dst  IP Address  :       192.168.1.1       192.168.0.1       192.168.3.1       1
 Src  IP Address  :    192.168.0.1/24    192.168.1.1/24    192.168.2.1/24    192.168.3.1/24
 Dst MAC Address  :    001b:218e:b1e9    001b:218e:b1e8    001b:218e:b761    001b:218e:b760
 Src MAC Address  :    001b:218e:b1e8    001b:218e:b1e9    001b:218e:b760    001b:218e:b761
-- Pktgen Ver:2.3.1(DPDK-1.5.2) --------------------------------------------------------------------------------------
+- Pktgen Ver:2.5.0(DPDK-1.6.0) --------------------------------------------------------------------------------------
 
 
 
