@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -248,7 +248,8 @@ rte_kni_alloc(struct rte_mempool *pktmbuf_pool,
 	dev_info.sync_phys = mz->phys_addr;
 
 	/* MBUF mempool */
-	rte_snprintf(mz_name, sizeof(mz_name), "MP_%s", pktmbuf_pool->name);
+	rte_snprintf(mz_name, sizeof(mz_name), RTE_MEMPOOL_OBJ_NAME,
+		pktmbuf_pool->name);
 	mz = rte_memzone_lookup(mz_name);
 	KNI_MZ_CHECK(mz == NULL);
 	dev_info.mbuf_va = mz->addr;
@@ -521,4 +522,13 @@ rte_kni_unregister_handlers(struct rte_kni *kni)
 	kni->ops.change_mtu = NULL;
 	kni->ops.config_network_if = NULL;
 	return 0;
+}
+void 
+rte_kni_close(void)
+{
+	if (kni_fd < 0)
+		return;
+
+	close(kni_fd);
+	kni_fd = -1;	
 }

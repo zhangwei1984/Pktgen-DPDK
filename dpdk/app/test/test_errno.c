@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,12 @@ test_errno(void)
 {
 	const char *rte_retval;
 	const char *libc_retval;
+#ifdef RTE_EXEC_ENV_BSDAPP
+	/* BSD has a colon in the string, unlike linux */
+	const char unknown_code_result[] = "Unknown error: %d";
+#else
 	const char unknown_code_result[] = "Unknown error %d";
+#endif
 	char expected_libc_retval[sizeof(unknown_code_result)+3];
 
 	/* use a small selection of standard errors for testing */

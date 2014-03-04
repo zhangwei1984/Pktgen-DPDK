@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,10 @@
 #endif
 #define IXGBE_HWSTRIP_BITMAP_SIZE (IXGBE_MAX_RX_QUEUE_NUM / (sizeof(uint32_t) * NBBY))
 
+/* Loopback operation modes */
+/* 82599 specific loopback operation types */
+#define IXGBE_LPBK_82599_NONE		0x0 /* Default value. Loopback is disabled. */
+#define IXGBE_LPBK_82599_TX_RX		0x1 /* Tx->Rx loopback operation is enabled. */
 
 /*
  * Information about the fdir mode.

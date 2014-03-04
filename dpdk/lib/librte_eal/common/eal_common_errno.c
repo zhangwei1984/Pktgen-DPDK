@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,11 @@ rte_strerror(int errnum)
 	 * themselves if errnum is too big, we handle that case here */
 	if (errnum > RTE_MAX_ERRNO)
 		rte_snprintf(RTE_PER_LCORE(retval), RETVAL_SZ,
+#ifdef RTE_EXEC_ENV_BSDAPP
+				"Unknown error: %d", errnum);
+#else
 				"Unknown error %d", errnum);
+#endif
 	else
 		switch (errnum){
 		case E_RTE_SECONDARY:

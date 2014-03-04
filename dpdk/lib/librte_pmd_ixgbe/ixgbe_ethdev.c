@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -711,7 +711,8 @@ eth_ixgbe_dev_init(__attribute__((unused)) struct eth_driver *eth_drv,
 			hw->mac.num_rar_entries, 0);
 	if (eth_dev->data->mac_addrs == NULL) {
 		PMD_INIT_LOG(ERR,
-			"Failed to allocate %d bytes needed to store MAC addresses",
+			"Failed to allocate %u bytes needed to store "
+			"MAC addresses",
 			ETHER_ADDR_LEN * hw->mac.num_rar_entries);
 		return -ENOMEM;
 	}
@@ -769,6 +770,21 @@ eth_ixgbe_dev_init(__attribute__((unused)) struct eth_driver *eth_drv,
 	ixgbe_enable_intr(eth_dev);
 
 	return 0;
+}
+
+static void ixgbevf_get_queue_num(struct ixgbe_hw *hw)
+{
+	/* Traffic classes are not supported by now */
+	unsigned int tcs, tc;
+
+	/*
+	 * Must let PF know we are at mailbox API version 1.1.
+	 * Otherwise PF won't answer properly.
+	 * In case that PF fails to provide Rx/Tx queue number,
+	 * max_tx_queues and max_rx_queues remain to be 1.
+	 */
+	if (!ixgbevf_negotiate_api_version(hw, ixgbe_mbox_api_11))
+		ixgbevf_get_queues(hw, &tcs, &tc);
 }
 
 /*
@@ -839,12 +855,16 @@ eth_ixgbevf_dev_init(__attribute__((unused)) struct eth_driver *eth_drv,
 		return (diag);
 	}
 
+	/* Get Rx/Tx queue count via mailbox, which is ready after reset_hw */
+	ixgbevf_get_queue_num(hw);
+
 	/* Allocate memory for storing MAC addresses */
 	eth_dev->data->mac_addrs = rte_zmalloc("ixgbevf", ETHER_ADDR_LEN *
 			hw->mac.num_rar_entries, 0);
 	if (eth_dev->data->mac_addrs == NULL) {
 		PMD_INIT_LOG(ERR,
-			"Failed to allocate %d bytes needed to store MAC addresses",
+			"Failed to allocate %u bytes needed to store "
+			"MAC addresses",
 			ETHER_ADDR_LEN * hw->mac.num_rar_entries);
 		return -ENOMEM;
 	}
@@ -1245,7 +1265,7 @@ ixgbe_dev_start(struct rte_eth_dev *dev)
 	/* IXGBE devices don't support half duplex */
 	if ((dev->data->dev_conf.link_duplex != ETH_LINK_AUTONEG_DUPLEX) &&
 			(dev->data->dev_conf.link_duplex != ETH_LINK_FULL_DUPLEX)) {
-		PMD_INIT_LOG(ERR, "Invalid link_duplex (%u) for port %u\n",
+		PMD_INIT_LOG(ERR, "Invalid link_duplex (%hu) for port %hhu\n",
 				dev->data->dev_conf.link_duplex,
 				dev->data->port_id);
 		return -EINVAL;
@@ -1286,6 +1306,11 @@ ixgbe_dev_start(struct rte_eth_dev *dev)
 	/* Turn on the laser */
 	ixgbe_enable_tx_laser(hw);
 
+	/* Skip link setup if loopback mode is enabled for 82599. */
+	if (hw->mac.type == ixgbe_mac_82599EB &&
+			dev->data->dev_conf.lpbk_mode == IXGBE_LPBK_82599_TX_RX)
+		goto skip_link_setup;
+
 	err = ixgbe_check_link(hw, &speed, &link_up, 0);
 	if (err)
 		goto error;
@@ -1313,14 +1338,17 @@ ixgbe_dev_start(struct rte_eth_dev *dev)
 		speed = IXGBE_LINK_SPEED_10GB_FULL;
 		break;
 	default:
-		PMD_INIT_LOG(ERR, "Invalid link_speed (%u) for port %u\n",
-				dev->data->dev_conf.link_speed, dev->data->port_id);
+		PMD_INIT_LOG(ERR, "Invalid link_speed (%hu) for port %hhu\n",
+				dev->data->dev_conf.link_speed,
+				dev->data->port_id);
 		goto error;
 	}
 
 	err = ixgbe_setup_link(hw, speed, negotiate, link_up);
 	if (err)
 		goto error;
+
+skip_link_setup:
 
 	/* check if lsc interrupt is enabled */
 	if (dev->data->dev_conf.intr_conf.lsc != 0)
@@ -1366,6 +1394,9 @@ ixgbe_dev_stop(struct rte_eth_dev *dev)
 	struct rte_eth_link link;
 	struct ixgbe_hw *hw =
 		IXGBE_DEV_PRIVATE_TO_HW(dev->data->dev_private);
+	struct ixgbe_vf_info *vfinfo = 
+		*IXGBE_DEV_PRIVATE_TO_P_VFDATA(dev->data->dev_private);
+	int vf;
 
 	PMD_INIT_FUNC_TRACE();
 
@@ -1378,6 +1409,10 @@ ixgbe_dev_stop(struct rte_eth_dev *dev)
 
 	/* stop adapter */
 	ixgbe_stop_adapter(hw);
+
+	for (vf = 0; vfinfo != NULL && 
+		     vf < dev->pci_dev->max_vfs; vf++)
+		vfinfo[vf].clear_to_send = false;
 
 	/* Turn off the laser */
 	ixgbe_disable_tx_laser(hw);

@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -64,16 +64,16 @@ ifneq ($(BUILDING_RTE_SDK),)
   RTE_TARGET := $(RTE_ARCH)-$(RTE_MACHINE)-$(RTE_EXEC_ENV)-$(RTE_TOOLCHAIN)
   RTE_SDK_BIN := $(RTE_OUTPUT)
   RTE_BUILD_SHARED_LIB := $(CONFIG_RTE_BUILD_SHARED_LIB:"%"=%)
-  RTE_LIBNAME := $(CONFIG_RTE_LIBNAME:"%s"=%)
-  ifeq ($(RTE_LIBNAME),)
-    RTE_LIBNAME := intel_dpdk
-  endif
   ifeq ($(RTE_BUILD_SHARED_LIB),)
     RTE_BUILD_SHARED_LIB := n
   endif
   RTE_BUILD_COMBINE_LIBS := $(CONFIG_RTE_BUILD_COMBINE_LIBS:"%"=%)
   ifeq ($(RTE_BUILD_COMBINE_LIBS),)
     RTE_BUILD_COMBINE_LIBS := n
+  endif
+  RTE_LIBNAME := $(CONFIG_RTE_LIBNAME:"%"=%)
+  ifeq ($(RTE_LIBNAME),)
+    RTE_LIBNAME := intel_dpdk
   endif
 endif
 

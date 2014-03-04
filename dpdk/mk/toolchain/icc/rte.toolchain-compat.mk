@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,8 @@ else
 		MACHINE_CFLAGS := $(patsubst -march=corei7-avx,-xAVX,$(MACHINE_CFLAGS))
 		# ivy bridge
 		MACHINE_CFLAGS := $(patsubst -march=core-avx-i,-xCORE-AVX-I,$(MACHINE_CFLAGS))
+		# hsw
+		MACHINE_CFLAGS := $(patsubst -march=core-avx2,-xCORE-AVX2,$(MACHINE_CFLAGS))
 		# remove westmere flags
 		MACHINE_CFLAGS := $(filter-out -mpclmul -maes,$(MACHINE_CFLAGS))
 	endif
@@ -71,12 +73,4 @@ else
 		MACHINE_CFLAGS := $(patsubst -march=%,-xSSE3,$(MACHINE_CFLAGS))
 	endif
 endif
-MACHINE_CFLAGS += $(addprefix -DRTE_MACHINE_CPUFLAG_,$(CPUFLAGS))
 
-# To strip whitespace
-comma:= ,
-empty:=
-space:= $(empty) $(empty)
-CPUFLAGSTMP1 := $(addprefix RTE_CPUFLAG_,$(CPUFLAGS))
-CPUFLAGSTMP2 := $(subst $(space),$(comma),$(CPUFLAGSTMP1))
-MACHINE_CFLAGS += -DRTE_COMPILE_TIME_CPUFLAGS=$(CPUFLAGSTMP2)

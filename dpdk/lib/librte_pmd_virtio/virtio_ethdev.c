@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -252,6 +252,15 @@ virtio_dev_cq_queue_setup(struct rte_eth_dev *dev,
 	return (0);
 }
 
+static void
+virtio_dev_close(struct rte_eth_dev *dev)
+{
+	PMD_INIT_LOG(DEBUG, "virtio_dev_close");
+
+	virtio_dev_stop(dev);
+}
+
+
 /*
  * dev_ops for virtio, bare necessities for basic operation
  */
@@ -259,6 +268,7 @@ static struct eth_dev_ops virtio_eth_dev_ops = {
 	.dev_configure         = virtio_dev_configure,
 	.dev_start             = virtio_dev_start,
 	.dev_stop              = virtio_dev_stop,
+	.dev_close             = virtio_dev_close,
 
 	.dev_infos_get         = virtio_dev_info_get,
 	.stats_get             = virtio_dev_stats_get,
@@ -596,7 +606,7 @@ virtio_dev_link_update(struct rte_eth_dev *dev, __rte_unused int wait_to_complet
 	struct rte_eth_link link, old;
 	uint16_t status;
 	struct virtio_hw *hw =
-			VIRTIO_DEV_PRIVATE_TO_HW(dev->data->dev_private);
+		VIRTIO_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 	memset(&link, 0, sizeof(link));
 	virtio_dev_atomic_read_link_status(dev, &link);
 	old = link;

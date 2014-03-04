@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,11 @@
 #include <rte_malloc.h>
 #include <rte_spinlock.h>
 #include <eal_private.h>
+
+#ifndef	TFD_NONBLOCK
+#include <fcntl.h>
+#define	TFD_NONBLOCK	O_NONBLOCK
+#endif
 
 #define NS_PER_US 1000
 #define US_PER_MS 1000

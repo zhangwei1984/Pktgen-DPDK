@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -92,6 +92,7 @@ SRCS-$(CONFIG_RTE_APP_TEST) += test_kni.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_power.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_common.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_timer_perf.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_ivshmem.c
 
 ifeq ($(CONFIG_RTE_APP_TEST),y)
 SRCS-$(CONFIG_RTE_LIBRTE_ACL) += test_acl.c
@@ -107,6 +108,7 @@ CFLAGS_test_kni.o += -wd1478
 else
 CFLAGS_test_kni.o += -Wno-deprecated-declarations
 endif
+CFLAGS += -D_GNU_SOURCE
 
 # this application needs libraries first
 DEPDIRS-$(CONFIG_RTE_APP_TEST) += lib

@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ enum cipher_alg {
 	CIPHER_DES3_CBC,
 	CIPHER_AES,
 	CIPHER_AES_CBC_128,
+	CIPHER_KASUMI_F8,
 	NUM_CRYPTO,
 };
 
@@ -59,6 +60,7 @@ enum hash_alg {
 	HASH_SHA512,
 	HASH_AES_XCBC,
 	HASH_AES_XCBC_96,
+	HASH_KASUMI_F9,
 	NUM_HMAC,
 };
 

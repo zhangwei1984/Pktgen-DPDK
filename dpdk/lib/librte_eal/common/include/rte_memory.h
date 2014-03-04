@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef RTE_EXEC_ENV_LINUXAPP
+#include <exec-env/rte_dom0_common.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -54,7 +58,9 @@ enum rte_page_sizes {
 };
 
 #define SOCKET_ID_ANY -1                    /**< Any NUMA socket. */
+#ifndef CACHE_LINE_SIZE
 #define CACHE_LINE_SIZE 64                  /**< Cache line size. */
+#endif
 #define CACHE_LINE_MASK (CACHE_LINE_SIZE-1) /**< Cache line mask. */
 
 #define CACHE_LINE_ROUNDUP(size) \
@@ -77,11 +83,18 @@ struct rte_memseg {
 		void *addr;         /**< Start virtual address. */
 		uint64_t addr_64;   /**< Makes sure addr is always 64 bits */
 	};
+#ifdef RTE_LIBRTE_IVSHMEM
+	phys_addr_t ioremap_addr; /**< Real physical address inside the VM */
+#endif
 	size_t len;               /**< Length of the segment. */
 	size_t hugepage_sz;       /**< The pagesize of underlying memory */
 	int32_t socket_id;          /**< NUMA socket ID. */
 	uint32_t nchannel;          /**< Number of channels. */
 	uint32_t nrank;             /**< Number of ranks. */
+#ifdef RTE_LIBRTE_XEN_DOM0
+	 /**< store segment MFNs */
+	uint64_t mfn[DOM0_NUM_MEMBLOCK]; 
+#endif
 } __attribute__((__packed__));
 
 
@@ -133,6 +146,42 @@ unsigned rte_memory_get_nchannel(void);
  */
 unsigned rte_memory_get_nrank(void);
 
+#ifdef RTE_LIBRTE_XEN_DOM0
+/**
+ * Return the physical address of elt, which is an element of the pool mp.
+ *
+ * @param memseg_id 
+ *   The mempool is from which memory segment.
+ * @param phy_addr
+ *   physical address of elt.
+ *
+ * @return
+ *   The physical address or error.
+ */
+phys_addr_t rte_mem_phy2mch(uint32_t memseg_id, const phys_addr_t phy_addr);
+
+/**
+ * Memory init for supporting application running on Xen domain0. 
+ * 
+ * @param void 
+ * 
+ * @return 
+ *       0: successfully
+ *    	 negative: error
+ */ 
+int rte_xen_dom0_memory_init(void);
+
+/**
+ * Attach to memory setments of primary process on Xen domain0. 
+ * 
+ * @param void 
+ * 
+ * @return 
+ *       0: successfully
+ *       negative: error
+ */
+int rte_xen_dom0_memory_attach(void);
+#endif
 #ifdef __cplusplus
 }
 #endif

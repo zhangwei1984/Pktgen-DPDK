@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -46,5 +46,6 @@ SRCS-y := main.c commands.c parse_obj_list.c
 
 CFLAGS += -O3
 CFLAGS += $(WERROR_FLAGS)
+CFLAGS_parse_obj_list.o := -D_GNU_SOURCE
 
 include $(RTE_SDK)/mk/rte.extapp.mk

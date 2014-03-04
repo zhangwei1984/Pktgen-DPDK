@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,8 @@ DIRS-$(CONFIG_RTE_LIBRTE_IXGBE_PMD) += librte_pmd_ixgbe
 DIRS-$(CONFIG_RTE_LIBRTE_PMD_RING) += librte_pmd_ring
 DIRS-$(CONFIG_RTE_LIBRTE_PMD_PCAP) += librte_pmd_pcap
 DIRS-$(CONFIG_RTE_LIBRTE_VIRTIO_PMD) += librte_pmd_virtio
+DIRS-$(CONFIG_RTE_LIBRTE_VMXNET3_PMD) += librte_pmd_vmxnet3
+DIRS-$(CONFIG_RTE_LIBRTE_PMD_XENVIRT) += librte_pmd_xenvirt
 DIRS-$(CONFIG_RTE_LIBRTE_HASH) += librte_hash
 DIRS-$(CONFIG_RTE_LIBRTE_LPM) += librte_lpm
 DIRS-$(CONFIG_RTE_LIBRTE_NET) += librte_net
@@ -55,6 +57,7 @@ DIRS-$(CONFIG_RTE_LIBRTE_ACL) += librte_acl
 
 ifeq ($(CONFIG_RTE_EXEC_ENV_LINUXAPP),y)
 DIRS-$(CONFIG_RTE_LIBRTE_KNI) += librte_kni
+DIRS-$(CONFIG_RTE_LIBRTE_IVSHMEM) += librte_ivshmem
 endif
 
 ifeq ($(CONFIG_RTE_LIBWR),y)

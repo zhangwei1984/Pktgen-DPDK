@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -198,6 +198,7 @@ struct fwd_engine {
 
 extern struct fwd_engine io_fwd_engine;
 extern struct fwd_engine mac_fwd_engine;
+extern struct fwd_engine mac_retry_fwd_engine;
 extern struct fwd_engine rx_only_engine;
 extern struct fwd_engine tx_only_engine;
 extern struct fwd_engine csum_fwd_engine;
@@ -271,6 +272,7 @@ extern uint8_t  interactive;
 extern uint8_t  numa_support; /**< set by "--numa" parameter */
 extern uint16_t port_topology; /**< set by "--port-topology" parameter */
 extern uint8_t no_flush_rx; /**<set by "--no-flush-rx" parameter */
+extern uint8_t  mp_anon; /**< set by "--mp-anon" parameter */
 
 #ifdef RTE_NIC_BYPASS
 extern uint32_t bypass_timeout; /**< Store the NIC bypass watchdog timeout */
@@ -361,6 +363,9 @@ extern struct fwd_stream **fwd_streams;
 
 extern portid_t nb_peer_eth_addrs; /**< Number of peer ethernet addresses. */
 extern struct ether_addr peer_eth_addrs[RTE_MAX_ETHPORTS];
+
+extern uint32_t burst_tx_delay_time; /**< Burst tx delay time(us) for mac-retry. */
+extern uint32_t burst_tx_retry_num;  /**< Burst tx retry number for mac-retry. */
 
 static inline unsigned int
 lcore_num(void)
@@ -489,7 +494,7 @@ void start_packet_forwarding(int with_tx_first);
 void stop_packet_forwarding(void);
 void init_port_config(void);
 int init_port_dcb_config(portid_t pid,struct dcb_config *dcb_conf);
-void start_port(portid_t pid);
+int start_port(portid_t pid);
 void stop_port(portid_t pid);
 void close_port(portid_t pid);
 int all_ports_stopped(void);

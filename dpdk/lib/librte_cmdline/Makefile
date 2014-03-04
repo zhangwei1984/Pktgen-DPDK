@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += cmdline_vt100.c
 SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += cmdline_socket.c
 SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += cmdline_parse_portlist.c
 
-CFLAGS_cmdline.o := -D_GNU_SOURCE
+CFLAGS += -D_GNU_SOURCE
 
 # install includes
 INCS := cmdline.h cmdline_parse.h cmdline_parse_num.h cmdline_parse_ipaddr.h

@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -76,15 +76,14 @@ CONFIG_RTE_FORCE_INTRINSICS=n
 #
 # Compile to share library
 #
-CONFIG_RTE_LIBNAME=intel_dpdk
 CONFIG_RTE_BUILD_SHARED_LIB=n
 
 #
 # Combine to one single library
 #
 CONFIG_RTE_BUILD_COMBINE_LIBS=n
+CONFIG_RTE_LIBNAME="intel_dpdk"
 
-#
 #
 # Compile libc directory
 #
@@ -124,7 +123,6 @@ CONFIG_RTE_LOG_HISTORY=256
 CONFIG_RTE_LIBEAL_USE_HPET=n
 CONFIG_RTE_EAL_ALLOW_INV_SOCKET_ID=n
 CONFIG_RTE_EAL_ALWAYS_PANIC_ON_ERROR=n
-CONFIG_RTE_EAL_UNBIND_PORTS=n
 
 #
 # Compile Environment Abstraction Layer for linux
@@ -186,6 +184,16 @@ CONFIG_RTE_LIBRTE_VIRTIO_DEBUG_DRIVER=n
 CONFIG_RTE_LIBRTE_VIRTIO_DEBUG_DUMP=n
 
 #
+# Compile burst-oriented VMXNET3 PMD driver
+#
+CONFIG_RTE_LIBRTE_VMXNET3_PMD=y
+CONFIG_RTE_LIBRTE_VMXNET3_DEBUG_INIT=n
+CONFIG_RTE_LIBRTE_VMXNET3_DEBUG_RX=n
+CONFIG_RTE_LIBRTE_VMXNET3_DEBUG_TX=n
+CONFIG_RTE_LIBRTE_VMXNET3_DEBUG_TX_FREE=n
+CONFIG_RTE_LIBRTE_VMXNET3_DEBUG_DRIVER=n
+
+#
 # Compile example software rings based PMD
 #
 CONFIG_RTE_LIBRTE_PMD_RING=y
@@ -196,6 +204,9 @@ CONFIG_RTE_PMD_RING_MAX_TX_RINGS=16
 # Compile software PMD backed by PCAP files
 #
 CONFIG_RTE_LIBRTE_PMD_PCAP=n
+
+
+CONFIG_RTE_LIBRTE_PMD_XENVIRT=n
 
 #
 # Do prefetch of packet data within PMD driver receive function
@@ -294,6 +305,11 @@ CONFIG_RTE_KNI_VHOST_MAX_CACHE_SIZE=1024
 CONFIG_RTE_KNI_VHOST_VNET_HDR_EN=n
 CONFIG_RTE_KNI_VHOST_DEBUG_RX=n
 CONFIG_RTE_KNI_VHOST_DEBUG_TX=n
+
+#
+#Compile Xen domain0 support
+#
+CONFIG_RTE_LIBRTE_XEN_DOM0=n
 
 #
 # Enable warning directives

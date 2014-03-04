@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@ include $(RTE_SDK)/mk/rte.vars.mk
 # library name
 LIB = librte_timer.a
 
-CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR)
+CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3
 
 # all source are stored in SRCS-y
 SRCS-$(CONFIG_RTE_LIBRTE_TIMER) := rte_timer.c

@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -48,8 +48,6 @@
 #include <sys/mman.h>
 #include <sys/queue.h>
 #include <sys/io.h>
-#include <sys/user.h>
-#include <linux/binfmts.h>
 
 #include <rte_common.h>
 #include <rte_debug.h>
@@ -91,6 +89,8 @@
 #define OPT_SOCKET_MEM  "socket-mem"
 #define OPT_USE_DEVICE  "use-device"
 #define OPT_SYSLOG      "syslog"
+#define OPT_BASE_VIRTADDR   "base-virtaddr"
+#define OPT_XEN_DOM0    "xen-dom0"
 
 #define RTE_EAL_BLACKLIST_SIZE	0x100
 
@@ -309,13 +309,13 @@ eal_hugedirs_unlock(void)
 	for (i = 0; i < MAX_HUGEPAGE_SIZES; i++)
 	{
 		/* skip uninitialized */
-		if (internal_config.hugepage_info[i].lock_descriptor == 0)
+		if (internal_config.hugepage_info[i].lock_descriptor < 0)
 			continue;
 		/* unlock hugepage file */
 		flock(internal_config.hugepage_info[i].lock_descriptor, LOCK_UN);
 		close(internal_config.hugepage_info[i].lock_descriptor);
 		/* reset the field */
-		internal_config.hugepage_info[i].lock_descriptor = 0;
+		internal_config.hugepage_info[i].lock_descriptor = -1;
 	}
 }
 
@@ -334,6 +334,8 @@ eal_usage(const char *prgname)
 	       "                 (multiple -b options are allowed)\n"
 	       "  -m MB        : memory to allocate (see also --"OPT_SOCKET_MEM")\n"
 	       "  -r NUM       : force number of memory ranks (don't detect)\n"
+	       "  --"OPT_XEN_DOM0" : support application running on Xen Domain0 "
+			   "without hugetlbfs\n"
 	       "  --"OPT_SYSLOG"     : set syslog facility\n"
 	       "  --"OPT_SOCKET_MEM" : memory to allocate on specific \n"
 		   "                 sockets (use comma separated values)\n"
@@ -345,6 +347,7 @@ eal_usage(const char *prgname)
 	       "               [NOTE: Cannot be used with -b option]\n"
 	       "  --"OPT_VMWARE_TSC_MAP": use VMware TSC map instead of "
 	    		   "native RDTSC\n"
+	       "  --"OPT_BASE_VIRTADDR": specify base virtual address\n"
 	       "\nEAL options for DEBUG use only:\n"
 	       "  --"OPT_NO_HUGE"  : use malloc instead of hugetlbfs\n"
 	       "  --"OPT_NO_PCI"   : disable pci\n"
@@ -407,7 +410,7 @@ eal_parse_coremask(const char *coremask)
 	if (coremask[0] == '0' && ((coremask[1] == 'x')
 		||  (coremask[1] == 'X')) )
 		coremask += 2;
-	i = strnlen(coremask, MAX_ARG_STRLEN);
+	i = strnlen(coremask, PATH_MAX);
 	while ((i > 0) && isblank(coremask[i - 1]))
 		i--;
 	if (i == 0)
@@ -530,6 +533,31 @@ eal_parse_socket_mem(char *socket_mem)
 	return 0;
 }
 
+static int
+eal_parse_base_virtaddr(const char *arg)
+{
+	char *end;
+	uint64_t addr;
+
+	addr = strtoull(arg, &end, 16);
+
+	/* check for errors */
+	if ((errno != 0) || (arg[0] == '\0') || end == NULL || (*end != '\0'))
+		return -1;
+
+	/* make sure we don't exceed 32-bit boundary on 32-bit target */
+#ifndef RTE_ARCH_X86_64
+	if (addr >= UINTPTR_MAX)
+		return -1;
+#endif
+
+	/* align the addr on 2M boundary */
+	addr = RTE_PTR_ALIGN_CEIL(addr, RTE_PGSIZE_2M);
+
+	internal_config.base_virtaddr = (uintptr_t) addr;
+	return 0;
+}
+
 static inline size_t
 eal_get_hugepage_mem_size(void)
 {
@@ -599,6 +627,8 @@ eal_parse_args(int argc, char **argv)
 		{OPT_SOCKET_MEM, 1, 0, 0},
 		{OPT_USE_DEVICE, 1, 0, 0},
 		{OPT_SYSLOG, 1, NULL, 0},
+		{OPT_BASE_VIRTADDR, 1, 0, 0},
+		{OPT_XEN_DOM0, 0, 0, 0},
 		{0, 0, 0, 0}
 	};
 
@@ -611,6 +641,7 @@ eal_parse_args(int argc, char **argv)
 	internal_config.hugepage_dir = NULL;
 	internal_config.force_sockets = 0;
 	internal_config.syslog_facility = LOG_DAEMON;
+	internal_config.xen_dom0_support = 0;
 #ifdef RTE_LIBEAL_USE_HPET
 	internal_config.no_hpet = 0;
 #else
@@ -622,9 +653,10 @@ eal_parse_args(int argc, char **argv)
 
 	/* zero out hugedir descriptors */
 	for (i = 0; i < MAX_HUGEPAGE_SIZES; i++)
-		internal_config.hugepage_info[i].lock_descriptor = 0;
+		internal_config.hugepage_info[i].lock_descriptor = -1;
 
 	internal_config.vmware_tsc_map = 0;
+	internal_config.base_virtaddr = 0;
 
 	while ((opt = getopt_long(argc, argvopt, "b:c:m:n:r:v",
 				  lgopts, &option_index)) != EOF) {
@@ -685,6 +717,16 @@ eal_parse_args(int argc, char **argv)
 			if (!strcmp(lgopts[option_index].name, OPT_NO_HUGE)) {
 				internal_config.no_hugetlbfs = 1;
 			}
+			if (!strcmp(lgopts[option_index].name, OPT_XEN_DOM0)) {
+		#ifdef RTE_LIBRTE_XEN_DOM0
+				internal_config.xen_dom0_support = 1;
+		#else
+				RTE_LOG(ERR, EAL, "Can't support DPDK app "
+					"running on Dom0, please configure"
+					" RTE_LIBRTE_XEN_DOM0=y\n");
+				return -1;
+		#endif 
+			}
 			else if (!strcmp(lgopts[option_index].name, OPT_NO_PCI)) {
 				internal_config.no_pci = 1;
 			}
@@ -721,6 +763,14 @@ eal_parse_args(int argc, char **argv)
 				if (eal_parse_syslog(optarg) < 0) {
 					RTE_LOG(ERR, EAL, "invalid parameters for --"
 							OPT_SYSLOG "\n");
+					eal_usage(prgname);
+					return -1;
+				}
+			}
+			else if (!strcmp(lgopts[option_index].name, OPT_BASE_VIRTADDR)) {
+				if (eal_parse_base_virtaddr(optarg) < 0) {
+					RTE_LOG(ERR, EAL, "invalid parameter for --"
+							OPT_BASE_VIRTADDR "\n");
 					eal_usage(prgname);
 					return -1;
 				}
@@ -773,7 +823,13 @@ eal_parse_args(int argc, char **argv)
 		eal_usage(prgname);
 		return -1;
 	}
-
+	/* --xen-dom0 doesn't make sense with --socket-mem */
+	if (internal_config.xen_dom0_support && internal_config.force_sockets == 1) {
+		RTE_LOG(ERR, EAL, "Options --socket-mem cannot be specified "
+					"together with --xen_dom0!\n");
+		eal_usage(prgname);
+		return -1;
+	}
 	/* if no blacklist, parse a whitelist */
 	if (blacklist_index > 0) {
 		if (eal_dev_whitelist_exists()) {
@@ -867,6 +923,7 @@ rte_eal_init(int argc, char **argv)
 
 	if (internal_config.no_hugetlbfs == 0 &&
 			internal_config.process_type != RTE_PROC_SECONDARY &&
+			internal_config.xen_dom0_support == 0 &&
 			eal_hugepage_info_init() < 0)
 		rte_panic("Cannot get hugepage information\n");
 
@@ -898,6 +955,14 @@ rte_eal_init(int argc, char **argv)
 	if (rte_eal_cpu_init() < 0)
 		rte_panic("Cannot detect lcores\n");
 
+	if (rte_eal_pci_init() < 0)
+		rte_panic("Cannot init PCI\n");
+
+#ifdef RTE_LIBRTE_IVSHMEM
+	if (rte_eal_ivshmem_init() < 0)
+		rte_panic("Cannot init IVSHMEM\n");
+#endif
+
 	if (rte_eal_memory_init() < 0)
 		rte_panic("Cannot init memory\n");
 
@@ -910,6 +975,11 @@ rte_eal_init(int argc, char **argv)
 	if (rte_eal_tailqs_init() < 0)
 		rte_panic("Cannot init tail queues for objects\n");
 
+#ifdef RTE_LIBRTE_IVSHMEM
+	if (rte_eal_ivshmem_obj_init() < 0)
+		rte_panic("Cannot init IVSHMEM objects\n");
+#endif
+
 	if (rte_eal_log_init(argv[0], internal_config.syslog_facility) < 0)
 		rte_panic("Cannot init logs\n");
 
@@ -921,9 +991,6 @@ rte_eal_init(int argc, char **argv)
 
 	if (rte_eal_timer_init() < 0)
 		rte_panic("Cannot init HPET or TSC timers\n");
-
-	if (rte_eal_pci_init() < 0)
-		rte_panic("Cannot init PCI\n");
 
 	RTE_LOG(DEBUG, EAL, "Master core %u is ready (tid=%x)\n",
 		rte_config.master_lcore, (int)thread_id);

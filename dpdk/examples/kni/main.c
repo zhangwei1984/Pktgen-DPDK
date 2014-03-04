@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -243,8 +243,8 @@ signal_handler(int signum)
 		return;
 	}
 
-	/* When we receive a RTMIN signal, stop kni processing */
-	if (signum == SIGRTMIN) {
+	/* When we receive a RTMIN or SIGINT signal, stop kni processing */
+	if (signum == SIGRTMIN || signum == SIGINT){
 		printf("SIGRTMIN is received, and the KNI processing is "
 							"going to stop\n");
 		rte_atomic32_inc(&kni_stop);
@@ -864,6 +864,7 @@ main(int argc, char** argv)
 	signal(SIGUSR1, signal_handler);
 	signal(SIGUSR2, signal_handler);
 	signal(SIGRTMIN, signal_handler);
+	signal(SIGINT, signal_handler);
 
 	/* Initialise EAL */
 	ret = rte_eal_init(argc, argv);
@@ -939,6 +940,9 @@ main(int argc, char** argv)
 			continue;
 		kni_free_kni(port);
 	}
+#ifdef RTE_LIBRTE_XEN_DOM0
+	rte_kni_close();
+#endif
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++)
 		if (kni_port_params_array[i]) {
 			rte_free(kni_port_params_array[i]);

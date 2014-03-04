@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,12 @@ LDLIBS += -lrte_kni
 endif
 endif
 
+ifeq ($(CONFIG_RTE_LIBRTE_IVSHMEM),y)
+ifeq ($(CONFIG_RTE_EXEC_ENV_LINUXAPP),y)
+LDLIBS += -lrte_ivshmem
+endif
+endif
+
 ifeq ($(CONFIG_RTE_LIBRTE_E1000_PMD),y)
 LDLIBS += -lrte_pmd_e1000
 endif
@@ -76,8 +82,8 @@ ifeq ($(CONFIG_RTE_LIBRTE_VIRTIO_PMD),y)
 LDLIBS += -lrte_pmd_virtio
 endif
 
-ifeq ($(CONFIG_RTE_LIBRTE_CMDLINE),y)
-LDLIBS += -lrte_cmdline
+ifeq ($(CONFIG_RTE_LIBRTE_VMXNET3_PMD),y)
+LDLIBS += -lrte_pmd_vmxnet3
 endif
 
 ifeq ($(CONFIG_RTE_LIBRTE_TIMER),y)
@@ -167,6 +173,16 @@ endif
 
 ifeq ($(CONFIG_RTE_LIBRTE_EAL),y)
 LDLIBS += -lrte_eal
+endif
+
+
+ifeq ($(CONFIG_RTE_LIBRTE_PMD_XENVIRT),y)
+LDLIBS += -lrte_pmd_xenvirt
+LDLIBS += -lxenstore
+endif
+
+ifeq ($(CONFIG_RTE_LIBRTE_CMDLINE),y)
+LDLIBS += -lrte_cmdline
 endif
 
 ifeq ($(CONFIG_RTE_LIBRTE_PMD_PCAP),y)

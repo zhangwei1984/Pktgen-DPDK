@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -124,6 +124,7 @@ struct rte_ring_debug_stats {
 #endif
 
 #define RTE_RING_NAMESIZE 32 /**< The maximum length of a ring name. */
+#define RTE_RING_MZ_PREFIX "RG_"
 
 /**
  * An RTE ring structure.
@@ -172,9 +173,6 @@ struct rte_ring {
 	 	 	 	 	 	 	 	 	 	 * not volatile so need to be careful
 	 	 	 	 	 	 	 	 	 	 * about compiler re-ordering */
 };
-
-/* dummy assembly operation to prevent compiler re-ordering of instructions */
-#define COMPILER_BARRIER() do { asm volatile("" ::: "memory"); } while(0)
 
 #define RING_F_SP_ENQ 0x0001 /**< The default enqueue is "single-producer". */
 #define RING_F_SC_DEQ 0x0002 /**< The default dequeue is "single-consumer". */
@@ -393,7 +391,7 @@ __rte_ring_mp_do_enqueue(struct rte_ring *r, void * const *obj_table,
 
 	/* write entries in ring */
 	ENQUEUE_PTRS();
-	COMPILER_BARRIER();
+	rte_compiler_barrier();
 
 	/* if we exceed the watermark */
 	if (unlikely(((mask + 1) - free_entries + n) > r->prod.watermark)) {
@@ -479,7 +477,7 @@ __rte_ring_sp_do_enqueue(struct rte_ring *r, void * const *obj_table,
 
 	/* write entries in ring */
 	ENQUEUE_PTRS();
-	COMPILER_BARRIER();
+	rte_compiler_barrier();
 
 	/* if we exceed the watermark */
 	if (unlikely(((mask + 1) - free_entries + n) > r->prod.watermark)) {
@@ -570,7 +568,7 @@ __rte_ring_mc_do_dequeue(struct rte_ring *r, void **obj_table,
 
 	/* copy in table */
 	DEQUEUE_PTRS();
-	COMPILER_BARRIER();
+	rte_compiler_barrier();
 
 	/*
 	 * If there are other dequeues in progress that preceded us,
@@ -645,7 +643,7 @@ __rte_ring_sc_do_dequeue(struct rte_ring *r, void **obj_table,
 
 	/* copy in table */
 	DEQUEUE_PTRS();
-	COMPILER_BARRIER();
+	rte_compiler_barrier();
 
 	__RING_STAT_ADD(r, deq_success, n);
 	r->cons.tail = cons_next;

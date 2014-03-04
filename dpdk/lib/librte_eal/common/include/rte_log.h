@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -219,7 +219,11 @@ int rte_log_add_in_history(const char *buf, size_t size);
  *   - Negative on error.
  */
 int rte_log(uint32_t level, uint32_t logtype, const char *format, ...)
+#ifdef __GNUC__
+#if (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 2))
 	__attribute__((cold))
+#endif
+#endif
 	__attribute__((format(printf, 3, 4)));
 
 /**

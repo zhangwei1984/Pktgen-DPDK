@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -54,5 +54,6 @@ SYMLINK-y-include += rte_eth_pcap_arg_parser.h
 
 # this lib depends upon:
 DEPDIRS-$(CONFIG_RTE_LIBRTE_PMD_PCAP) += lib/librte_mbuf lib/librte_ether
+DEPDIRS-$(CONFIG_RTE_LIBRTE_PMD_PCAP) += lib/librte_malloc
 
 include $(RTE_SDK)/mk/rte.lib.mk

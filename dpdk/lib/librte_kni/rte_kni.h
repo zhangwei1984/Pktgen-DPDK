@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -269,6 +269,16 @@ extern int rte_kni_register_handlers(struct rte_kni *kni,
  *   On failure: -1
  */
 extern int rte_kni_unregister_handlers(struct rte_kni *kni);
+
+/**
+ *  close KNI device.
+ * 
+ *  @param void
+ *
+ *  @return 
+ *   void
+ */
+extern void rte_kni_close(void);
 
 #ifdef __cplusplus
 }

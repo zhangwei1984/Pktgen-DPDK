@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -80,6 +80,16 @@ extern "C" {
  * occur before the LOAD operations generated after.
  */
 #define	rte_rmb() _mm_lfence()
+
+/**
+ * Compiler barrier.
+ *
+ * Guarantees that operation reordering does not occur at compile time 
+ * for operations directly before and after the barrier.
+ */
+#define	rte_compiler_barrier() do {		\
+	asm volatile ("" : : : "memory");	\
+} while(0)
 
 #include <emmintrin.h>
 

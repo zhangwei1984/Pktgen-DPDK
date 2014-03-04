@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@ SRCS-y := main.c config.c init.c runtime.c
 
 CFLAGS += -O3 -g
 CFLAGS += $(WERROR_FLAGS)
+CFLAGS_config.o := -D_GNU_SOURCE
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603

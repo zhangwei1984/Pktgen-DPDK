@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -210,6 +210,7 @@ test_kni_loop(__rte_unused void *arg)
 					rte_pktmbuf_free(pkts_burst[i]);
 				}
 			}
+			rte_delay_ms(10);
 		}
 	} else if (lcore_id == lcore_egress) {
 		while (1) {
@@ -220,6 +221,7 @@ test_kni_loop(__rte_unused void *arg)
 			stats.egress += num;
 			for (nb_tx = 0; nb_tx < num; nb_tx++)
 				rte_pktmbuf_free(pkts_burst[nb_tx]);
+			rte_delay_ms(10);
 		}
 	}
 

@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -725,6 +725,11 @@ struct rte_eth_conf {
 	/**< ETH_LINK_[HALF_DUPLEX|FULL_DUPLEX], or 0 for autonegotation */
 	struct rte_eth_rxmode rxmode; /**< Port RX configuration. */
 	struct rte_eth_txmode txmode; /**< Port TX configuration. */
+	uint32_t lpbk_mode; /**< Loopback operation mode. By default the value
+			         is 0, meaning the loopback mode is disabled.
+				 Read the datasheet of given ethernet controller
+				 for details. The possible values of this field
+				 are defined in implementation of each driver. */
 	union {
 		struct rte_eth_rss_conf rss_conf; /**< Port RSS configuration */
 		struct rte_eth_vmdq_dcb_conf vmdq_dcb_conf;
@@ -1336,6 +1341,16 @@ extern int rte_ixgbevf_pmd_init(void);
 extern int rte_virtio_pmd_init(void);
 
 /**
+ * The initialization function of the driver for VMware VMXNET3
+ * Ethernet devices.
+ * Invoked once at EAL start time.
+ * @return
+ *   0 on success
+ */
+extern int rte_vmxnet3_pmd_init(void);
+
+
+/**
  * The initialization function of *all* supported and enabled drivers.
  * Right now, the following PMDs are supported:
  *  - igb
@@ -1343,6 +1358,8 @@ extern int rte_virtio_pmd_init(void);
  *  - em
  *  - ixgbe
  *  - ixgbevf
+ *  - virtio
+ *  - vmxnet3
  * This function is invoked once at EAL start time.
  * @return
  *   0 on success.
@@ -1390,6 +1407,13 @@ int rte_pmd_init_all(void)
 		return (ret);
 	}
 #endif /* RTE_LIBRTE_VIRTIO_PMD */
+
+#ifdef RTE_LIBRTE_VMXNET3_PMD
+	if ((ret = rte_vmxnet3_pmd_init()) != 0) {
+		RTE_LOG(ERR, PMD, "Cannot init vmxnet3 PMD\n");
+		return (ret);
+	}
+#endif /* RTE_LIBRTE_VMXNET3_PMD */
 
 	if (ret == -ENODEV)
 		RTE_LOG(ERR, PMD, "No PMD(s) are configured\n");

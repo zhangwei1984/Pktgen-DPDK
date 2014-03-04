@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -95,6 +95,7 @@ int test_kni(void);
 int test_power(void);
 int test_common(void);
 int test_pmd_ring(void);
+int test_ivshmem(void);
 
 int test_pci_run;
 

@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -78,6 +78,11 @@ void rte_dump_registers(void);
 #define rte_panic_(func, format, ...) __rte_panic(func, format "%.0s", __VA_ARGS__)
 #define rte_panic(...) rte_panic_(__func__, __VA_ARGS__, "dummy")
 
+#define	RTE_VERIFY(exp)	do {                                                  \
+	if (!(exp))                                                           \
+		rte_panic("line %d\tassert \"" #exp "\" failed\n", __LINE__); \
+} while (0)
+
 /*
  * Provide notification of a critical non-recoverable error and stop.
  *
@@ -85,7 +90,11 @@ void rte_dump_registers(void);
  * documentation.
  */
 void __rte_panic(const char *funcname , const char *format, ...)
+#ifdef __GNUC__
+#if (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 2))
 	__attribute__((cold))
+#endif
+#endif
 	__attribute__((noreturn))
 	__attribute__((format(printf, 2, 3)));
 

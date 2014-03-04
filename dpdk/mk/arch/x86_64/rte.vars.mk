@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ ARCH  ?= x86_64
 CROSS ?=
 
 CPU_CFLAGS  ?= -m64
-CPU_LDFLAGS ?= -melf_x86_64
+CPU_LDFLAGS ?= 
 CPU_ASFLAGS ?= -felf64
 
 export ARCH CROSS CPU_CFLAGS CPU_LDFLAGS CPU_ASFLAGS

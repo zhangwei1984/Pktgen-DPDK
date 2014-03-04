@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,7 @@ else
 
 	ifeq ($(shell test $(GCC_MINOR_VERSION) -le 7 && echo 1), 1)
 		MACHINE_CFLAGS := $(patsubst -march=core-avx-i,-march=corei7-avx,$(MACHINE_CFLAGS))
-		MACHINE_CFLAGS := $(patsubst -march=core-avx2,-march=corei7-avx,$(MACHINE_CFLAGS))
+		MACHINE_CFLAGS := $(patsubst -march=core-avx2,-march=core-avx2,$(MACHINE_CFLAGS))
 	endif
 	ifeq ($(shell test $(GCC_MINOR_VERSION) -lt 6 && echo 1), 1)
 		MACHINE_CFLAGS := $(patsubst -march=corei7-avx,-march=core2 -maes -mpclmul -mavx,$(MACHINE_CFLAGS))
@@ -86,12 +86,4 @@ else
 		MACHINE_CFLAGS := $(filter-out -march% -mtune% -msse%,$(MACHINE_CFLAGS))
 	endif
 endif
-MACHINE_CFLAGS += $(addprefix -DRTE_MACHINE_CPUFLAG_,$(CPUFLAGS))
 
-# To strip whitespace
-comma:= ,
-empty:=
-space:= $(empty) $(empty)
-CPUFLAGSTMP1 := $(addprefix RTE_CPUFLAG_,$(CPUFLAGS))
-CPUFLAGSTMP2 := $(subst $(space),$(comma),$(CPUFLAGSTMP1))
-MACHINE_CFLAGS += -DRTE_COMPILE_TIME_CPUFLAGS=$(CPUFLAGSTMP2)

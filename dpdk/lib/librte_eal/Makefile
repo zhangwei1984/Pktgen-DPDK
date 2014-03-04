@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,8 @@ include $(RTE_SDK)/mk/rte.vars.mk
 
 DIRS-$(CONFIG_RTE_LIBRTE_EAL_LINUXAPP) += common
 DIRS-$(CONFIG_RTE_LIBRTE_EAL_LINUXAPP) += linuxapp
+DIRS-$(CONFIG_RTE_LIBRTE_EAL_BSDAPP) += common
+DIRS-$(CONFIG_RTE_LIBRTE_EAL_BSDAPP) += bsdapp
 DIRS-$(CONFIG_RTE_LIBRTE_EAL_BAREMETAL) += baremetal
 DIRS-$(CONFIG_RTE_LIBRTE_EAL_BAREMETAL) += common
 

@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,6 @@
 
 #include <sys/queue.h>
 
-#include <endian.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1086,8 +1085,13 @@ ring_dma_zone_reserve(struct rte_eth_dev *dev, const char *ring_name,
 	if (mz)
 		return mz;
 
+#ifdef RTE_LIBRTE_XEN_DOM0
+	return rte_memzone_reserve_bounded(z_name, ring_size,
+			socket_id, 0, IGB_ALIGN, RTE_PGSIZE_2M);
+#else
 	return rte_memzone_reserve_aligned(z_name, ring_size,
 			socket_id, 0, IGB_ALIGN);
+#endif
 }
 
 static void
@@ -1234,15 +1238,20 @@ eth_igb_tx_queue_setup(struct rte_eth_dev *dev,
 	txq->pthresh = tx_conf->tx_thresh.pthresh;
 	txq->hthresh = tx_conf->tx_thresh.hthresh;
 	txq->wthresh = tx_conf->tx_thresh.wthresh;
+	if (txq->wthresh > 0 && hw->mac.type == e1000_82576)
+		txq->wthresh = 1;
 	txq->queue_id = queue_idx;
 	txq->reg_idx = (uint16_t)((RTE_ETH_DEV_SRIOV(dev).active == 0) ?
 		queue_idx : RTE_ETH_DEV_SRIOV(dev).def_pool_q_idx + queue_idx);
 	txq->port_id = dev->data->port_id;
 
 	txq->tdt_reg_addr = E1000_PCI_REG_ADDR(hw, E1000_TDT(txq->reg_idx));
+#ifndef RTE_LIBRTE_XEN_DOM0
 	txq->tx_ring_phys_addr = (uint64_t) tz->phys_addr;
-	txq->tx_ring = (union e1000_adv_tx_desc *) tz->addr;
-
+#else
+	txq->tx_ring_phys_addr = rte_mem_phy2mch(tz->memseg_id, tz->phys_addr);
+#endif
+	 txq->tx_ring = (union e1000_adv_tx_desc *) tz->addr;
 	/* Allocate software ring */
 	txq->sw_ring = rte_zmalloc("txq->sw_ring",
 				   sizeof(struct igb_tx_entry) * nb_desc,
@@ -1350,6 +1359,8 @@ eth_igb_rx_queue_setup(struct rte_eth_dev *dev,
 	rxq->pthresh = rx_conf->rx_thresh.pthresh;
 	rxq->hthresh = rx_conf->rx_thresh.hthresh;
 	rxq->wthresh = rx_conf->rx_thresh.wthresh;
+	if (rxq->wthresh > 0 && hw->mac.type == e1000_82576)
+		rxq->wthresh = 1;
 	rxq->drop_en = rx_conf->rx_drop_en;
 	rxq->rx_free_thresh = rx_conf->rx_free_thresh;
 	rxq->queue_id = queue_idx;
@@ -1372,7 +1383,11 @@ eth_igb_rx_queue_setup(struct rte_eth_dev *dev,
 	}
 	rxq->rdt_reg_addr = E1000_PCI_REG_ADDR(hw, E1000_RDT(rxq->reg_idx));
 	rxq->rdh_reg_addr = E1000_PCI_REG_ADDR(hw, E1000_RDH(rxq->reg_idx));
+#ifndef RTE_LIBRTE_XEN_DOM0
 	rxq->rx_ring_phys_addr = (uint64_t) rz->phys_addr;
+#else
+	rxq->rx_ring_phys_addr = rte_mem_phy2mch(rz->memseg_id, rz->phys_addr); 
+#endif 
 	rxq->rx_ring = (union e1000_adv_rx_desc *) rz->addr;
 
 	/* Allocate software ring. */
@@ -1741,10 +1756,7 @@ igb_dev_mq_rx_configure(struct rte_eth_dev *dev)
 		/*
 	 	* SRIOV inactive scheme
 	 	*/
-		if (dev->data->nb_rx_queues > 1)
-			switch (dev->data->dev_conf.rxmode.mq_mode) {
-			case ETH_MQ_RX_NONE:
-				/* if mq_mode not assign, we use rss mode.*/
+		switch (dev->data->dev_conf.rxmode.mq_mode) {
 			case ETH_MQ_RX_RSS:
 				igb_rss_configure(dev);
 				break;
@@ -1752,12 +1764,12 @@ igb_dev_mq_rx_configure(struct rte_eth_dev *dev)
 				/*Configure general VMDQ only RX parameters*/
 				igb_vmdq_rx_hw_configure(dev); 
 				break;
+			case ETH_MQ_RX_NONE:
+				/* if mq_mode is none, disable rss mode.*/
 			default: 
 				igb_rss_disable(dev);
 				break;
-			}
-		else
-			igb_rss_disable(dev);
+		}
 	}
  
 	return 0;
@@ -1838,8 +1850,7 @@ eth_igb_rx_init(struct rte_eth_dev *dev)
 		/*
 		 * Configure RX buffer size.
 		 */
-		mbp_priv = (struct rte_pktmbuf_pool_private *)
-			((char *)rxq->mb_pool + sizeof(struct rte_mempool));
+		mbp_priv = rte_mempool_get_priv(rxq->mb_pool);
 		buf_size = (uint16_t) (mbp_priv->mbuf_data_room_size -
 				       RTE_PKTMBUF_HEADROOM);
 		if (buf_size >= 1024) {
@@ -2093,8 +2104,7 @@ eth_igbvf_rx_init(struct rte_eth_dev *dev)
 		/*
 		 * Configure RX buffer size.
 		 */
-		mbp_priv = (struct rte_pktmbuf_pool_private *)
-			((char *)rxq->mb_pool + sizeof(struct rte_mempool));
+		mbp_priv = rte_mempool_get_priv(rxq->mb_pool);
 		buf_size = (uint16_t) (mbp_priv->mbuf_data_room_size -
 				       RTE_PKTMBUF_HEADROOM);
 		if (buf_size >= 1024) {

@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -59,12 +59,12 @@ extern "C" {
 /**
  * Minor version number i.e. the y in x.y.z
  */
-#define RTE_VER_MINOR 5
+#define RTE_VER_MINOR 6
 
 /**
  * Patch level number i.e. the z in x.y.z
  */
-#define RTE_VER_PATCH_LEVEL 2
+#define RTE_VER_PATCH_LEVEL 0
 
 /**
  * Extra string to be appended to version number,

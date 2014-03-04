@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -101,6 +101,10 @@ include $(RTE_SDK)/mk/exec-env/$(RTE_EXEC_ENV)/rte.vars.mk
 # Don't set CFLAGS/LDFLAGS flags for kernel module, all flags are
 # provided by Kbuild framework.
 ifeq ($(KERNELRELEASE),)
+
+# now that the environment is mostly set up, including the machine type we will
+# be passing to the compiler, set up the specific CPU flags based on that info.
+include $(RTE_SDK)/mk/rte.cpuflags.mk
 
 # merge all CFLAGS
 CFLAGS := $(CPU_CFLAGS) $(EXECENV_CFLAGS) $(TOOLCHAIN_CFLAGS) $(MACHINE_CFLAGS)

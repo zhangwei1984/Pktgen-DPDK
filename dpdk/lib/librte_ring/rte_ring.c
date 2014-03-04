@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -137,7 +137,7 @@ rte_ring_create(const char *name, unsigned count, int socket_id,
 		return NULL;
 	}
 
-	rte_snprintf(mz_name, sizeof(mz_name), "RG_%s", name);
+	rte_snprintf(mz_name, sizeof(mz_name), "%s%s", RTE_RING_MZ_PREFIX, name);
 	ring_size = count * sizeof(void *) + sizeof(struct rte_ring);
 
 	rte_rwlock_write_lock(RTE_EAL_TAILQ_RWLOCK);

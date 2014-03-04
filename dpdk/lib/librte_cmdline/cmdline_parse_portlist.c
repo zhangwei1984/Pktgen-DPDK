@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -65,10 +65,6 @@
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <netinet/in.h>
-#ifndef __linux__
-#include <net/socket.h>
-#endif
 
 #include <rte_string_fns.h>
 #include "cmdline_parse.h"

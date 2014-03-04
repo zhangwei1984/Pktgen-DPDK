@@ -1,6 +1,6 @@
 #   BSD LICENSE
 # 
-#   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -52,12 +52,19 @@ SRCS-$(CONFIG_RTE_TEST_PMD) += cmdline.c
 SRCS-$(CONFIG_RTE_TEST_PMD) += config.c
 SRCS-$(CONFIG_RTE_TEST_PMD) += iofwd.c
 SRCS-$(CONFIG_RTE_TEST_PMD) += macfwd.c
+SRCS-$(CONFIG_RTE_TEST_PMD) += macfwd-retry.c
 SRCS-$(CONFIG_RTE_TEST_PMD) += rxonly.c
 SRCS-$(CONFIG_RTE_TEST_PMD) += txonly.c
 SRCS-$(CONFIG_RTE_TEST_PMD) += csumonly.c
 ifeq ($(CONFIG_RTE_LIBRTE_IEEE1588),y)
 SRCS-$(CONFIG_RTE_TEST_PMD) += ieee1588fwd.c
 endif
+SRCS-$(CONFIG_RTE_TEST_PMD) += mempool_anon.c
+
+ifeq ($(CONFIG_RTE_EXEC_ENV_LINUXAPP),y)
+CFLAGS_mempool_anon.o := -D_GNU_SOURCE
+endif
+CFLAGS_cmdline.o := -D_GNU_SOURCE
 
 # this application needs libraries first
 DEPDIRS-$(CONFIG_RTE_TEST_PMD) += lib

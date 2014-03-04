@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,11 @@ test_parse_sysfs_value(void)
 	FILE *fd = NULL;
 	unsigned valid_number;
 	unsigned long retval = 0;
+
+#ifdef RTE_EXEC_ENV_BSDAPP
+	/* BSD doesn't have /proc/pid/fd */
+	return 0;
+#endif
 
 	printf("Testing function eal_parse_sysfs_value()\n");
 
