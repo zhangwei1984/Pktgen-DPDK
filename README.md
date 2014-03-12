@@ -1,4 +1,4 @@
-Pktgen version 2.5.0 using DPDK-1.6.0
+Pktgen version 2.5.1 using DPDK-1.6.0
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,7 @@ Pktgen version 2.5.0 using DPDK-1.6.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.5.1   - Fixed debug output print in l2p routine.
  - 2.5.0   - Update to DPDK 1.6.0 plus a few bug fixes.
  - 2.4.1   - Fixed a bug in range packets when 'inc' value is zero use start values.
  - 2.4.0   - Add support for TX tap packets. Change 'tap' command to rxtap and txtap.
@@ -211,7 +212,7 @@ Dst  IP Address  :       192.168.1.1       192.168.0.1       192.168.3.1       1
 Src  IP Address  :    192.168.0.1/24    192.168.1.1/24    192.168.2.1/24    192.168.3.1/24
 Dst MAC Address  :    001b:218e:b1e9    001b:218e:b1e8    001b:218e:b761    001b:218e:b760
 Src MAC Address  :    001b:218e:b1e8    001b:218e:b1e9    001b:218e:b760    001b:218e:b761
-- Pktgen Ver:2.5.0(DPDK-1.6.0) --------------------------------------------------------------------------------------
+- Pktgen Ver:2.5.1(DPDK-1.6.0) --------------------------------------------------------------------------------------
 
 
 
