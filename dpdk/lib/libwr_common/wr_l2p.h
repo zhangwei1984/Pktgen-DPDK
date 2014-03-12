@@ -112,7 +112,7 @@ wr_raw_dump_l2p(l2p_t * l2p)
 			printf("\n");
 			printf("    Pids TX %2d: ", lobj->pids.tx_cnt);
 			for(i = 0; i < lobj->pids.tx_cnt; i++)
-				printf("%2d ", lobj->pids.rx[i]);
+				printf("%2d ", lobj->pids.tx[i]);
 			printf("\n");
 		}
 		if ( lobj->qids.rx_cnt || lobj->qids.tx_cnt ) {
@@ -122,7 +122,7 @@ wr_raw_dump_l2p(l2p_t * l2p)
 			printf("\n");
 			printf("    Qids TX %2d: ", lobj->qids.tx_cnt);
 			for(i = 0; i < RTE_MAX_ETHPORTS; i++)
-				printf("%2d ", lobj->qids.rx[i]);
+				printf("%2d ", lobj->qids.tx[i]);
 			printf("\n");
 		}
 	}
