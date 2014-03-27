@@ -1322,6 +1322,40 @@ void pktgen_set_port_prime(port_info_t * info, uint32_t cnt)
 
 /**************************************************************************//**
 *
+* pktgen_set_port_dump - Set the number of received packets to dump to screen.
+*
+* DESCRIPTION
+* Set the number of received packets to dump to screen.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void pktgen_set_port_dump(port_info_t * info, uint32_t cnt)
+{
+	int i;
+
+	if ( cnt > MAX_DUMP_PACKETS )
+		cnt = MAX_DUMP_PACKETS;
+
+	// Prevent concurrency issues by setting the fields in this specific order
+	info->dump_count = 0;
+	info->dump_tail  = 0;
+	info->dump_head  = 0;
+
+	for (i = 0; i < MAX_DUMP_PACKETS; ++i) {
+		if (info->dump_list->data != NULL) {
+			rte_free(info->dump_list->data);
+			info->dump_list->data = NULL;
+		}
+	}
+
+	info->dump_count = cnt;
+}
+
+/**************************************************************************//**
+*
 * pktgen_set_tx_burst - Set the transmit burst count.
 *
 * DESCRIPTION

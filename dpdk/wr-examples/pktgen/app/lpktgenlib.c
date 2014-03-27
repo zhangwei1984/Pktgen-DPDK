@@ -230,6 +230,8 @@ static int pktgen_set (lua_State *L) {
 			pktgen_set_port_seqCnt(info, value);
 		else if (!strcasecmp(what, "prime"))
 			pktgen_set_port_prime(info, value);
+		else if (!strcasecmp(what, "dump"))
+			pktgen_set_port_dump(info, value);
 		else
 			return luaL_error(L, "set does not support %s", what);
 	) );

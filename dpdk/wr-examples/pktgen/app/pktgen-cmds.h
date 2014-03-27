@@ -110,6 +110,7 @@ extern void pktgen_reset(port_info_t * info);
 extern void pktgen_set_tx_count(port_info_t * info, uint32_t cnt);
 extern void pktgen_set_port_seqCnt(port_info_t * info, uint32_t cnt);
 extern void pktgen_set_port_prime(port_info_t * info, uint32_t cnt);
+extern void pktgen_set_port_dump(port_info_t * info, uint32_t cnt);
 extern void pktgen_set_tx_burst(port_info_t * info, uint32_t burst);
 extern void pktgen_set_tx_cycles(port_info_t * info, uint32_t cycles);
 extern void pktgen_set_rx_cycles(port_info_t * info, uint32_t cycles);
@@ -134,6 +135,7 @@ extern void pktgen_set_seq(port_info_t * info, uint32_t seqnum,
 extern void pktgen_set_range_pkt_size(port_info_t * info, char * what, uint16_t size);
 extern void pktgen_send_pkt(port_info_t * info, uint32_t seqnum);
 extern void pktgen_recv_pkt(port_info_t * info);
+extern void pktgen_dump_enable_disable(port_info_t *info, char * str);
 
 extern void pktgen_compile_pkt(port_info_t * info, uint32_t seqnum,
 		cmdline_etheraddr_t *daddr, cmdline_etheraddr_t * saddr,

@@ -172,6 +172,7 @@ const char * help_info[] = {
 		"                 dport             - Destination port number for TCP",
 		"                 prime             - Set the number of packets to send on prime command",
 		"                 seqCnt            - Set the number of packet in the sequence to send",
+		"                 dump              - Dump the next <value> received packets to the screen",
 		"seq <seq#> <portlist> dst-Mac src-Mac dst-IP src-IP sport dport ipv4|ipv6|vlan udp|tcp|icmp vid pktsize",
 		"                                   - Set the sequence packet information, make sure the src-IP",
 		"                                     has the netmask value eg 1.2.3.4/24",
@@ -1176,6 +1177,8 @@ static void cmd_set_parsed(void *parsed_result,
 			pktgen_set_port_seqCnt(info, res->value);
 		else if (!strcmp(res->what, "prime"))
 			pktgen_set_port_prime(info, res->value);
+		else if (!strcmp(res->what, "dump"))
+			pktgen_set_port_dump(info, res->value);
 	) );
 
 	pktgen_update_display();
@@ -1187,14 +1190,14 @@ cmdline_parse_token_portlist_t cmd_set_portlist =
 	TOKEN_PORTLIST_INITIALIZER(struct cmd_set_result, portlist);
 cmdline_parse_token_string_t cmd_set_what =
 	TOKEN_STRING_INITIALIZER(struct cmd_set_result, what,
-				 "count#size#rate#burst#tx_cycles#sport#dport#seqCnt#prime");
+				 "count#size#rate#burst#tx_cycles#sport#dport#seqCnt#prime#dump");
 cmdline_parse_token_num_t cmd_set_value =
 	TOKEN_NUM_INITIALIZER(struct cmd_set_result, value, UINT32);
 
 cmdline_parse_inst_t cmd_set = {
 	.f = cmd_set_parsed,
 	.data = NULL,
-	.help_str = "set <portlist> count|size|rate|burst|tx_cycles|sport|dport|seqCnt|prime value",
+	.help_str = "set <portlist> count|size|rate|burst|tx_cycles|sport|dport|seqCnt|prime|dump value",
 	.tokens = {
 		(void *)&cmd_set_set,
 		(void *)&cmd_set_portlist,
@@ -3283,6 +3286,15 @@ cmdline_parse_inst_t cmd_rst = {
 		NULL,
 	},
 };
+
+/**********************************************************/
+
+struct cmd_dump_onoff_result {
+	cmdline_fixed_string_t dump;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t what;
+};
+
 
 /**********************************************************/
 /**********************************************************/
