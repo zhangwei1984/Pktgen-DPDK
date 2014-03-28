@@ -451,6 +451,15 @@ typedef struct port_info_s {
 
 #define MAX_PORT_DESC_SIZE	132
 
+/* packet capture data */
+typedef struct capture_s {
+	const struct rte_memzone  * mz;			/**< Memory region to store packets */
+	size_t						mem_used;	/**< Memory used by captured packets */
+	uint8_t						lcore;		/**< lcore that captures to this memzone */
+	uint8_t						port;		/**< port for this memzone */
+} capture_t;
+
+
 /* Ethernet addresses of ports */
 typedef struct pktgen_s {
 	struct cmdline		  * cl;					/**< Command Line information pointer */
@@ -504,6 +513,8 @@ typedef struct pktgen_s {
 	uint64_t				total_mem_used;		/**< Display memory used for all ports */
 	int32_t					argc;				/**< Number of arguments */
 	char				  * argv[64];			/**< Argument list */
+
+	capture_t				capture[RTE_MAX_NUMA_NODES];	/**< Packet capture, 1 struct per socket */
 } pktgen_t;
 
 enum {		// Per port flag bits
@@ -520,7 +531,8 @@ enum {		// Per port flag bits
 	PROCESS_RX_TAP_PKTS		= 0x00000200,		/**< Handle RX TAP interface packets */
 	PROCESS_TX_TAP_PKTS		= 0x00000400,		/**< Handle TX TAP interface packets */
 	SEND_VLAN_ID			= 0x00000800,		/**< Send packets with VLAN ID */
-	PROCESS_GARP_PKTS		= 0x00001000		/**< Process GARP packets and update the dst MAC address */
+	PROCESS_GARP_PKTS		= 0x00001000,		/**< Process GARP packets and update the dst MAC address */
+	CAPTURE_PKTS			= 0x00002000		/**< Capture received packets */
 };
 
 enum {	// Queue flags

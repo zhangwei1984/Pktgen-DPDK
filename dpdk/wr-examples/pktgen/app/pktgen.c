@@ -1056,6 +1056,84 @@ pktgen_packet_dump_bulk(struct rte_mbuf ** pkts, int nb_dump, int pid )
 
 /**************************************************************************//**
 *
+* pktgen_packet_capture_bulk - Capture packets to memory.
+*
+* DESCRIPTION
+* Capture packet contents to memory, so they can be written to disk later.
+*
+* A captured packet is stored as follows:
+* - uint16_t: untruncated packet length
+* - uint16_t: size of actual packet contents that are stored
+* - unsigned char[]: packet contents (number of bytes stored equals previous
+*       uint16_t)
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static __inline__ void
+pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, int nb_dump, capture_t *capture )
+{
+	unsigned int plen, i;
+	struct rte_mbuf *pkt;
+	unsigned char *buf_tail, *buf_end;
+
+	buf_tail = (unsigned char *)capture->mz->addr + capture->mem_used;
+	buf_end  = (unsigned char *)capture->mz->addr + capture->mz->len;
+
+	/* Don't capture if buffer is full */
+	if (buf_tail == buf_end) {
+		return;
+	}
+
+	for (i = 0; i < nb_dump; i++) {
+		pkt = pkts[i];
+		/* If the packet is segmented by DPDK, only the contents of the first
+		 * segment are captured. Capturing all segments uses too much CPU
+		 * cycles, which causes packets to be dropped.
+		 * Hence, data_len is used instead of pkt_len. */
+		plen = pkt->pkt.data_len;
+
+		/* If packet to capture is larger than available buffer size, stop
+		 * capturing.
+		 * The packet data is prepended by the untruncated packet length and
+		 * the amount of captured data (which can be less than the packet size
+		 * if DPDK has stored the packet contents in segmented mbufs).
+		 */
+		if (buf_tail + 2 * sizeof(uint16_t) + plen > buf_end) {
+			/* If memory is available, write end-of-data sentinel. A packet
+			 * length of 0 signals the end of the captured data to the routine
+			 * that dumps the data to disk. */
+			if (buf_end - buf_tail >= sizeof(uint16_t)) {
+				*(uint16_t *)buf_tail = 0;
+			}
+
+			capture->mem_used = capture->mz->len;
+			return;
+		}
+
+		/* Write untruncated data length and size of the actually captured
+		 * data. */
+		*(uint16_t *)buf_tail = pkt->pkt.pkt_len;	/* untruncated length */
+		buf_tail += sizeof(uint16_t);
+		*(uint16_t *)buf_tail = plen;				/* captured data */
+		buf_tail += sizeof(uint16_t);
+
+		rte_memcpy(buf_tail, pkt->pkt.data, plen);
+		buf_tail += plen;
+	}
+
+	/* Write end-of-data sentinel if memory is available. */
+	if (buf_end - buf_tail >= sizeof(uint16_t)) {
+		*(uint16_t *)buf_tail = 0;
+	}
+
+	capture->mem_used = buf_tail - (unsigned char *)capture->mz->addr;
+}
+
+/**************************************************************************//**
+*
 * pktgen_send_arp - Send an ARP request packet.
 *
 * DESCRIPTION
@@ -1920,6 +1998,7 @@ static __inline__ void
 pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbuf *pkts_burst[])
 {
 	uint32_t nb_rx, pid, qid;
+	capture_t *capture;
 	int i;
 
 	pid = info->pid;
@@ -1939,6 +2018,14 @@ pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbu
 
 	if ( unlikely(info->dump_count > 0) )
 		pktgen_packet_dump_bulk(pkts_burst, nb_rx, pid);
+
+	if ( unlikely(rte_atomic32_read(&info->port_flags) & CAPTURE_PKTS) ) {
+		capture = &pktgen.capture[pktgen.core_info[lid].s.socket_id];
+		if ( unlikely((capture->port == pid) &&
+				   (capture->lcore == lid)) ) {
+			pktgen_packet_capture_bulk(pkts_burst, nb_rx, capture);
+		}
+	}
 
 	for (i = 0; i < nb_rx; i++)
 		rte_pktmbuf_free(pkts_burst[i]);
@@ -3284,6 +3371,7 @@ void pktgen_config_ports(void)
     char buff[RTE_MEMZONE_NAMESIZE];
     int32_t ret, cache_size;
     struct rte_eth_txconf tx;
+	char memzone_name[RTE_MEMZONE_NAMESIZE];
 
     // Get a local copy of the tx configure information.
     memcpy(&tx, &tx_conf, sizeof(struct rte_eth_txconf));
@@ -3476,6 +3564,20 @@ void pktgen_config_ports(void)
 
         pktgen_range_setup(info);
     }
+
+	for (sid = 0; sid < RTE_MAX_NUMA_NODES; sid++) {
+		pktgen.capture[sid].lcore = RTE_MAX_LCORE;
+		pktgen.capture[sid].port = RTE_MAX_ETHPORTS;
+		pktgen.capture[sid].mem_used = 0;
+
+		// TODO: use rte_snprintf() ?
+		snprintf(memzone_name, sizeof(memzone_name), "Capture_MZ_%d", sid);
+		pktgen.capture[sid].mz = rte_memzone_reserve(memzone_name, 0, sid,
+				RTE_MEMZONE_1GB | RTE_MEMZONE_SIZE_HINT_ONLY);
+
+		if (pktgen.capture[sid].mz == NULL)
+			continue;
+	}
 }
 
 /**************************************************************************//**

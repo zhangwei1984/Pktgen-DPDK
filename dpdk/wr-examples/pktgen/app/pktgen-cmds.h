@@ -90,6 +90,7 @@ extern void pktgen_start_transmitting(port_info_t * info);
 extern void pktgen_stop_transmitting(port_info_t * info);
 extern void pktgen_prime_ports(port_info_t * info);
 extern void pktgen_set_proto(port_info_t * info, char type);
+extern void pktgen_set_capture(port_info_t * info, uint32_t onOff);
 extern void pktgen_set_rx_tap(port_info_t * info, uint32_t onOff);
 extern void pktgen_set_tx_tap(port_info_t * info, uint32_t onOff);
 extern int pktgen_save(char * path);

@@ -2435,6 +2435,55 @@ cmdline_parse_inst_t cmd_icmp_echo = {
 
 /**********************************************************/
 
+struct cmd_capture_result {
+	cmdline_fixed_string_t capture;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t onOff;
+};
+
+/**************************************************************************//**
+*
+* cmd_capture_parsed - Enable or Disable packet capturing
+*
+* DESCRIPTION
+* Enable or Disable packet capturing
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_capture_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_capture_result *res = parsed_result;
+
+	foreach_port( res->portlist.map,
+		pktgen_set_capture(info, parseState(res->onOff)) );
+}
+
+cmdline_parse_token_string_t cmd_set_capture =
+	TOKEN_STRING_INITIALIZER(struct cmd_capture_result, capture, "capture");
+cmdline_parse_token_portlist_t cmd_set_capture_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_capture_result, portlist);
+cmdline_parse_token_string_t cmd_set_capture_onoff =
+	TOKEN_STRING_INITIALIZER(struct cmd_capture_result, onOff, "on#off#enable#disable");
+
+cmdline_parse_inst_t cmd_capture = {
+	.f = cmd_capture_parsed,
+	.data = NULL,
+	.help_str = "capture <portlist> <state>",
+	.tokens = {
+		(void *)&cmd_set_capture,
+		(void *)&cmd_set_capture_portlist,
+		(void *)&cmd_set_capture_onoff,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
 struct cmd_rx_tap_result {
 	cmdline_fixed_string_t rxtap;
 	cmdline_portlist_t portlist;
@@ -3350,6 +3399,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_src_port,
 	    (cmdline_parse_inst_t *)&cmd_start,
 	    (cmdline_parse_inst_t *)&cmd_stop,
+	    (cmdline_parse_inst_t *)&cmd_capture,
 	    (cmdline_parse_inst_t *)&cmd_rx_tap,
 	    (cmdline_parse_inst_t *)&cmd_tx_tap,
 	    (cmdline_parse_inst_t *)&cmd_vlan,
