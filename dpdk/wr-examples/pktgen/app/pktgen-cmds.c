@@ -186,6 +186,7 @@ pktgen_save(char * path)
 		fprintf(fd, "pcap %d %sable\n", i, (flags & SEND_PCAP_PKTS)? "en" : "dis");
 		fprintf(fd, "range %d %sable\n", i, (flags & SEND_RANGE_PKTS)? "en" : "dis");
 		fprintf(fd, "process %d %sable\n", i, (flags & PROCESS_INPUT_PKTS)? "en" : "dis");
+		fprintf(fd, "capture %d %sable\n", i, (flags & CAPTURE_PKTS)? "en" : "dis");
 		fprintf(fd, "rxtap %d %sable\n", i, (flags & PROCESS_RX_TAP_PKTS)? "en" : "dis");
 		fprintf(fd, "txtap %d %sable\n", i, (flags & PROCESS_TX_TAP_PKTS)? "en" : "dis");
 		fprintf(fd, "vlan %d %sable\n\n", i, (flags & SEND_VLAN_ID)? "en" : "dis");
@@ -426,7 +427,7 @@ pktgen_flags_string( port_info_t * info )
     static char buff[32];
     uint32_t	flags = rte_atomic32_read(&info->port_flags);
 
-    snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c%c",
+    snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c%c%c",
             (pktgen.flags & PROMISCUOUS_ON_FLAG)? 'P' : '-',
             (flags & ICMP_ECHO_ENABLE_FLAG)? 'E' : '-',
             (flags & SEND_ARP_REQUEST)? 'A' : '-',
@@ -437,7 +438,8 @@ pktgen_flags_string( port_info_t * info )
             (flags & PROCESS_INPUT_PKTS)? 'I' : '-',
             "-rt*"[(flags & (PROCESS_RX_TAP_PKTS | PROCESS_TX_TAP_PKTS)) >> 9],
             (flags & SEND_VLAN_ID)? 'V' : '-',
-			(flags & PROCESS_GARP_PKTS)? 'g' : '-');
+            (flags & PROCESS_GARP_PKTS)? 'g' : '-',
+			(flags & CAPTURE_PKTS)? 'C' : '-');
 
     return buff;
 }
@@ -584,6 +586,170 @@ pktgen_set_icmp_echo(port_info_t * info, uint32_t onOff)
 		pktgen_set_port_flags(info, ICMP_ECHO_ENABLE_FLAG);
 	else
 		pktgen_clr_port_flags(info, ICMP_ECHO_ENABLE_FLAG);
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_capture - Enable or disable packet capturing
+*
+* DESCRIPTION
+* Set up packet capturing for the given ports and make sure only 1 port per
+* socket is in capture mode.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_capture(port_info_t * info, uint32_t onOff)
+{
+	if ( onOff == ENABLE_STATE ) {
+		if ( rte_atomic32_read(&info->port_flags) & CAPTURE_PKTS )
+			return;
+
+		if (wr_get_port_rxcnt(pktgen.l2p, info->pid) == 0) {
+			printf("Port %d has no RX queue: capture is not possible\n", info->pid);
+			return;
+		}
+
+		// Find an lcore that can capture packets for the requested port
+		uint8_t lid_idx, lid, rxid;
+		for (lid_idx = 0; lid_idx < wr_get_port_nb_lids(pktgen.l2p, info->pid); ++lid_idx) {
+			lid = wr_get_port_lid(pktgen.l2p, info->pid, lid_idx);
+			for (rxid = 0; rxid < wr_get_lcore_rxcnt(pktgen.l2p, lid); ++rxid)
+				if (wr_get_rx_pid(pktgen.l2p, lid, rxid) == info->pid)
+					goto found_rx_lid;
+		}
+		lid = RTE_MAX_LCORE;
+
+found_rx_lid:
+		if (lid == RTE_MAX_LCORE) {
+			printf("Port %d has no rx lcore: capture is not possible\n", info->pid);
+			return;
+		}
+
+		// Get socket of the selected lcore and check if capturing is possible
+		uint8_t sid = pktgen.core_info[lid].s.socket_id;
+		if (pktgen.capture[sid].mz == NULL) {
+			printf("No memory allocated for capturing on socket %d, are hugepages allocated on this socket?\n", sid);
+			return;
+		}
+
+		if (pktgen.capture[sid].lcore != RTE_MAX_LCORE) {
+			printf("Lcore %d is already capturing on socket %d and only 1 lcore can capture on a socket. Disable capturing on the port associated with this lcore first.", pktgen.capture[sid].lcore, sid);
+			return;
+		}
+
+		// Everything checks out: enable packet capture
+		pktgen.capture[sid].mem_used = 0;
+		pktgen.capture[sid].lcore = lid;
+		pktgen.capture[sid].port = info->pid;
+
+		// Write end-of-data sentinel to start of capture memory. This
+		// effectively clears previously captured data.
+		*(unsigned char *)pktgen.capture[sid].mz->addr = 0;
+
+		pktgen_set_port_flags(info, CAPTURE_PKTS);
+
+		printf("Capturing on port %d, lcore %d, socket %d; buffer size: %.2f MB (~%.2f seconds for 64 byte packets at line rate)\n",
+				info->pid, lid, sid,
+				(double)pktgen.capture[sid].mz->len / (1024 * 1024),
+				(double)pktgen.capture[sid].mz->len /
+					(66 /* 64 bytes payload + 2 bytes for payload size */
+					* ((double)info->link.link_speed * 1000 * 1000 / 8) /* Xbit -> Xbyte */
+					/ 84) /* 64 bytes payload + 20 byte etherrnet frame overhead: 84 bytes per packet */
+		);
+	}
+	else {
+		if (!(rte_atomic32_read(&info->port_flags) & CAPTURE_PKTS))
+			return;
+
+		// This should never happen: capture cannot have been enabled when
+		// this condition is true.
+		if (wr_get_port_rxcnt(pktgen.l2p, info->pid) == 0) {
+			printf("Port %d has no RX queue: capture is not possible\n", info->pid);
+			return;
+		}
+
+		int sid;
+		for (sid = 0; sid < RTE_MAX_NUMA_NODES; ++sid)
+			if (pktgen.capture[sid].port == info->pid)
+				break;
+
+		// This should never happen.
+		if (sid == RTE_MAX_NUMA_NODES) {
+			printf("Could not find socket for port %d\n", info->pid);
+			return;
+		}
+
+		/* If there is previously captured data in the buffer, write it
+		 * to disk. */
+		if (pktgen.capture[sid].mem_used > 0) {
+			pcap_t *pcap;
+			pcap_dumper_t *pcap_dumper;
+			struct pcap_pkthdr pcap_hdr;
+
+			unsigned char *pkt, *buf_end;
+			uint16_t pkt_len, data_len;
+			size_t mem_dumped = 0;
+			unsigned int pct = 0;
+
+			printf("Dumping ~%.2fMB of captured data to disk: 0%%",
+					(double)pktgen.capture[sid].mem_used / (1024 * 1024));
+			fflush(stdout);
+
+			pcap = pcap_open_dead(DLT_EN10MB, 65535);
+			// TODO: make filename unique (timestamp in filename?)
+			pcap_dumper = pcap_dump_open(pcap, "pktgen.pcap");
+
+			pkt = pktgen.capture[sid].mz->addr;
+			buf_end = (unsigned char *)pktgen.capture[sid].mz->addr + pktgen.capture[sid].mz->len;
+			while (pkt + 2 * sizeof(uint16_t) < buf_end) {
+				pkt_len  = *(uint16_t *)pkt;
+				pkt += sizeof(uint16_t);
+				data_len = *(uint16_t *)pkt;
+				pkt += sizeof(uint16_t);
+
+				/* Check for end-of-data sentinel */
+				if (pkt_len == 0) {
+					printf("End-of-data sentinel found\n");
+					break;
+				}
+
+				//pcap_hdr.ts     = xxx;	// FIXME use real timestamp
+				pcap_hdr.len    = pkt_len;
+				pcap_hdr.caplen = data_len;
+
+				pcap_dump((u_char *)pcap_dumper, &pcap_hdr, (const u_char *)pkt);
+
+				pkt += data_len;
+				mem_dumped = pkt - (unsigned char *)pktgen.capture[sid].mz->addr;
+
+				// The amount of data to dump to disk, is potentially very large
+				// (a few gigabytes), so print a percentage counter.
+				if (pct < mem_dumped * 100 / pktgen.capture[sid].mem_used) {
+					pct = mem_dumped * 100 / pktgen.capture[sid].mem_used;
+
+					if (pct % 10 == 0)
+						printf("%d%%", pct);
+					else if (pct % 2 == 0)
+						printf(".");
+					fflush(stdout);
+				}
+			}
+			printf("\n");
+
+			pcap_dump_close(pcap_dumper);
+			pcap_close(pcap);
+		}
+
+		pktgen.capture[sid].mem_used = 0;
+		pktgen.capture[sid].lcore = RTE_MAX_LCORE;
+		pktgen.capture[sid].port = RTE_MAX_ETHPORTS;
+
+		pktgen_clr_port_flags(info, CAPTURE_PKTS);
+	}
 }
 
 /**************************************************************************//**
