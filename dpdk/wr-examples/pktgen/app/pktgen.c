@@ -260,7 +260,7 @@ pktgen_fill_pattern( uint8_t * p, uint32_t len, uint32_t type ) {
 */
 
 static __inline__ pkt_seq_t *
-pktgen_find_matching_ipsrc( port_info_t * info, uint32_t addr ) 
+pktgen_find_matching_ipsrc( port_info_t * info, uint32_t addr )
 {
 	pkt_seq_t * pkt = NULL;
 	int		i;
@@ -917,7 +917,7 @@ pktgen_packet_classify( struct rte_mbuf * m, int pid )
 		case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;	pktgen_process_ping6(m, pid, 0);   break;
 		case ETHER_TYPE_VLAN:   info->stats.vlan_pkts++;	pktgen_process_vlan(m, pid);       break;
 		case UNKNOWN_PACKET:    /* FALL THRU */
-		default: 				rte_pktmbuf_free(m);	break;
+		default: 				break;
 		}
 	} else {
 		// Count the type of packets found.
@@ -928,7 +928,6 @@ pktgen_packet_classify( struct rte_mbuf * m, int pid )
 		case ETHER_TYPE_VLAN:       info->stats.vlan_pkts++;    break;
 		default:			    	break;
 		}
-		rte_pktmbuf_free(m);
 	}
 
     // Count the size of each packet.
@@ -976,19 +975,81 @@ pktgen_packet_classify_bulk(struct rte_mbuf ** pkts, int nb_rx, int pid )
 {
 	int j;
 
-	/* Prefetch first packets */
-	for (j = 0; j < PREFETCH_OFFSET && j < nb_rx; j++)
-		rte_prefetch0(rte_pktmbuf_mtod(pkts[j], void *));
-
-	/* Prefetch and handle already prefetched packets */
-	for (j = 0; j < (nb_rx - PREFETCH_OFFSET); j++) {
-		rte_prefetch0(rte_pktmbuf_mtod(pkts[j + PREFETCH_OFFSET], void *));
+	/* Handle remaining prefetched packets */
+	for (j = 0; j < nb_rx; j++)
 		pktgen_packet_classify(pkts[j], pid);
+}
+
+/**************************************************************************//**
+*
+* pktgen_packet_dump - Dump the contents of a packet
+*
+* DESCRIPTION
+* Dump the contents of a packet.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void
+pktgen_packet_dump( struct rte_mbuf * m, int pid )
+{
+	port_info_t * info = &pktgen.info[pid];
+	int plen = (m->pkt.pkt_len + FCS_SIZE);
+	unsigned char *curr_data;
+	struct rte_mbuf *curr_mbuf;
+
+	/* Checking if info->dump_tail will not overflow is done in the caller */
+	if (info->dump_list[info->dump_tail].data != NULL)
+		rte_free(info->dump_list[info->dump_tail].data);
+
+	info->dump_list[info->dump_tail].data = rte_malloc("Packet data", plen, 0);
+	info->dump_list[info->dump_tail].len = plen;
+
+	for (curr_data = info->dump_list[info->dump_tail].data, curr_mbuf = m;
+		curr_mbuf != NULL;
+		curr_data += curr_mbuf->pkt.data_len, curr_mbuf = curr_mbuf->pkt.next) {
+		rte_memcpy(curr_data, curr_mbuf->pkt.data, curr_mbuf->pkt.data_len);
 	}
 
-	/* Handle remaining prefetched packets */
-	for (; j < nb_rx; j++)
-		pktgen_packet_classify(pkts[j], pid);
+	++info->dump_tail;
+}
+
+/**************************************************************************//**
+*
+* pktgen_packet_dump_bulk - Dump packet contents.
+*
+* DESCRIPTION
+* Dump packet contents for later inspection.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static __inline__ void
+pktgen_packet_dump_bulk(struct rte_mbuf ** pkts, int nb_dump, int pid )
+{
+	port_info_t * info = &pktgen.info[pid];
+	int i;
+
+	/* Don't dump more packets than the user asked */
+	if (nb_dump > info->dump_count)
+		nb_dump = info->dump_count;
+
+	/* Don't overflow packet array */
+	if (nb_dump > MAX_DUMP_PACKETS - info->dump_tail)
+		nb_dump = MAX_DUMP_PACKETS - info->dump_tail;
+
+	if (nb_dump == 0) {
+		return;
+	}
+
+	for (i = 0; i < nb_dump; i++)
+		pktgen_packet_dump(pkts[i], pid);
+
+	info->dump_count -= nb_dump;
 }
 
 /**************************************************************************//**
@@ -1198,8 +1259,6 @@ pktgen_process_arp( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 
 			pkt = pktgen_find_matching_ipdst(info, arp->spa._32);
 
-			rte_pktmbuf_free(m);
-
 			/* Found a matching packet, replace the dst address */
 			if ( pkt ) {
 				rte_memcpy(&pkt->eth_dst_addr, &arp->sha, 6);
@@ -1258,7 +1317,6 @@ pktgen_process_arp( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 			pktgen.flags |= PRINT_LABELS_FLAG;
 		}
 	}
-    rte_pktmbuf_free(m);
 }
 
 /**************************************************************************//**
@@ -1299,14 +1357,14 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
         // We do not handle IP options, which will effect the IP header size.
         if ( unlikely(cksum(icmp, (m->pkt.data_len - sizeof(struct ether_hdr) - sizeof(ipHdr_t)), 0)) ) {
             printf_info("ICMP checksum failed\n");
-            goto leave;
+            return;
         }
 
         if ( unlikely(icmp->type == ICMP4_ECHO) ) {
             if ( ntohl(ip->dst) == INADDR_BROADCAST ) {
                 printf_info("IP address %s is a Broadcast\n",
                         inet_ntop4(buff, sizeof(buff), ip->dst, INADDR_BROADCAST));
-                goto leave;
+                return;
             }
 
             // Toss all broadcast addresses and requests not for this port
@@ -1316,7 +1374,7 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
             if ( unlikely(pkt == NULL) ) {
                 printf_info("IP address %s not found\n",
                         inet_ntop4(buff, sizeof(buff), ip->dst, INADDR_BROADCAST));
-                goto leave;
+                return;
             }
 
             info->stats.echo_pkts++;
@@ -1350,8 +1408,6 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
             info->stats.echo_pkts++;
         }
     }
-leave:
-    rte_pktmbuf_free(m);
 }
 
 /**************************************************************************//**
@@ -1434,7 +1490,6 @@ pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
     }
 leave:
 #else
-    rte_pktmbuf_free(m);
 #endif
 }
 
@@ -1457,21 +1512,21 @@ pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid )
     struct ether_hdr *eth;
     struct vlan_hdr  *vlan_hdr;
     port_info_t      *info = &pktgen.info[pid];
- 
+
     eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
-   
+
     /* Now dealing with the inner header */
     vlan_hdr = (struct vlan_hdr*)(eth+1);
 
     pType = ntohs(vlan_hdr->eth_proto);
- 
+
 	/* No support for nested tunnel */
 	switch((int)pType) {
 	case ETHER_TYPE_ARP:    info->stats.arp_pkts++;         pktgen_process_arp(m, pid, 1);		break;
 	case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;          pktgen_process_ping4(m, pid, 1);    break;
 	case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;        pktgen_process_ping6(m, pid, 1);    break;
 	case UNKNOWN_PACKET:    /* FALL THRU */
-	default:                rte_pktmbuf_free(m);    break;
+	default:                break;
 	};
 }
 
@@ -1511,7 +1566,7 @@ pktgen_send_special(port_info_t * info)
             pktgen_send_ping6(info->pid, s);
 #endif
     }
-	
+
 	if ( unlikely(flags & SEND_GRATUITOUS_ARP) )
 		pktgen_send_arp(info->pid, GRATUITOUS_ARP, SINGLE_PKT);
 	if ( likely(flags & SEND_ARP_REQUEST) )
@@ -1862,10 +1917,11 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 static __inline__ void
 pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbuf *pkts_burst[])
 {
-    uint32_t		nb_rx, pid, qid;
+	uint32_t nb_rx, pid, qid;
+	int i;
 
-	pid		= info->pid;
-	qid		= wr_get_rxque(pktgen.l2p, lid, idx);
+	pid = info->pid;
+	qid = wr_get_rxque(pktgen.l2p, lid, idx);
 
 	/*
 	 * Read packet from RX queues and free the mbufs
@@ -1873,8 +1929,17 @@ pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbu
 	if ( (nb_rx = rte_eth_rx_burst(pid, qid, pkts_burst, info->tx_burst)) == 0 )
 		return;
 
-	// packets are freed in the next call.
+	/* Prefetch packets */
+	for (i = 0; i < nb_rx; i++)
+		rte_prefetch0(rte_pktmbuf_mtod(pkts_burst[i], void *));
+
 	pktgen_packet_classify_bulk(pkts_burst, nb_rx, pid);
+
+	if ( unlikely(info->dump_count > 0) )
+		pktgen_packet_dump_bulk(pkts_burst, nb_rx, pid);
+
+	for (i = 0; i < nb_rx; i++)
+		rte_pktmbuf_free(pkts_burst[i]);
 }
 
 /**************************************************************************//**
@@ -2890,6 +2955,74 @@ pktgen_page_seq(uint32_t pid)
 
 /**************************************************************************//**
 *
+* pktgen_print_packet_dump - Print captured packets to the screen
+*
+* DESCRIPTION
+* When some packets are captured on user request, print the packet data to
+* the screen.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void
+pktgen_print_packet_dump(void)
+{
+	port_info_t * info;
+	struct cmdline *cl = pktgen.cl;
+
+	unsigned int pid;
+	unsigned int i, j;
+	unsigned char * pdata;
+	uint32_t plen;
+
+	for (pid = 0; pid < RTE_MAX_ETHPORTS; pid++) {
+		if ( wr_get_map(pktgen.l2p, pid, RTE_MAX_LCORE) == 0 )
+			continue;
+
+		info = &pktgen.info[pid];
+		for (; info->dump_head < info->dump_tail; ++info->dump_head) {
+			pdata = (unsigned char *)info->dump_list[info->dump_head].data;
+			plen = info->dump_list[info->dump_head].len;
+
+			fprintf(stderr, "Port %d, packet with length %d:\n", pid, plen);
+
+			for (i = 0; i < plen; i += 16) {
+				/* Byte counter */
+				fprintf(stderr, "%06x: ", i);
+
+				for (j = 0; j < 16; ++j) {
+					/* Hex. value of character */
+					if (i + j < plen)
+					    fprintf(stderr, "%02x ", pdata[i + j]);
+					else
+					    fprintf(stderr, "   ");
+
+					/* Extra padding after 8 hex values for readability */
+					if ((j + 1) % 8 == 0)
+					    fprintf(stderr, " ");
+				}
+
+				/* Separate hex. values and raw characters */
+				fprintf(stderr, "\t");
+
+				for (j = 0; j < 16; ++j) {
+					if (i + j < plen)
+						fprintf(stderr, "%c", isprint(pdata[i + j]) ? pdata[i + j] : '.');
+				}
+
+				fprintf(stderr, "\n");
+			}
+
+			rte_free(info->dump_list[info->dump_head].data);
+			info->dump_list[info->dump_head].data = NULL;
+		}
+	}
+}
+
+/**************************************************************************//**
+*
 * pktgen_page_display - Display the correct page based on timer0 callback.
 *
 * DESCRIPTION
@@ -2927,6 +3060,8 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
         pktgen_page_stats();
 
     scrn_restore();
+
+    pktgen_print_packet_dump();
 }
 
 /**************************************************************************//**
@@ -3774,7 +3909,7 @@ pktgen_interact(struct cmdline *cl)
 	c = -1;
 	reload = (pktgen.hz/1000);
 	next_poll = rte_rdtsc() + reload;
-	
+
 	for(;;) {
 		rte_timer_manage();
 		curr_tsc = rte_rdtsc();

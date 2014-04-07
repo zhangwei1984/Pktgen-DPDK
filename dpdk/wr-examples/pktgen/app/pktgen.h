@@ -164,6 +164,8 @@ int main(int argc, char **argv);
 #define Million					(uint64_t)(1000ULL * 1000ULL)
 #define Mega					(uint64_t)(1024ULL * 1024ULL)
 
+#define MAX_DUMP_PACKETS        32
+
 #define iBitsTotal(_x) \
     (((_x.ipackets * (INTER_FRAME_GAP + PKT_PREAMBLE_SIZE)) + _x.ibytes) << 3)
 #define oBitsTotal(_x) \
@@ -436,6 +438,15 @@ typedef struct port_info_s {
 
 	int32_t					pcap_result;		/**< PCAP result of filter compile */
 	struct bpf_program		pcap_program;		/**< PCAP filter program structure */
+
+	// Packet dump related
+	struct packet {
+		void *		data;						/**< Packet data */
+		uint32_t	len;						/**< Length of data */
+	} dump_list[MAX_DUMP_PACKETS];
+	uint8_t					dump_head;			/**< Index of last packet written to screen */
+	uint8_t					dump_tail;			/**< Index of last valid packet in dump_list */
+	uint8_t					dump_count;			/**< Number of packets the user requested */
 } port_info_t;
 
 #define MAX_PORT_DESC_SIZE	132
