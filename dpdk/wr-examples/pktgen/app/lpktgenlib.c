@@ -1470,6 +1470,70 @@ static int pktgen_mpls (lua_State *L) {
 
 /**************************************************************************//**
 *
+* pktgen_qinqids - Set the Q-in-Q ID's in the range data.
+*
+* DESCRIPTION
+* Set the Q-in-Q ID's in the range data.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_qinqids (lua_State *L) {
+	uint32_t	portlist, qinq_id1, qinq_id2;
+
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "qinqids, wrong number of arguments");
+	case 3:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+	qinq_id1 = luaL_checkinteger(L, 2);
+	if ( (qinq_id1 < MIN_VLAN_ID) || (qinq_id1 > MAX_VLAN_ID) )
+		qinq_id1 = 1;
+
+	qinq_id2 = luaL_checkinteger(L, 3);
+	if ( (qinq_id2 < MIN_VLAN_ID) || (qinq_id2 > MAX_VLAN_ID) )
+		qinq_id2 = 1;
+
+	foreach_port( portlist,
+		pktgen_set_qinqids(info, qinq_id1, qinq_id2) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
+* pktgen_qinq - Enable or Disable Q-in-Q header
+*
+* DESCRIPTION
+* Enable or disable insertion of Q-in-Q header.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_qinq (lua_State *L) {
+	uint32_t	portlist;
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "qinq, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+
+	foreach_port( portlist,
+		pktgen_set_qinq(info, parseState(luaL_checkstring(L, 2))) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
 * pktgen_pkt_size - Set the port range size.
 *
 * DESCRIPTION
@@ -2250,6 +2314,7 @@ static char * lua_help_info[] = {
 	"reset          - Reset the configuration to all ports\n",
 	"vlan           - Enable or disable VLAN header\n",
 	"mpls           - Enable or disable MPLS header\n",
+    "qinq           - Enable or disable Q-in-Q header\n",
 	"\n",
 	"Range commands\n",
 	"dst_mac        - Set the destination MAC address for a port\n",
@@ -2260,6 +2325,7 @@ static char * lua_help_info[] = {
 	"dst_port       - Set the IP destination port number\n",
 	"vlan_id        - Set the vlan id value\n",
 	"mpls_entry     - Set the MPLS entry\n",
+    "qinqids        - Set the Q-in-Q ID's\n",
 	"pkt_size       - the packet size for a range port\n",
 	"range          - Enable or disable sending range data on a port.\n",
 	"\n",
@@ -2390,6 +2456,7 @@ static const luaL_Reg pktgenlib[] = {
   {"vlan",			pktgen_vlan},			// Enable or disable VLAN header
 
   {"mpls",			pktgen_mpls},			// Enable or disable MPLS header
+  {"qinq",			pktgen_qinq},			// Enable or disable Q-in-Q header
 
   // Range commands
   {"dst_mac",		pktgen_dst_mac},		// Set the destination MAC address for a port
@@ -2400,6 +2467,7 @@ static const luaL_Reg pktgenlib[] = {
   {"dst_port",		pktgen_dst_port},		// Set the IP destination port number
   {"vlan_id",		pktgen_vlan_id},		// Set the vlan id value
   {"mpls_entry",	pktgen_mpls_entry},		// Set the MPLS entry value
+  {"qinqids",		pktgen_qinqids},		// Set the Q-in-Q ID values
   {"pkt_size",		pktgen_pkt_size},		// the packet size for a range port
   {"range",			pktgen_range},			// Enable or disable sending range data on a port.
 

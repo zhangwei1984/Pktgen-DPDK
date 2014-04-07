@@ -515,6 +515,25 @@ pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * et
 
 		return (char *)(mpls_hdr + 1);
 	}
+	else if (rte_atomic32_read(&info->port_flags) & SEND_Q_IN_Q_IDS) {
+		/* Q-in-Q ethernet header */
+		eth->ether_type = htons(ETHER_TYPE_Q_IN_Q);
+
+		struct qinq_hdr *qinq_hdr = (struct qinq_hdr *)(eth + 1);
+
+		/* only set the TCI field for now; don't bother with PCP/DEI */
+		qinq_hdr->qinq_tci = htons(pkt->qinq_outerid);
+
+		qinq_hdr->vlan_tpid = htons(ETHER_TYPE_VLAN);
+		qinq_hdr->vlan_tci = htons(pkt->qinq_innerid);
+
+		qinq_hdr->eth_proto = htons(pkt->ethType);
+
+		/* Adjust header size for Q-in-Q header */
+		pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(struct qinq_hdr);
+
+		return (char *)(qinq_hdr + 1);
+	}
     else {
         /* normal ethernet header */
         eth->ether_type = htons(pkt->ethType);

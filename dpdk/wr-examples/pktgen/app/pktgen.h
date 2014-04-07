@@ -332,6 +332,8 @@ typedef struct pkt_seq_s {
     uint16_t			ether_hdr_size;			/**< Size of Ethernet header in packet for VLAN ID */
 
 	uint32_t			mpls_entry;				/**< MPLS entry if used */
+	uint16_t			qinq_outerid;			/**< Outer VLAN ID if Q-in-Q */
+	uint16_t			qinq_innerid;			/**< Inner VLAN ID if Q-in-Q */
 
     uint16_t            pktSize;                /**< Size of packet in bytes not counting FCS */
     uint16_t            tlen;					/**< Total length of packet data */
@@ -411,6 +413,8 @@ typedef struct port_info_s {
 	range_info_t			range;				/**< Range Information */
 
 	uint32_t				mpls_entry;			/**< Set the port MPLS entry */
+	uint16_t				qinq_outerid;		/**< Set the port outer VLAN ID value for Q-in-Q */
+	uint16_t				qinq_innerid;		/**< Set the port inner VLAN ID value for Q-in-Q */
 
 	uint16_t				nb_mbufs;			/**< Number of mbufs in the system */
 	uint16_t				pad0;
@@ -537,7 +541,8 @@ enum {		// Per port flag bits
 	SEND_VLAN_ID			= 0x00000800,		/**< Send packets with VLAN ID */
 	PROCESS_GARP_PKTS		= 0x00001000,		/**< Process GARP packets and update the dst MAC address */
 	CAPTURE_PKTS			= 0x00002000,		/**< Capture received packets */
-	SEND_MPLS_LABEL			= 0x00004000		/**< Send MPLS label */
+	SEND_MPLS_LABEL			= 0x00004000,		/**< Send MPLS label */
+	SEND_Q_IN_Q_IDS			= 0x00008000		/**< Send packets with Q-in-Q */
 };
 
 enum {	// Queue flags

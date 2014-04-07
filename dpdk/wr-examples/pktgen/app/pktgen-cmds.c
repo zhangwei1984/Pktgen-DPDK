@@ -185,6 +185,9 @@ pktgen_save(char * path)
 		sprintf(buff, "%x", pkt->mpls_entry);
 		fprintf(fd, "mpls_entry %d %s\n", i, buff);
 
+		fprintf(fd, "qinq %d %sable\n", i, (flags & SEND_Q_IN_Q_IDS) ? "en" : "dis");
+		fprintf(fd, "qinqids %d %d %d\n", i, pkt->qinq_outerid, pkt->qinq_innerid);
+
 		fprintf(fd, "#\n# Port flag values:\n");
 		fprintf(fd, "icmp.echo %d %sable\n", i, (flags & ICMP_ECHO_ENABLE_FLAG)? "en" : "dis");
 		fprintf(fd, "pcap %d %sable\n", i, (flags & SEND_PCAP_PKTS)? "en" : "dis");
@@ -442,7 +445,8 @@ pktgen_flags_string( port_info_t * info )
             (flags & PROCESS_INPUT_PKTS)? 'I' : '-',
             "-rt*"[(flags & (PROCESS_RX_TAP_PKTS | PROCESS_TX_TAP_PKTS)) >> 9],
             (flags & SEND_VLAN_ID)? 'V' :
-				(flags & SEND_MPLS_LABEL)? 'M' : '-',
+				(flags & SEND_MPLS_LABEL)? 'M' :
+				(flags & SEND_Q_IN_Q_IDS)? 'Q' : '-',
             (flags & PROCESS_GARP_PKTS)? 'g' : '-',
 			(flags & CAPTURE_PKTS)? 'C' : '-');
 
@@ -1188,6 +1192,7 @@ pktgen_set_vlan(port_info_t * info, uint32_t onOff)
 {
 	if ( onOff == ENABLE_STATE ) {
 		pktgen_clr_port_flags(info, SEND_MPLS_LABEL);
+		pktgen_clr_port_flags(info, SEND_Q_IN_Q_IDS);
 		pktgen_set_port_flags(info, SEND_VLAN_ID);
 	}
 	else
@@ -1232,6 +1237,7 @@ pktgen_set_mpls(port_info_t * info, uint32_t onOff)
 {
 	if ( onOff == ENABLE_STATE ) {
 		pktgen_clr_port_flags(info, SEND_VLAN_ID);
+		pktgen_clr_port_flags(info, SEND_Q_IN_Q_IDS);
 		pktgen_set_port_flags(info, SEND_MPLS_LABEL);
 	}
 	else
@@ -1256,6 +1262,53 @@ pktgen_set_mpls_entry(port_info_t * info, uint32_t mpls_entry)
 {
 	info->mpls_entry = mpls_entry;
 	info->seq_pkt[SINGLE_PKT].mpls_entry = info->mpls_entry;
+	pktgen_packet_ctor(info, SINGLE_PKT, -1);
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_qinq - Set the port to send a Q-in-Q header
+*
+* DESCRIPTION
+* Set the given port list to send Q-in-Q ID packets.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_qinq(port_info_t * info, uint32_t onOff)
+{
+	if ( onOff == ENABLE_STATE ) {
+		pktgen_clr_port_flags(info, SEND_VLAN_ID);
+		pktgen_clr_port_flags(info, SEND_MPLS_LABEL);
+		pktgen_set_port_flags(info, SEND_Q_IN_Q_IDS);
+	}
+	else
+		pktgen_clr_port_flags(info, SEND_Q_IN_Q_IDS);
+	pktgen_packet_ctor(info, SINGLE_PKT, -1);
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_qinqids - Set the port Q-in-Q ID values
+*
+* DESCRIPTION
+* Set the given port list with the given Q-in-Q ID's.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_qinqids(port_info_t * info, uint16_t outerid, uint16_t innerid)
+{
+	info->qinq_outerid = outerid;
+	info->seq_pkt[SINGLE_PKT].qinq_outerid = info->qinq_outerid;
+	info->qinq_innerid = innerid;
+	info->seq_pkt[SINGLE_PKT].qinq_innerid = info->qinq_innerid;
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
 }
 
