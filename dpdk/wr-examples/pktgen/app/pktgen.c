@@ -934,6 +934,25 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 				pkt->pktSize = pkt->tlen;
 		}
     }
+	else if ( pkt->ethType == ETHER_TYPE_ARP) {
+		/* Start with Ethernet header */
+		arp_hdr_t *arp = (arp_hdr_t *)ether_hdr;
+
+		arp->htype = htons(1);
+		arp->ptype = htons(ETHER_TYPE_IPv4);
+		arp->hlen  = ETHER_ADDR_LEN;
+		arp->plen  = 4;			// TODO IPv6 ARP
+		arp->oper  = htons(2);	// FIXME make request/reply operation selectable by user
+
+		ether_addr_copy(&pkt->eth_src_addr, &arp->sha);
+		arp->spa   = htonl(pkt->ip_src_addr);
+
+		ether_addr_copy(&pkt->eth_dst_addr, &arp->tha);
+		arp->tpa   = htonl(pkt->ip_dst_addr);
+	}
+	else {
+		fprintf(stderr, "Unknown EtherType 0x%04x\n", pkt->ethType);
+	}
 }
 
 /**************************************************************************//**
@@ -2480,7 +2499,8 @@ pktgen_print_static_data(void)
         snprintf(buff, sizeof(buff), "%d/%d", pkt->sport, pkt->dport);
         scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
         snprintf(buff, sizeof(buff), "%s/%s:%04x", (pkt->ethType == ETHER_TYPE_IPv4)? "IPv4" :
-                                              (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" : "Other",
+                                              (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" :
+											  (pkt->ethType == ETHER_TYPE_ARP)? "ARP" : "Other",
                                               (pkt->ipProto == PG_IPPROTO_TCP)? "TCP" :
                                               (pkt->ipProto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                pkt->vlanid);

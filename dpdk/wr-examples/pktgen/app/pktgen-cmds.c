@@ -1039,11 +1039,19 @@ void
 pktgen_set_proto(port_info_t * info, char type)
 {
 	info->seq_pkt[SINGLE_PKT].ipProto = (type == 'u')? PG_IPPROTO_UDP :
-									(type == 'i') ? PG_IPPROTO_ICMP : PG_IPPROTO_TCP;
+									(type == 'i') ? PG_IPPROTO_ICMP :
+									(type == 't') ? PG_IPPROTO_TCP :
+									(type == 'a') ? info->seq_pkt[SINGLE_PKT].ipProto :		// don't change ipProto: it's unused for ARP
+									PG_IPPROTO_TCP;
 
 	// ICMP only works on IPv4 packets.
 	if ( type == 'i' )
 		info->seq_pkt[SINGLE_PKT].ethType = ETHER_TYPE_IPv4;
+
+	// ARP is an EtherType, not an IP subtype
+	if ( type == 'a' )
+		info->seq_pkt[SINGLE_PKT].ethType = ETHER_TYPE_ARP;
+
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
 }
 
