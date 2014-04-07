@@ -331,6 +331,8 @@ typedef struct pkt_seq_s {
     uint16_t			vlanid;					/**< VLAN ID value if used */
     uint16_t			ether_hdr_size;			/**< Size of Ethernet header in packet for VLAN ID */
 
+	uint32_t			mpls_entry;				/**< MPLS entry if used */
+
     uint16_t            pktSize;                /**< Size of packet in bytes not counting FCS */
     uint16_t            tlen;					/**< Total length of packet data */
     											/* 28 bytes + (2 * sizeof(struct ether_addr)) */
@@ -407,6 +409,8 @@ typedef struct port_info_s {
 	uint16_t				vlanid;				/**< Set the port VLAN ID value */
 	pkt_seq_t			  * seq_pkt;			/**< Sequence of packets seq_pkt[NUM_SEQ_PKTS]=default packet */
 	range_info_t			range;				/**< Range Information */
+
+	uint32_t				mpls_entry;			/**< Set the port MPLS entry */
 
 	uint16_t				nb_mbufs;			/**< Number of mbufs in the system */
 	uint16_t				pad0;
@@ -532,7 +536,8 @@ enum {		// Per port flag bits
 	PROCESS_TX_TAP_PKTS		= 0x00000400,		/**< Handle TX TAP interface packets */
 	SEND_VLAN_ID			= 0x00000800,		/**< Send packets with VLAN ID */
 	PROCESS_GARP_PKTS		= 0x00001000,		/**< Process GARP packets and update the dst MAC address */
-	CAPTURE_PKTS			= 0x00002000		/**< Capture received packets */
+	CAPTURE_PKTS			= 0x00002000,		/**< Capture received packets */
+	SEND_MPLS_LABEL			= 0x00004000		/**< Send MPLS label */
 };
 
 enum {	// Queue flags

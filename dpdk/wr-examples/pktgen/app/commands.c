@@ -193,6 +193,8 @@ const char * help_info[] = {
 		"txtap <portlist> <state>           - Enable/disable Tx tap interface support pg_txtapN",
 		"vlan <portlist> <state>            - Enable/disable sending VLAN ID in packets",
 		"vlanid <portlist> <vlanid>         - Set the VLAN ID for the portlist",
+		"mpls <portlist> <state>            - Enable/disable sending MPLS entry in packets",
+		"mpls_entry <portlist> <entry>      - Set the MPLS entry for the portlist (must be specified in hex)",
 		"pcap <portlist> <state>            - Enable or Disable sending pcap packets on a portlist",
 		"pcap.show                          - Show the PCAP information",
 		"pcap.index                         - Move the PCAP file index to the given packet number,  0 - rewind, -1 - end of file",
@@ -280,6 +282,7 @@ const char * help_info[] = {
 		"                       I     - Process packets on input enabled",
 		"                        T    - Using TAP interface for this port",
 		"                         V   - Send VLAN ID tag",
+		"                         M   - Send MPLS header",
 		"                          g  - Process GARP packets",
 		"                           C - Capture received packets",
 		"",
@@ -2686,6 +2689,110 @@ cmdline_parse_inst_t cmd_vlanid = {
 
 /**********************************************************/
 
+struct cmd_mpls_result {
+	cmdline_fixed_string_t mpls;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t onOff;
+};
+
+/**************************************************************************//**
+*
+* cmd_mpls_parsed - Enable or Disable sending mpls ID on each packet
+*
+* DESCRIPTION
+* Enable or Disable sending the mpls ID on each packet
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_mpls_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_mpls_result *res = parsed_result;
+
+	foreach_port(res->portlist.map,
+			pktgen_set_mpls(info, parseState(res->onOff)) );
+
+	pktgen_update_display();
+}
+
+cmdline_parse_token_string_t cmd_set_mpls =
+	TOKEN_STRING_INITIALIZER(struct cmd_mpls_result, mpls, "mpls");
+cmdline_parse_token_portlist_t cmd_set_mpls_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_mpls_result, portlist);
+cmdline_parse_token_string_t cmd_set_mpls_onoff =
+	TOKEN_STRING_INITIALIZER(struct cmd_mpls_result, onOff, "on#off#enable#disable");
+
+cmdline_parse_inst_t cmd_mpls = {
+	.f = cmd_mpls_parsed,
+	.data = NULL,
+	.help_str = "mpls <portlist> <state>",
+	.tokens = {
+		(void *)&cmd_set_mpls,
+		(void *)&cmd_set_mpls_portlist,
+		(void *)&cmd_set_mpls_onoff,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_mpls_entry_result {
+	cmdline_fixed_string_t mpls_entry;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t entry;
+};
+
+/**************************************************************************//**
+*
+* cmd_mpls_entry_parsed - Set the MPLS entry for a given port
+*
+* DESCRIPTION
+* Set the VLAN ID value for each port given.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_mpls_entry_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_mpls_entry_result *res = parsed_result;
+
+	uint32_t entry = strtoul(res->entry, NULL, 16);
+
+	foreach_port(res->portlist.map,
+			pktgen_set_mpls_entry(info, entry) );
+
+	pktgen_update_display();
+}
+
+cmdline_parse_token_string_t cmd_set_mpls_entry =
+	TOKEN_STRING_INITIALIZER(struct cmd_mpls_entry_result, mpls_entry, "mpls_entry");
+cmdline_parse_token_portlist_t cmd_set_mpls_entry_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_mpls_entry_result, portlist);
+cmdline_parse_token_string_t cmd_set_mpls_entry_entry =
+	TOKEN_STRING_INITIALIZER(struct cmd_mpls_entry_result, entry, NULL);
+
+cmdline_parse_inst_t cmd_mpls_entry = {
+	.f = cmd_mpls_entry_parsed,
+	.data = NULL,
+	.help_str = "mpls_entry <portlist> entry (in hex)",
+	.tokens = {
+		(void *)&cmd_set_mpls_entry,
+		(void *)&cmd_set_mpls_entry_portlist,
+		(void *)&cmd_set_mpls_entry_entry,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
 struct cmd_mac_from_arp_result {
 	cmdline_fixed_string_t mac_from_arp;
 	cmdline_fixed_string_t onOff;
@@ -3407,6 +3514,8 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_vlan,
 	    (cmdline_parse_inst_t *)&cmd_vlan_id,
 	    (cmdline_parse_inst_t *)&cmd_vlanid,
+		(cmdline_parse_inst_t *)&cmd_mpls,
+		(cmdline_parse_inst_t *)&cmd_mpls_entry,
 	    (cmdline_parse_inst_t *)&cmd_clr,
 	    (cmdline_parse_inst_t *)&cmd_on,
 	    (cmdline_parse_inst_t *)&cmd_off,

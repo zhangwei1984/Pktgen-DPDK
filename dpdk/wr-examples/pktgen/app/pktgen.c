@@ -67,6 +67,8 @@
 
 #include "pktgen.h"
 
+#include "extra_ethertypes.h"
+
 #ifndef MEMPOOL_F_DMA
 #define MEMPOOL_F_DMA       0
 #endif
@@ -495,6 +497,24 @@ pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * et
 
 		return (char *)(vlan_hdr+1);
     }
+	else if ( rte_atomic32_read(&info->port_flags) & SEND_MPLS_LABEL) {
+		/* MPLS unicast ethernet header */
+		eth->ether_type = htons(ETHER_TYPE_MPLS_UNICAST);
+
+		struct mpls_hdr *mpls_hdr = (struct mpls_hdr *)(eth + 1);
+
+		/* Only a single MPLS label is supported at the moment. Make sure the
+		 * BoS flag is set. */
+		uint32_t mpls_label = pkt->mpls_entry;
+		MPLS_SET_BOS(mpls_label);
+
+		mpls_hdr->label = htonl(mpls_label);
+
+		/* Adjust header size for MPLS label */
+		pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(struct mpls_hdr);
+
+		return (char *)(mpls_hdr + 1);
+	}
     else {
         /* normal ethernet header */
         eth->ether_type = htons(pkt->ethType);

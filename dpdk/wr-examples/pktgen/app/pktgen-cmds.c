@@ -181,6 +181,10 @@ pktgen_save(char * path)
 		fprintf(fd, "set mac %d %s\n", info->pid, inet_mtoa(buff, sizeof(buff), &pkt->eth_dst_addr));
 		fprintf(fd, "vlanid %d %d\n\n", i, pkt->vlanid);
 
+		fprintf(fd, "mpls %d %sable\n", i, (flags & SEND_MPLS_LABEL) ? "en" : "dis");
+		sprintf(buff, "%x", pkt->mpls_entry);
+		fprintf(fd, "mpls_entry %d %s\n", i, buff);
+
 		fprintf(fd, "#\n# Port flag values:\n");
 		fprintf(fd, "icmp.echo %d %sable\n", i, (flags & ICMP_ECHO_ENABLE_FLAG)? "en" : "dis");
 		fprintf(fd, "pcap %d %sable\n", i, (flags & SEND_PCAP_PKTS)? "en" : "dis");
@@ -437,7 +441,8 @@ pktgen_flags_string( port_info_t * info )
             (flags & SEND_RANGE_PKTS)? 'R' : '-',
             (flags & PROCESS_INPUT_PKTS)? 'I' : '-',
             "-rt*"[(flags & (PROCESS_RX_TAP_PKTS | PROCESS_TX_TAP_PKTS)) >> 9],
-            (flags & SEND_VLAN_ID)? 'V' : '-',
+            (flags & SEND_VLAN_ID)? 'V' :
+				(flags & SEND_MPLS_LABEL)? 'M' : '-',
             (flags & PROCESS_GARP_PKTS)? 'g' : '-',
 			(flags & CAPTURE_PKTS)? 'C' : '-');
 
@@ -1181,8 +1186,10 @@ pktgen_set_pkt_type(port_info_t * info, char type)
 void
 pktgen_set_vlan(port_info_t * info, uint32_t onOff)
 {
-	if ( onOff == ENABLE_STATE )
+	if ( onOff == ENABLE_STATE ) {
+		pktgen_clr_port_flags(info, SEND_MPLS_LABEL);
 		pktgen_set_port_flags(info, SEND_VLAN_ID);
+	}
 	else
 		pktgen_clr_port_flags(info, SEND_VLAN_ID);
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
@@ -1205,6 +1212,50 @@ pktgen_set_vlanid(port_info_t * info, uint16_t vlanid)
 {
 	info->vlanid = vlanid;
 	info->seq_pkt[SINGLE_PKT].vlanid = info->vlanid;
+	pktgen_packet_ctor(info, SINGLE_PKT, -1);
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_mpls - Set the port to send a mpls ID
+*
+* DESCRIPTION
+* Set the given port list to send mpls ID packets.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_mpls(port_info_t * info, uint32_t onOff)
+{
+	if ( onOff == ENABLE_STATE ) {
+		pktgen_clr_port_flags(info, SEND_VLAN_ID);
+		pktgen_set_port_flags(info, SEND_MPLS_LABEL);
+	}
+	else
+		pktgen_clr_port_flags(info, SEND_MPLS_LABEL);
+	pktgen_packet_ctor(info, SINGLE_PKT, -1);
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_mpls_entry - Set the port MPLS entry value
+*
+* DESCRIPTION
+* Set the given port list with the given MPLS entry.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_mpls_entry(port_info_t * info, uint32_t mpls_entry)
+{
+	info->mpls_entry = mpls_entry;
+	info->seq_pkt[SINGLE_PKT].mpls_entry = info->mpls_entry;
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
 }
 

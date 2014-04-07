@@ -1412,6 +1412,64 @@ static int pktgen_vlan (lua_State *L) {
 
 /**************************************************************************//**
 *
+* pktgen_mpls_entry - Set the MPLS entry in the range data.
+*
+* DESCRIPTION
+* Set the VLAN id in the range data.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_mpls_entry (lua_State *L) {
+	uint32_t	portlist, mpls_entry;
+
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "mpls_entry, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+	mpls_entry = strtoul(luaL_checkstring(L, 2), NULL, 16);
+
+	foreach_port( portlist,
+		pktgen_set_mpls_entry(info, mpls_entry) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
+* pktgen_mpls - Enable or Disable MPLS header
+*
+* DESCRIPTION
+* Enable or disable insertion of MPLS header.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_mpls (lua_State *L) {
+	uint32_t	portlist;
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "mpls, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+
+	foreach_port( portlist,
+		pktgen_set_mpls(info, parseState(luaL_checkstring(L, 2))) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
 * pktgen_pkt_size - Set the port range size.
 *
 * DESCRIPTION
@@ -2191,6 +2249,7 @@ static char * lua_help_info[] = {
 	"update         - Update the screen information\n",
 	"reset          - Reset the configuration to all ports\n",
 	"vlan           - Enable or disable VLAN header\n",
+	"mpls           - Enable or disable MPLS header\n",
 	"\n",
 	"Range commands\n",
 	"dst_mac        - Set the destination MAC address for a port\n",
@@ -2200,6 +2259,7 @@ static char * lua_help_info[] = {
 	"src_port       - Set the IP source port number\n",
 	"dst_port       - Set the IP destination port number\n",
 	"vlan_id        - Set the vlan id value\n",
+	"mpls_entry     - Set the MPLS entry\n",
 	"pkt_size       - the packet size for a range port\n",
 	"range          - Enable or disable sending range data on a port.\n",
 	"\n",
@@ -2329,6 +2389,8 @@ static const luaL_Reg pktgenlib[] = {
 
   {"vlan",			pktgen_vlan},			// Enable or disable VLAN header
 
+  {"mpls",			pktgen_mpls},			// Enable or disable MPLS header
+
   // Range commands
   {"dst_mac",		pktgen_dst_mac},		// Set the destination MAC address for a port
   {"src_mac",		pktgen_src_mac},		// Set the src MAC address for a port
@@ -2337,6 +2399,7 @@ static const luaL_Reg pktgenlib[] = {
   {"src_port",		pktgen_src_port},		// Set the IP source port number
   {"dst_port",		pktgen_dst_port},		// Set the IP destination port number
   {"vlan_id",		pktgen_vlan_id},		// Set the vlan id value
+  {"mpls_entry",	pktgen_mpls_entry},		// Set the MPLS entry value
   {"pkt_size",		pktgen_pkt_size},		// the packet size for a range port
   {"range",			pktgen_range},			// Enable or disable sending range data on a port.
 
