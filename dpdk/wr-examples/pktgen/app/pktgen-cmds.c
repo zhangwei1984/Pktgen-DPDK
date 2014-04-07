@@ -188,6 +188,9 @@ pktgen_save(char * path)
 		fprintf(fd, "qinq %d %sable\n", i, (flags & SEND_Q_IN_Q_IDS) ? "en" : "dis");
 		fprintf(fd, "qinqids %d %d %d\n", i, pkt->qinq_outerid, pkt->qinq_innerid);
 
+		fprintf(fd, "gre %d %sable\n", i, (flags & SEND_GRE_HEADER) ? "en" : "dis");
+		fprintf(fd, "gre_key %d %d\n", i, pkt->gre_key);
+
 		fprintf(fd, "#\n# Port flag values:\n");
 		fprintf(fd, "icmp.echo %d %sable\n", i, (flags & ICMP_ECHO_ENABLE_FLAG)? "en" : "dis");
 		fprintf(fd, "pcap %d %sable\n", i, (flags & SEND_PCAP_PKTS)? "en" : "dis");
@@ -434,7 +437,7 @@ pktgen_flags_string( port_info_t * info )
     static char buff[32];
     uint32_t	flags = rte_atomic32_read(&info->port_flags);
 
-    snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c%c%c",
+    snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c%c%c%c",
             (pktgen.flags & PROMISCUOUS_ON_FLAG)? 'P' : '-',
             (flags & ICMP_ECHO_ENABLE_FLAG)? 'E' : '-',
             (flags & SEND_ARP_REQUEST)? 'A' : '-',
@@ -448,6 +451,7 @@ pktgen_flags_string( port_info_t * info )
 				(flags & SEND_MPLS_LABEL)? 'M' :
 				(flags & SEND_Q_IN_Q_IDS)? 'Q' : '-',
             (flags & PROCESS_GARP_PKTS)? 'g' : '-',
+			(flags & SEND_GRE_HEADER)? 'G' : '-',
 			(flags & CAPTURE_PKTS)? 'C' : '-');
 
     return buff;
@@ -1309,6 +1313,48 @@ pktgen_set_qinqids(port_info_t * info, uint16_t outerid, uint16_t innerid)
 	info->seq_pkt[SINGLE_PKT].qinq_outerid = info->qinq_outerid;
 	info->qinq_innerid = innerid;
 	info->seq_pkt[SINGLE_PKT].qinq_innerid = info->qinq_innerid;
+	pktgen_packet_ctor(info, SINGLE_PKT, -1);
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_gre - Set the port to send a GRE header
+*
+* DESCRIPTION
+* Set the given port list to send GRE header.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_gre(port_info_t * info, uint32_t onOff)
+{
+	if ( onOff == ENABLE_STATE )
+		pktgen_set_port_flags(info, SEND_GRE_HEADER);
+	else
+		pktgen_clr_port_flags(info, SEND_GRE_HEADER);
+	pktgen_packet_ctor(info, SINGLE_PKT, -1);
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_gre_key - Set the port GRE key
+*
+* DESCRIPTION
+* Set the given port list with the given GRE key.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_gre_key(port_info_t * info, uint32_t gre_key)
+{
+	info->gre_key = gre_key;
+	info->seq_pkt[SINGLE_PKT].gre_key = info->gre_key;
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
 }
 

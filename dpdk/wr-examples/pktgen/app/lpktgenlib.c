@@ -1534,6 +1534,64 @@ static int pktgen_qinq (lua_State *L) {
 
 /**************************************************************************//**
 *
+* pktgen_gre_key - Set the GRE key in the range data.
+*
+* DESCRIPTION
+* Set the GRE key in the range data.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_gre_key (lua_State *L) {
+	uint32_t	portlist, gre_key;
+
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "gre_key, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+	gre_key = luaL_checkinteger(L, 2);
+
+	foreach_port( portlist,
+		pktgen_set_gre_key(info, gre_key) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
+* pktgen_gre - Enable or Disable GRE
+*
+* DESCRIPTION
+* Enable or disable insertion of GRE header.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_gre (lua_State *L) {
+	uint32_t	portlist;
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "gre, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+
+	foreach_port( portlist,
+		pktgen_set_gre(info, parseState(luaL_checkstring(L, 2))) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
 * pktgen_pkt_size - Set the port range size.
 *
 * DESCRIPTION
@@ -2315,6 +2373,7 @@ static char * lua_help_info[] = {
 	"vlan           - Enable or disable VLAN header\n",
 	"mpls           - Enable or disable MPLS header\n",
     "qinq           - Enable or disable Q-in-Q header\n",
+	"gre            - Enable or disable GRE header\n",
 	"\n",
 	"Range commands\n",
 	"dst_mac        - Set the destination MAC address for a port\n",
@@ -2326,6 +2385,7 @@ static char * lua_help_info[] = {
 	"vlan_id        - Set the vlan id value\n",
 	"mpls_entry     - Set the MPLS entry\n",
     "qinqids        - Set the Q-in-Q ID's\n",
+    "gre_key        - Set the GRE key\n",
 	"pkt_size       - the packet size for a range port\n",
 	"range          - Enable or disable sending range data on a port.\n",
 	"\n",
@@ -2457,6 +2517,7 @@ static const luaL_Reg pktgenlib[] = {
 
   {"mpls",			pktgen_mpls},			// Enable or disable MPLS header
   {"qinq",			pktgen_qinq},			// Enable or disable Q-in-Q header
+  {"gre",           pktgen_gre},			// Enable or disable GRE header
 
   // Range commands
   {"dst_mac",		pktgen_dst_mac},		// Set the destination MAC address for a port
@@ -2468,6 +2529,7 @@ static const luaL_Reg pktgenlib[] = {
   {"vlan_id",		pktgen_vlan_id},		// Set the vlan id value
   {"mpls_entry",	pktgen_mpls_entry},		// Set the MPLS entry value
   {"qinqids",		pktgen_qinqids},		// Set the Q-in-Q ID values
+  {"gre_key",		pktgen_gre_key},		// Set the GRE key
   {"pkt_size",		pktgen_pkt_size},		// the packet size for a range port
   {"range",			pktgen_range},			// Enable or disable sending range data on a port.
 

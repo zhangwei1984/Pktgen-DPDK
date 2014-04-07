@@ -699,6 +699,84 @@ pktgen_udp_hdr_ctor(pkt_seq_t * pkt, udpip_t * uip, __attribute__ ((unused)) int
 
 /**************************************************************************//**
 *
+* pktgen_gre_hdr_ctor - IPv4/GRE header construction routine.
+*
+* DESCRIPTION
+* Construct an IPv4/GRE header in a packet buffer.
+*
+* RETURNS: Pointer to memory after the GRE header.
+*
+* SEE ALSO:
+*/
+
+static __inline__ char *
+pktgen_gre_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, greIp_t * gre)
+{
+	// Zero out the header space
+	memset((char *)gre, 0, sizeof(greIp_t));
+
+	// Create the IP header
+	gre->ip.vl		 = (IPv4_VERSION << 4) | (sizeof(ipHdr_t) /4);
+	gre->ip.tos		 = 0;
+	gre->ip.tlen	 = htons(pkt->pktSize - pkt->ether_hdr_size);
+
+	pktgen.ident	+= 27; 		// bump by a prime number
+	gre->ip.ident	 = htons(pktgen.ident);
+	gre->ip.ffrag	 = 0;
+	gre->ip.ttl		 = 64;
+	gre->ip.proto	 = PG_IPPROTO_GRE;
+
+	// FIXME don't hardcode
+#define GRE_SRC_ADDR	(10 << 24) | (10 << 16) | (1 << 8) | 1
+#define GRE_DST_ADDR	(10 << 24) | (10 << 16) | (1 << 8) | 2
+	gre->ip.src		 = htonl(GRE_SRC_ADDR);
+	gre->ip.dst		 = htonl(GRE_DST_ADDR);
+#undef GRE_SRC_ADDR
+#undef GRE_DST_ADDR
+
+	gre->ip.cksum	 = cksum(gre, sizeof(ipHdr_t), 0);
+
+	// Create the GRE header
+	gre->gre.chk_present = 0;
+	gre->gre.unused      = 0;
+	gre->gre.key_present = 1;
+	gre->gre.seq_present = 0;
+
+	gre->gre.reserved0_0 = 0;
+	gre->gre.reserved0_1 = 0;
+
+	gre->gre.version     = 0;
+	gre->gre.eth_type    = htons(ETHER_TYPE_IPv4); 	// FIXME get EtherType of the actual encapsulated packet instead of defaulting to IPv4
+
+	int extra_count = 0;
+	if (gre->gre.chk_present) {
+		// The 16 MSBs of gre->gre.extra_fields[0] must be set to the IP (one's
+		// complement) checksum of the GRE header and the payload packet.
+		// Since the packet is still under construction at this moment, the
+		// checksum cannot be calculated. We just record the presence of this
+		// field, so the correct header length can be calculated.
+		++extra_count;
+	}
+
+	if (gre->gre.key_present) {
+		gre->gre.extra_fields[extra_count] = htonl(pkt->gre_key);
+		++extra_count;
+	}
+
+	if (gre->gre.seq_present) {
+		// gre->gre.extra_fields[extra_count] = htonl(<SEQ_NR>);
+		// TODO implement GRE sequence numbers
+		++extra_count;
+	}
+
+	// 4 * (3 - extra_count) is the amount of bytes that are not used by
+	// optional fields, but are included in sizeof(greIp_t).
+	pkt->ether_hdr_size += sizeof(greIp_t) - 4 * (3 - extra_count);
+	return ((char *)(gre + 1) - 4 * (3 - extra_count));
+}
+
+/**************************************************************************//**
+*
 * pktgen_packet_ctor - Construct a complete packet with all headers and data.
 *
 * DESCRIPTION
@@ -718,13 +796,18 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
     // Fill in the pattern for data space.
     pktgen_fill_pattern((uint8_t *)&pkt->hdr, (sizeof(pkt_hdr_t) + sizeof(pkt->pad)), 1);
 
+	char *ether_hdr = pktgen_ether_hdr_ctor(info, pkt, eth);
+
+	/* Add GRE header and adjust ether_hdr pointer if requested */
+	if (rte_atomic32_read(&info->port_flags) & SEND_GRE_HEADER) {
+		ether_hdr = pktgen_gre_hdr_ctor(info, pkt, (greIp_t *)ether_hdr);
+	}
+
     if ( likely(pkt->ethType == ETHER_TYPE_IPv4) ) {
 
 		if ( likely(pkt->ipProto == PG_IPPROTO_TCP) ) {
-			tcpip_t	  * tip;
-
-			// Construct the Ethernet header
-			tip = (tcpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			/* Start with Ethernet header */
+			tcpip_t *tip = (tcpip_t *)ether_hdr;
 
 			// Construct the TCP header
 			pktgen_tcp_hdr_ctor(pkt, tip, ETHER_TYPE_IPv4);
@@ -735,10 +818,8 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(tcpHdr_t);
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_UDP) ) {
-			udpip_t	  * udp;
-
-			// Construct the Ethernet header
-			udp = (udpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			/* Start with Ethernet header */
+			udpip_t *udp = (udpip_t *)ether_hdr;
 
 			// Construct the UDP header
 			pktgen_udp_hdr_ctor(pkt, udp, ETHER_TYPE_IPv4);
@@ -749,11 +830,9 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(udpHdr_t);
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_ICMP) ) {
-			udpip_t           * uip;
+			/* Start with Ethernet header */
+			udpip_t           * uip = (udpip_t *)ether_hdr;
 			icmpv4Hdr_t       * icmp;
-
-			// Construct the Ethernet header
-			uip = (udpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
 
 			// Create the ICMP header
 			uip->ip.src         = htonl(pkt->ip_src_addr);
@@ -790,11 +869,10 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 		}
     } else if ( pkt->ethType == ETHER_TYPE_IPv6 ) {
 		if ( (pkt->ipProto == PG_IPPROTO_TCP) ) {
-			uint32_t            addr;
-			tcpipv6_t         * tip;
+			/* Start with Ethernet header */
+			tcpipv6_t         * tip = (tcpipv6_t *)ether_hdr;
 
-			// Construct the Ethernet header
-			tip = (tcpipv6_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			uint32_t            addr;
 
 			// Create the pseudo header and TCP information
 			addr                = htonl(pkt->ip_dst_addr);
@@ -826,11 +904,9 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 				pkt->pktSize = pkt->tlen;
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_UDP) ) {
+			/* Start with Ethernet header */
+			udpipv6_t         * uip = (udpipv6_t *)ether_hdr;
 			uint32_t            addr;
-			udpipv6_t         * uip;
-
-			// Construct the Ethernet header
-			uip = (udpipv6_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
 
 			// Create the pseudo header and TCP information
 			addr                = htonl(pkt->ip_dst_addr);

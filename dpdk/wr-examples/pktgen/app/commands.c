@@ -197,6 +197,8 @@ const char * help_info[] = {
 		"mpls_entry <portlist> <entry>      - Set the MPLS entry for the portlist (must be specified in hex)",
 		"qinq <portlist> <state>            - Enable/disable sending Q-in-Q header in packets",
 		"qinqids <portlist> <id1> <id2>     - Set the Q-in-Q ID's for the portlist",
+		"gre <portlist> <state>             - Enable/disable GRE encapsulation",
+		"gre_key <portlist> <state>         - Set the GRE key",
 		"pcap <portlist> <state>            - Enable or Disable sending pcap packets on a portlist",
 		"pcap.show                          - Show the PCAP information",
 		"pcap.index                         - Move the PCAP file index to the given packet number,  0 - rewind, -1 - end of file",
@@ -272,22 +274,23 @@ const char * help_info[] = {
 		"",
 		"<<PageBreak>>",
 		"Notes: <state> - Use enable|disable or on|off to set the state.",
-		"       Flags: P------------- - Promiscuous mode enabled",
-		"               E             - ICMP Echo enabled",
-		"                A            - Send ARP Request flag",
-		"                 G           - Send Gratuitous ARP flag",
-		"                  C          - TX Cleanup flag",
-		"                   p         - PCAP enabled flag",
-		"                    S        - Send Sequence packets enabled",
-		"                     R       - Send Range packets enabled",
-		"                      D      - DPI Scanning enabled (If Enabled)",
-		"                       I     - Process packets on input enabled",
-		"                        T    - Using TAP interface for this port",
-		"                         V   - Send VLAN ID tag",
-		"                         M   - Send MPLS header",
-		"                         Q   - Send Q-in-Q tags",
-		"                          g  - Process GARP packets",
-		"                           C - Capture received packets",
+		"       Flags: P-------------- - Promiscuous mode enabled",
+		"               E              - ICMP Echo enabled",
+		"                A             - Send ARP Request flag",
+		"                 G            - Send Gratuitous ARP flag",
+		"                  C           - TX Cleanup flag",
+		"                   p          - PCAP enabled flag",
+		"                    S         - Send Sequence packets enabled",
+		"                     R        - Send Range packets enabled",
+		"                      D       - DPI Scanning enabled (If Enabled)",
+		"                       I      - Process packets on input enabled",
+		"                        T     - Using TAP interface for this port",
+		"                         V    - Send VLAN ID tag",
+		"                         M    - Send MPLS header",
+		"                         Q    - Send Q-in-Q tags",
+		"                          g   - Process GARP packets",
+		"                           G  - Perform GRE encapsulation",
+		"                            C - Capture received packets",
 		"",
 		"*** To see a set of example Lua commands see the files in wr-examples/pktgen/test",
 		NULL
@@ -2902,6 +2905,108 @@ cmdline_parse_inst_t cmd_qinqids = {
 
 /**********************************************************/
 
+struct cmd_gre_result {
+	cmdline_fixed_string_t gre;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t onOff;
+};
+
+/**************************************************************************//**
+*
+* cmd_gre_parsed - Enable or Disable GRE encapsulation on each packet
+*
+* DESCRIPTION
+* Enable or Disable GRE encapsulation on each packet
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_gre_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_gre_result *res = parsed_result;
+
+	foreach_port(res->portlist.map,
+			pktgen_set_gre(info, parseState(res->onOff)) );
+
+	pktgen_update_display();
+}
+
+cmdline_parse_token_string_t cmd_set_gre =
+	TOKEN_STRING_INITIALIZER(struct cmd_gre_result, gre, "gre");
+cmdline_parse_token_portlist_t cmd_set_gre_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_gre_result, portlist);
+cmdline_parse_token_string_t cmd_set_gre_onoff =
+	TOKEN_STRING_INITIALIZER(struct cmd_gre_result, onOff, "on#off#enable#disable");
+
+cmdline_parse_inst_t cmd_gre = {
+	.f = cmd_gre_parsed,
+	.data = NULL,
+	.help_str = "gre <portlist> <state>",
+	.tokens = {
+		(void *)&cmd_set_gre,
+		(void *)&cmd_set_gre_portlist,
+		(void *)&cmd_set_gre_onoff,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_gre_key_result {
+	cmdline_fixed_string_t gre_key_str;
+	cmdline_portlist_t portlist;
+	uint32_t gre_key;
+};
+
+/**************************************************************************//**
+*
+* cmd_gre_key_parsed - Set the GRE key for a given port
+*
+* DESCRIPTION
+* Set the GRE key for each port given.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_gre_key_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_gre_key_result *res = parsed_result;
+
+	foreach_port(res->portlist.map,
+			pktgen_set_gre_key(info, res->gre_key) );
+
+	pktgen_update_display();
+}
+
+cmdline_parse_token_string_t cmd_set_gre_key_str =
+	TOKEN_STRING_INITIALIZER(struct cmd_gre_key_result, gre_key_str, "gre_key");
+cmdline_parse_token_portlist_t cmd_set_gre_key_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_gre_key_result, portlist);
+cmdline_parse_token_num_t cmd_set_gre_key_gre_key =
+	TOKEN_NUM_INITIALIZER(struct cmd_gre_key_result, gre_key, UINT32);
+
+cmdline_parse_inst_t cmd_gre_key = {
+	.f = cmd_gre_key_parsed,
+	.data = NULL,
+	.help_str = "gre_key <portlist> <GRE key>",
+	.tokens = {
+		(void *)&cmd_set_gre_key_str,
+		(void *)&cmd_set_gre_key_portlist,
+		(void *)&cmd_set_gre_key_gre_key,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
 struct cmd_mac_from_arp_result {
 	cmdline_fixed_string_t mac_from_arp;
 	cmdline_fixed_string_t onOff;
@@ -3627,6 +3732,8 @@ cmdline_parse_ctx_t main_ctx[] = {
 		(cmdline_parse_inst_t *)&cmd_mpls_entry,
 		(cmdline_parse_inst_t *)&cmd_qinq,
 		(cmdline_parse_inst_t *)&cmd_qinqids,
+		(cmdline_parse_inst_t *)&cmd_gre,
+		(cmdline_parse_inst_t *)&cmd_gre_key,
 	    (cmdline_parse_inst_t *)&cmd_clr,
 	    (cmdline_parse_inst_t *)&cmd_on,
 	    (cmdline_parse_inst_t *)&cmd_off,
