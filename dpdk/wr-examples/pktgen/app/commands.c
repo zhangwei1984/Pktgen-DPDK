@@ -1973,7 +1973,7 @@ static void cmd_set_proto_parsed(void *parsed_result,
 }
 
 cmdline_parse_token_string_t cmd_set_set_proto =
-	TOKEN_STRING_INITIALIZER(struct cmd_set_proto_result, set, "set");
+	TOKEN_STRING_INITIALIZER(struct cmd_set_proto_result, set, "proto");
 cmdline_parse_token_string_t cmd_set_type =
 	TOKEN_STRING_INITIALIZER(struct cmd_set_proto_result, type, "udp#tcp#icmp");
 cmdline_parse_token_portlist_t cmd_set_proto_portlist =
@@ -1982,7 +1982,7 @@ cmdline_parse_token_portlist_t cmd_set_proto_portlist =
 cmdline_parse_inst_t cmd_proto = {
 	.f = cmd_set_proto_parsed,
 	.data = NULL,
-	.help_str = "set udp|tcp|icmp <portlist>",
+	.help_str = "proto udp|tcp|icmp <portlist>",
 	.tokens = {
 		(void *)&cmd_set_set_proto,
 		(void *)&cmd_set_type,
