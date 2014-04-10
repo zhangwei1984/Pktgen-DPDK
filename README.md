@@ -1,4 +1,4 @@
-Pktgen version 2.5.1 using DPDK-1.6.0
+Pktgen version 2.5.2 using DPDK-1.6.0
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,7 @@ Pktgen version 2.5.1 using DPDK-1.6.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.5.2   - Remove extra_ethertypes.h file.
  - 2.5.1   - Added the following updates.
            - Implement-Rx-packet-dump-functionality
            - Add-packet-capture-functionality
