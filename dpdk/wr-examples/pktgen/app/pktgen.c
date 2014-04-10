@@ -67,8 +67,6 @@
 
 #include "pktgen.h"
 
-#include "extra_ethertypes.h"
-
 #ifndef MEMPOOL_F_DMA
 #define MEMPOOL_F_DMA       0
 #endif
@@ -501,7 +499,7 @@ pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * et
 		/* MPLS unicast ethernet header */
 		eth->ether_type = htons(ETHER_TYPE_MPLS_UNICAST);
 
-		struct mpls_hdr *mpls_hdr = (struct mpls_hdr *)(eth + 1);
+		mplsHdr_t *mpls_hdr = (mplsHdr_t *)(eth + 1);
 
 		/* Only a single MPLS label is supported at the moment. Make sure the
 		 * BoS flag is set. */
@@ -511,7 +509,7 @@ pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * et
 		mpls_hdr->label = htonl(mpls_label);
 
 		/* Adjust header size for MPLS label */
-		pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(struct mpls_hdr);
+		pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(mplsHdr_t);
 
 		return (char *)(mpls_hdr + 1);
 	}
@@ -519,7 +517,7 @@ pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * et
 		/* Q-in-Q ethernet header */
 		eth->ether_type = htons(ETHER_TYPE_Q_IN_Q);
 
-		struct qinq_hdr *qinq_hdr = (struct qinq_hdr *)(eth + 1);
+		qinqHdr_t *qinq_hdr = (qinqHdr_t *)(eth + 1);
 
 		/* only set the TCI field for now; don't bother with PCP/DEI */
 		qinq_hdr->qinq_tci = htons(pkt->qinq_outerid);
@@ -530,7 +528,7 @@ pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * et
 		qinq_hdr->eth_proto = htons(pkt->ethType);
 
 		/* Adjust header size for Q-in-Q header */
-		pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(struct qinq_hdr);
+		pkt->ether_hdr_size = sizeof(struct ether_hdr) + sizeof(qinqHdr_t);
 
 		return (char *)(qinq_hdr + 1);
 	}
@@ -936,19 +934,19 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
     }
 	else if ( pkt->ethType == ETHER_TYPE_ARP) {
 		/* Start with Ethernet header */
-		arp_hdr_t *arp = (arp_hdr_t *)ether_hdr;
+		arpPkt_t *arp = (arpPkt_t *)ether_hdr;
 
-		arp->htype = htons(1);
-		arp->ptype = htons(ETHER_TYPE_IPv4);
-		arp->hlen  = ETHER_ADDR_LEN;
-		arp->plen  = 4;			// TODO IPv6 ARP
-		arp->oper  = htons(2);	// FIXME make request/reply operation selectable by user
+		arp->hrd = htons(1);
+		arp->pro = htons(ETHER_TYPE_IPv4);
+		arp->hln = ETHER_ADDR_LEN;
+		arp->pln = 4;			// TODO IPv6 ARP
+		arp->op  = htons(2);	// FIXME make request/reply operation selectable by user
 
-		ether_addr_copy(&pkt->eth_src_addr, &arp->sha);
-		arp->spa   = htonl(pkt->ip_src_addr);
+		ether_addr_copy(&pkt->eth_src_addr, (struct ether_addr *)&arp->sha);
+		arp->spa._32 = htonl(pkt->ip_src_addr);
 
-		ether_addr_copy(&pkt->eth_dst_addr, &arp->tha);
-		arp->tpa   = htonl(pkt->ip_dst_addr);
+		ether_addr_copy(&pkt->eth_dst_addr, (struct ether_addr*)&arp->tha);
+		arp->tpa._32 = htonl(pkt->ip_dst_addr);
 	}
 	else {
 		fprintf(stderr, "Unknown EtherType 0x%04x\n", pkt->ethType);

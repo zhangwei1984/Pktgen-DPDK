@@ -1,1 +1,4 @@
 pktgen
+t/libtap/libtap.a
+t/libtap/tap.o
+t/build/

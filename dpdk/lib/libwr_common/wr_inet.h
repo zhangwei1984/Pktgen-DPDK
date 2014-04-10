@@ -145,17 +145,18 @@ typedef struct ipv6Hdr_s {
 
 /******************************************************************************
  * ipHdr_t.proto values in the IP Header.
- *  1     ICMP        Internet Control Message           [RFC792]
- *  2     IGMP        Internet Group Management         [RFC1112]
- *  4     IP          IP in IP (encapsulation)          [RFC2003]
- *  6     TCP         Transmission Control               [RFC793]
- * 17     UDP         User Datagram                  [RFC768,JBP]
- * 41     IPv6        Ipv6                              [Deering]
- * 43     IPv6-Route  Routing Header for IPv6           [Deering]
- * 44     IPv6-Frag   Fragment Header for IPv6          [Deering]
- * 58     IPv6-ICMP   ICMP for IPv6                     [RFC1883]
- * 59     IPv6-NoNxt  No Next Header for IPv6           [RFC1883]
- * 60     IPv6-Opts   Destination Options for IPv6      [RFC1883]
+ *  1     ICMP        Internet Control Message             [RFC792]
+ *  2     IGMP        Internet Group Management           [RFC1112]
+ *  4     IP          IP in IP (encapsulation)            [RFC2003]
+ *  6     TCP         Transmission Control                 [RFC793]
+ * 17     UDP         User Datagram                    [RFC768,JBP]
+ * 41     IPv6        Ipv6                                [Deering]
+ * 43     IPv6-Route  Routing Header for IPv6             [Deering]
+ * 44     IPv6-Frag   Fragment Header for IPv6            [Deering]
+ * 47     GRE         Generic Routing Encapsulation  [RFC2784,2890]
+ * 58     IPv6-ICMP   ICMP for IPv6                       [RFC1883]
+ * 59     IPv6-NoNxt  No Next Header for IPv6             [RFC1883]
+ * 60     IPv6-Opts   Destination Options for IPv6        [RFC1883]
  */
 #define PG_IPPROTO_NONE         0
 #define PG_IPPROTO_IP           IPPROTO_IP
@@ -167,6 +168,7 @@ typedef struct ipv6Hdr_s {
 #define PG_IPPROTO_IPV6         IPPROTO_IPV6
 #define PG_IPPROTO_IPV6_ROUTE   43
 #define PG_IPPROTO_IPV6_FRAG    44
+#define PG_IPPROTO_GRE          IPPROTO_GRE
 #define PG_IPPROTO_ICMPV6       IPPROTO_ICMPV6
 #define PG_IPPROTO_IPV6_ICMP    IPPROTO_ICMPV6
 #define PG_IPPROTO_IPV6_NONXT   59
@@ -352,6 +354,109 @@ typedef struct icmpv4Hdr_s {
 #define ICMP4_MASK_REQUEST          17
 #define ICMP4_MASK_REPLY            18
 
+
+/* MPLS header
+ *                        MPLS Header Format
+ *
+ *    0                   1                   2                   3
+ *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *   |                 Label                 | EXP |S|     TTL       |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ * Label: 20-bit label value
+ * EXP: Experimental (QoS and ECN)
+ *   - 3-bit Traffic Class field for QoS priority
+ *   - Explicit Congestion Notification
+ * S: Bottom-of-Stack. If set, the current label is the last in the stack.
+ * TTL: Time-to-Live
+ */
+
+/* Set/clear Bottom of Stack flag */
+#define MPLS_SET_BOS(mpls_label) do { mpls_label |=  (1 << 8); } while (0);
+#define MPLS_CLR_BOS(mpls_label) do { mpls_label &= ~(1 << 8); } while (0);
+
+typedef struct mplsHdr_s {
+	uint32_t label;				/**< MPLS label */
+} __attribute__ ((__packed__)) mplsHdr_t;
+
+
+/* Q-in-Q (802.1ad) header
+ *                      Q-in-Q Header Format
+ *
+ *    0                   1                   2                   3
+ *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *   |              0x88A8           | PCP |D|         VID           |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *   |              0x8100           | PCP |D|         VID           |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ * 0x88A8, 0x8100: EtherType associated with the tag. 0x88A8 means outer VLAN
+ *   tag, 0x8100 means inner VLAN tag.
+ * PCP: Priority code point. Class of Service indicator
+ * D: Drop eligible indicator
+ * VID: VLAN identifier
+ */
+typedef struct qinqHdr_s {
+	uint16_t qinq_tci;		/**< Outer tag PCP, DEI, VID */
+	uint16_t vlan_tpid;		/**< Must be ETHER_TYPE_VLAN (0x8100) */
+	uint16_t vlan_tci;		/**< Inner tag PCP, DEI, VID */
+	uint16_t eth_proto;		/**< EtherType of encapsulated frame */
+} __attribute__ ((__packed__)) qinqHdr_t;
+
+
+/* GRE header
+ *
+ *                      GRE Header Format
+ *
+ *    0                   1                   2                   3
+ *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *   |C| |K|S|    Reserved0    | Ver |         Protocol Type         |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *   |      Checksum (optional)      |     Reserved1 (optional)      |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *   |                         Key (optional)                        |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *   |                  Sequence Number (optional)                   |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ * C: 1 if the Checksum and the Reserved1 fields are present and the Checksum
+ *    field contains valid information
+ * K: 1 if the Key field is present
+ * S: the Sequence Number field is present
+ * Reserved0: must be 0
+ * Ver: Version Number, must be 0
+ * Protocol Type: EtherType of encapsulated packet. When IPv4 is being carried
+ *   as the GRE payload, the Protocol Type field MUST be set to 0x800.
+ * Checksum: the IP (one's complement) checksum sum of all the 16 bit words in
+ *   the GRE header and the payload packet
+ * Reserved1: must be 0
+ * Key: 32bit number determined by the encapsulator
+ * Sequence Number: for packet ordering purposes
+ */
+
+/* GRE header */
+typedef struct greHdr_s {
+	uint8_t		reserved0_0 : 4;	/**< must be 0 */
+	uint8_t		seq_present : 1;	/**< Sequence Number present */
+	uint8_t		key_present : 1;	/**< Key present */
+	uint8_t		unused      : 1;
+	uint8_t		chk_present : 1;	/**< Checksum and Reserved1 present */
+	uint8_t		version     : 3;	/**< Version Number */
+	uint8_t		reserved0_1 : 5;	/**< must be 0 */
+	uint16_t	eth_type;			/**< EtherType of encapsulated packet */
+	uint32_t	extra_fields[3];	/**< Room for Checksum+Reserved1, Key and Sequence Number fields if present */
+} __attribute__ ((__packed__)) greHdr_t;
+
+/* the GRE/IPv4 header */
+typedef struct greIp_s {
+	ipHdr_t		ip;		/* Outer IPv4 header */
+	greHdr_t	gre;	/* GRE header for protocol */
+} __attribute__ ((__packed__)) greIp_t;
+
+
 /* Common defines for Ethernet */
 #define ETH_HW_TYPE					1		/* Ethernet hardware type */
 #define ETH_HDR_SIZE				14      /* Ethernet MAC header length */
@@ -362,6 +467,14 @@ typedef struct icmpv4Hdr_s {
 #define IPV6_ADDR_LEN				16		/* IPv6 Address length */
 
 #define ETH_VLAN_ENCAP_LEN     		4       /* 802.1Q VLAN encap. length */
+
+
+/* Extra EtherTypes */
+#define ETHER_TYPE_MPLS_UNICAST		0x8847
+#define ETHER_TYPE_MPLS_MULTICAST	0x8848
+
+#define ETHER_TYPE_Q_IN_Q			0x88A8
+
 
 /* RARP and ARP opcodes */
 enum {	ARP_REQUEST = 1, ARP_REPLY = 2, RARP_REQUEST = 3, RARP_REPLY = 4, GRATUITOUS_ARP = 5 };
