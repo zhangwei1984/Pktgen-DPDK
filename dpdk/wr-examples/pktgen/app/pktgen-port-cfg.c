@@ -1,0 +1,391 @@
+/*-
+ * Copyright (c) <2010>, Intel Corporation
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in
+ *   the documentation and/or other materials provided with the
+ *   distribution.
+ *
+ * - Neither the name of Intel Corporation nor the names of its
+ *   contributors may be used to endorse or promote products derived
+ *   from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/**
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without modification, are
+ * permitted provided that the following conditions are met:
+ *
+ * 1) Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2) Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * 3) Neither the name of Wind River Systems nor the names of its contributors may be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * 4) The screens displayed by the application must contain the copyright notice as defined
+ * above and can not be removed without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+ * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+/* Created 2010 by Keith Wiles @ windriver.com */
+
+#include "pktgen.h"
+
+// Allocated the pktgen structure for global use
+extern    pktgen_t        pktgen;
+
+/*
+ * Receive Side Scaling (RSS) configuration.
+ */
+static uint16_t rss_hf = ETH_RSS_IPV4 | ETH_RSS_IPV6; /* RSS IP by default. */
+
+const struct rte_eth_conf port_conf = {
+    .rxmode = {
+        .split_hdr_size = 0,
+        .header_split   = 0, /**< Header Split disabled */
+        .hw_ip_checksum = 0, /**< IP checksum offload disabled */
+        .hw_vlan_filter = 0, /**< VLAN filtering disabled */
+        .jumbo_frame    = 0, /**< Jumbo Frame Support disabled */
+    },
+    .txmode = {
+    },
+};
+
+const struct rte_eth_rxconf rx_conf = {
+    .rx_thresh = {
+        .pthresh = RX_PTHRESH,
+        .hthresh = RX_HTHRESH,
+        .wthresh = RX_WTHRESH,
+    },
+    .rx_free_thresh = 32,
+};
+
+#define IXGBE_SIMPLE_FLAGS ((uint32_t)ETH_TXQ_FLAGS_NOMULTSEGS | \
+			    ETH_TXQ_FLAGS_NOOFFLOADS)
+
+const struct rte_eth_txconf tx_conf = {
+    .tx_thresh = {
+        .pthresh = TX_PTHRESH,
+        .hthresh = TX_HTHRESH,
+        .wthresh = TX_WTHRESH,
+    },
+    .tx_rs_thresh = 0,
+    .tx_free_thresh = 0, /* Use PMD default values */
+    .txq_flags = IXGBE_SIMPLE_FLAGS,
+};
+#if 0
+static struct rte_eth_fc_conf fc_conf = {
+    .mode       = RTE_FC_NONE, //RTE_FC_TX_PAUSE
+    .high_water = 80 * 510 / 100,
+    .low_water  = 60 * 510 / 100,
+    .pause_time = 1337,
+    .send_xon   = 0,
+};
+#endif
+
+/**************************************************************************//**
+*
+* pktgen_mbuf_pool_create - Create mbuf packet pool.
+*
+* DESCRIPTION
+* Callback routine for creating mbuf packets from a mempool.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static struct rte_mempool *
+pktgen_mbuf_pool_create(const char * type, uint8_t pid, uint8_t queue_id,
+		uint32_t nb_mbufs, int socket_id, int cache_size )
+{
+    struct rte_mempool * mp;
+    uint32_t	size = MBUF_SIZE;
+    char    name[RTE_MEMZONE_NAMESIZE];
+
+    snprintf(name, sizeof(name), "%-12s%u:%u", type, pid, queue_id);
+    printf_info("    Create: %-*s - Memory used (MBUFs %4u x (size %u + Hdr %lu)) + %lu = %6lu KB\n",
+            16, name, nb_mbufs, size, sizeof(struct rte_mbuf), sizeof(struct rte_mempool),
+            (((nb_mbufs * (size + sizeof(struct rte_mbuf)) + sizeof(struct rte_mempool))) + 1023)/1024);
+    pktgen.mem_used += ((nb_mbufs * (size + sizeof(struct rte_mbuf)) + sizeof(struct rte_mempool)));
+    pktgen.total_mem_used += ((nb_mbufs * (size + sizeof(struct rte_mbuf)) + sizeof(struct rte_mempool)));
+
+    /* create the mbuf pool */
+    mp = rte_mempool_create(name, nb_mbufs, size, cache_size,
+                   sizeof(struct rte_pktmbuf_pool_private),
+                   rte_pktmbuf_pool_init, (void *)((uint64_t)size),
+                   rte_pktmbuf_init, NULL,
+                   socket_id, MEMPOOL_F_DMA);
+    if (mp == NULL)
+        rte_panic("Cannot create mbuf pool (%s) port %d, queue %d, nb_mbufs %d, socket_id %d\n%s\n",
+        		name, pid, queue_id, nb_mbufs, socket_id, rte_strerror(errno));
+
+    return mp;
+}
+
+/**************************************************************************//**
+*
+* pktgen_config_ports - Configure the ports for RX and TX
+*
+* DESCRIPTION
+* Handle setting up the ports in DPDK.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void pktgen_config_ports(void)
+{
+    uint32_t lid, pid, i, s, q, sid;
+	uint64_t	k;
+    rxtx_t	rt;
+    pkt_seq_t   * pkt;
+    port_info_t     * info;
+    char buff[RTE_MEMZONE_NAMESIZE];
+    int32_t ret, cache_size;
+    struct rte_eth_txconf tx;
+	char memzone_name[RTE_MEMZONE_NAMESIZE];
+
+    // Get a local copy the tx configure information.
+    memcpy(&tx, &tx_conf, sizeof(struct rte_eth_txconf));
+
+    pktgen.coremask = wr_get_coremask(&k);
+
+    // Find out the total number of ports in the system.
+    // We have already blacklisted the ones we needed to in main routine.
+    pktgen.nb_ports = rte_eth_dev_count();
+    if (pktgen.nb_ports > RTE_MAX_ETHPORTS)
+        pktgen.nb_ports = RTE_MAX_ETHPORTS;
+
+    if ( pktgen.nb_ports == 0 )
+    	rte_panic("*** Did not find any ports to use ***\n");
+
+    pktgen.starting_port = 0;
+
+    // Setup the number of ports to display at a time
+	if ( pktgen.nb_ports > pktgen.nb_ports_per_page )
+		pktgen.ending_port = pktgen.starting_port + pktgen.nb_ports_per_page;
+	else
+		pktgen.ending_port = pktgen.starting_port + pktgen.nb_ports;
+
+    wr_port_matrix_dump(pktgen.l2p);
+
+    printf_info("Configuring %d ports, MBUF Size %d, MBUF Cache Size %d\n",
+    		pktgen.nb_ports, MBUF_SIZE, MBUF_CACHE_SIZE);
+
+    // For each lcore setup each port that is handled by that lcore.
+    for(lid = 0; lid < RTE_MAX_LCORE; lid++) {
+
+        if ( wr_get_map(pktgen.l2p, RTE_MAX_ETHPORTS, lid) == 0 )
+            continue;
+
+		// For each port attached or handled by the lcore
+        for(pid = 0; pid < pktgen.nb_ports; pid++) {
+
+        	// If non-zero then this port is handled by this lcore.
+            if ( wr_get_map(pktgen.l2p, pid, lid) == 0 )
+                continue;
+        	wr_set_port_private(pktgen.l2p, pid, &pktgen.info[pid]);
+        	pktgen.info[pid].pid = pid;
+        }
+    }
+    wr_dump_l2p(pktgen.l2p);
+
+    pktgen.total_mem_used = 0;
+
+    for(k = 0, pid = 0; pid < pktgen.nb_ports; pid++) {
+    	// Skip if we do not have any lcores attached to a port.
+    	if ( (rt.rxtx = wr_get_map(pktgen.l2p, pid, RTE_MAX_LCORE)) == 0 )
+            continue;
+
+		printf_info("Initialize Port %d -- TxQ %d, RxQ %d,  ", pid, rt.tx, rt.rx);
+
+        info = wr_get_port_private(pktgen.l2p, pid);
+
+		// Create the pkt header structures for transmitting sequence of packets.
+		snprintf(buff, sizeof(buff), "seq_hdr_%d", pid);
+		info->seq_pkt = (pkt_seq_t *)rte_zmalloc(buff, (sizeof(pkt_seq_t) * NUM_TOTAL_PKTS), CACHE_LINE_SIZE);
+		if ( info->seq_pkt == NULL )
+			rte_panic("Unable to allocate %d pkt_seq_t headers", NUM_TOTAL_PKTS);
+
+		info->seqIdx    = 0;
+		info->seqCnt    = 0;
+
+		info->nb_mbufs  = MAX_MBUFS_PER_PORT;
+		cache_size = (info->nb_mbufs > RTE_MEMPOOL_CACHE_MAX_SIZE)?
+							RTE_MEMPOOL_CACHE_MAX_SIZE : info->nb_mbufs;
+
+		if ( (ret = rte_eth_dev_configure(pid, rt.rx, rt.tx, &port_conf)) < 0)
+			rte_panic("Cannot configure device: port=%d, Num queues %d,%d (%d)%s\n",
+					pid, rt.rx, rt.tx, errno, rte_strerror(-ret));
+
+		pkt = &info->seq_pkt[SINGLE_PKT];
+
+		// Grab the source MAC addresses */
+		rte_eth_macaddr_get(pid, &pkt->eth_src_addr);
+		printf_info("Src MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+				pkt->eth_src_addr.addr_bytes[0],
+				pkt->eth_src_addr.addr_bytes[1],
+				pkt->eth_src_addr.addr_bytes[2],
+				pkt->eth_src_addr.addr_bytes[3],
+				pkt->eth_src_addr.addr_bytes[4],
+				pkt->eth_src_addr.addr_bytes[5]);
+
+		// Copy the first Src MAC address in SINGLE_PKT to the rest of the sequence packets.
+		for (i = 0; i < NUM_SEQ_PKTS; i++)
+			ethAddrCopy( &info->seq_pkt[i].eth_src_addr, &pkt->eth_src_addr );
+
+		pktgen.mem_used = 0;
+
+		for(q = 0; q < rt.rx; q++) {
+			// grab the socket id value based on the lcore being used.
+			sid		= rte_lcore_to_socket_id(wr_get_port_lid(pktgen.l2p, pid, q));
+
+			// Create and initialize the default Receive buffers.
+			info->q[q].rx_mp = pktgen_mbuf_pool_create("Default RX", pid, q, info->nb_mbufs, sid, cache_size);
+			if ( info->q[q].rx_mp == NULL )
+				rte_panic("Cannot init port %d for Default RX mbufs\n", pid);
+
+			ret = rte_eth_rx_queue_setup(pid, q, pktgen.nb_rxd, sid, &rx_conf, pktgen.info[pid].q[q].rx_mp);
+			if (ret < 0)
+				rte_panic("rte_eth_rx_queue_setup: err=%d, port=%d, %s\n", ret, pid, rte_strerror(-ret));
+		}
+		printf_info("\n");
+
+		for(q = 0; q < rt.tx; q++) {
+			// grab the socket id value based on the lcore being used.
+			sid		= rte_lcore_to_socket_id(wr_get_port_lid(pktgen.l2p, pid, q));
+
+			// Create and initialize the default Transmit buffers.
+			info->q[q].tx_mp = pktgen_mbuf_pool_create("Default TX", pid, q, MAX_MBUFS_PER_PORT, sid, cache_size);
+			if ( info->q[q].tx_mp == NULL )
+				rte_panic("Cannot init port %d for Default TX mbufs\n", pid);
+
+			// Create and initialize the range Transmit buffers.
+			info->q[q].range_mp = pktgen_mbuf_pool_create("Range TX", pid, q, MAX_MBUFS_PER_PORT,	sid, 0);
+			if ( info->q[q].range_mp == NULL )
+				rte_panic("Cannot init port %d for Range TX mbufs\n", pid);
+
+			// Create and initialize the sequence Transmit buffers.
+			info->q[q].seq_mp = pktgen_mbuf_pool_create("Sequence TX", pid, q, MAX_MBUFS_PER_PORT, sid, cache_size);
+			if ( info->q[q].seq_mp == NULL )
+				rte_panic("Cannot init port %d for Sequence TX mbufs\n", pid);
+
+			// Used for sending special packets like ARP requests
+			info->q[q].special_mp = pktgen_mbuf_pool_create("Special TX", pid, q, MAX_SPECIAL_MBUFS, sid, cache_size);
+			if (info->q[q].special_mp == NULL)
+				rte_panic("Cannot init port %d for Special TX mbufs\n", pid);
+
+			// Setup the PCAP file for each port
+			if ( pktgen.info[pid].pcap != NULL ) {
+				if ( pktgen_pcap_parse(pktgen.info[pid].pcap, info, q) == -1 )
+					rte_panic("Cannot load PCAP file for port %d", pid);
+			}
+			// Find out the link speed to program the WTHRESH value correctly.
+			pktgen_get_link_status(info, pid, 0);
+
+			tx.tx_thresh.wthresh = (info->link.link_speed == 1000)? TX_WTHRESH_1GB : TX_WTHRESH;
+
+			ret = rte_eth_tx_queue_setup(pid, q, pktgen.nb_txd, sid, &tx);
+			if (ret < 0)
+				rte_panic("rte_eth_tx_queue_setup: err=%d, port=%d, %s\n", ret, pid, rte_strerror(-ret));
+#if 0
+			ret = rte_eth_dev_flow_ctrl_set(pid, &fc_conf);
+			if (ret < 0)
+				rte_panic("rte_eth_dev_flow_ctrl_set: err=%d, port=%d, %s\n", ret, pid, rte_strerror(-ret));
+#endif
+			printf_info("\n");
+		}
+		printf_info("%*sPort memory used = %6lu KB\n", 71, " ", (pktgen.mem_used + 1023)/1024);
+	}
+    printf_info("%*sTotal memory used = %6lu KB\n", 70, " ", (pktgen.total_mem_used + 1023)/1024);
+
+    // Start up the ports and display the port Link status
+    for(k = 0, pid = 0; pid < pktgen.nb_ports; pid++) {
+        if ( wr_get_map(pktgen.l2p, pid, RTE_MAX_LCORE) == 0 )
+            continue;
+
+        info = wr_get_port_private(pktgen.l2p, pid);
+
+        /* Start device */
+        if ( (ret = rte_eth_dev_start(pid)) < 0 )
+            rte_panic("rte_eth_dev_start: port=%d, %s\n", pid, rte_strerror(-ret));
+
+        pktgen_get_link_status(info, pid, 1);
+
+        if (info->link.link_status) {
+            printf_info("Port %2d: Link Up - speed %u Mbps - %s", pid,
+                   (uint32_t) info->link.link_speed,
+                   (info->link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
+                   ("full-duplex") : ("half-duplex"));
+        } else
+            printf_info("Port %2d: Link Down", pid);
+
+
+        // If enabled, put device in promiscuous mode.
+        if (pktgen.flags & PROMISCUOUS_ON_FLAG) {
+        	printf_info(" <Enable promiscuous mode>");
+            rte_eth_promiscuous_enable(pid);
+        }
+        printf_info("\n");
+
+    	pktgen.info[pid].seq_pkt[SINGLE_PKT].pktSize = MIN_PKT_SIZE;
+
+        // Setup the port and packet defaults. (must be after link speed is found)
+        for (s = 0; s < NUM_TOTAL_PKTS; s++)
+            pktgen_port_defaults(pid, s);
+
+        pktgen_range_setup(info);
+    }
+
+	for (sid = 0; sid < RTE_MAX_NUMA_NODES; sid++) {
+		pktgen.capture[sid].lcore = RTE_MAX_LCORE;
+		pktgen.capture[sid].port = RTE_MAX_ETHPORTS;
+		pktgen.capture[sid].mem_used = 0;
+
+		// TODO: use rte_snprintf() ?
+		snprintf(memzone_name, sizeof(memzone_name), "Capture_MZ_%d", sid);
+		pktgen.capture[sid].mz = rte_memzone_reserve(memzone_name, 0, sid,
+				RTE_MEMZONE_1GB | RTE_MEMZONE_SIZE_HINT_ONLY);
+
+		if (pktgen.capture[sid].mz == NULL)
+			continue;
+	}
+}

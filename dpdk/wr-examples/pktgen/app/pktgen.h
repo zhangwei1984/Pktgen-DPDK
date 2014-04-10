@@ -640,7 +640,93 @@ strdupf(char * str, char * new) {
 	return (new == NULL) ? NULL : strdup(new);
 }
 
+/**************************************************************************//**
+*
+* do_command - Internal function to execute a shell command and grab the output.
+*
+* DESCRIPTION
+* Internal function to execute a shell command and grab the output from the command.
+*
+* RETURNS: Nubmer of lines read.
+*
+* SEE ALSO:
+*/
+
+static __inline__ int
+do_command(const char * cmd, int (*display)(char *, int)) {
+	FILE	  * f;
+	int			i;
+	char * line = NULL;
+	size_t	line_size = 0;
+
+	f = popen(cmd, "r");
+	if ( f == NULL ) {
+		printf("Unable to run '%s' command\n", cmd);
+		return -1;
+	}
+
+	i = 0;
+	while(getline(&line, &line_size, f) > 0)
+		i = display(line, i);
+
+	if ( f ) fclose(f);
+	if ( line ) free(line);
+
+	return i;
+}
+
+/**************************************************************************//**
+*
+* display_topline - Print out the top line on the screen.
+*
+* DESCRIPTION
+* Print out the top line on the screen and any other information.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static __inline__ void
+display_topline(const char * msg)
+{
+	scrn_center(1, "%s  %s, %s", msg, wr_copyright_msg(), wr_powered_by());
+}
+
+/**************************************************************************//**
+*
+* display_dashline - Print out the dashed line on the screen.
+*
+* DESCRIPTION
+* Print out the dashed line on the screen and any other information.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static __inline__ void
+display_dashline(int last_row)
+{
+	int		i;
+
+	scrn_setw(last_row);
+	last_row--;
+    scrn_pos(last_row, 1);
+    for(i=0; i<(pktgen.scrn->ncols-15); i++)
+    	printf_info("-");
+    scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
+}
+
 #define printf_info(...)	scrn_fprintf(0,0,stdout, __VA_ARGS__)
+
+#ifndef MEMPOOL_F_DMA
+#define MEMPOOL_F_DMA       0
+#endif
+
+enum {
+    MBUF_SIZE   = (DEFAULT_BUFF_SIZE - sizeof(struct rte_mbuf))
+};
 
 extern void pktgen_stop_running(void);
 extern void pktgen_send_seq_pkt(port_info_t * info, uint32_t seqnum);

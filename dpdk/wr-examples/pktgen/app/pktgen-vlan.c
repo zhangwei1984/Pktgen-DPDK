@@ -68,9 +68,12 @@
 #include "pktgen.h"
 
 // Allocated the pktgen structure for global use
-    pktgen_t        pktgen;
+extern    pktgen_t        pktgen;
 
+#if 0
 // Forward declaration of functions.
+static void pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid );
+
 extern void pktgen_page_cpu(void);
 extern void pktgen_page_pcap(uint16_t pid);
 extern void pktgen_page_range(void);
@@ -719,8 +722,7 @@ pktgen_packet_classify_bulk(struct rte_mbuf ** pkts, int nb_rx, int pid )
 	for (j = 0; j < nb_rx; j++)
 		pktgen_packet_classify(pkts[j], pid);
 }
-
-#if 0
+#endif
 /**************************************************************************//**
 *
 * pktgen_process_vlan - Process a VLAN packet
@@ -757,7 +759,7 @@ pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid )
 	default:                break;
 	};
 }
-#endif
+#if 0
 /**************************************************************************//**
 *
 * pktgen_send_special - Send a special packet to the given port.
@@ -1331,3 +1333,4 @@ rte_timer_setup(void)
     /* load timer1, every second, on timer lcore, reloaded automatically */
     rte_timer_reset(&timer1, pktgen.hz, PERIODICAL, lcore_id, pktgen_process_stats, NULL);
 }
+#endif
