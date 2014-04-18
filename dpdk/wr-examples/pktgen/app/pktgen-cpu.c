@@ -110,15 +110,12 @@ sct( uint8_t s, uint8_t c, uint8_t t) {
 void
 pktgen_page_cpu(void)
 {
-    uint32_t    i, j, row, col, cnt, nb_sockets, nb_cores, nb_threads;
+    uint32_t    i, row, cnt, nb_sockets, nb_cores, nb_threads;
 	static int counter = 0;
-	lc_info_t	* lc;
-    char buff[64];
 
     display_topline("** CPU Information Page **");
 
     row = PORT_STATE_ROW;
-    col = 1;
 
     pktgen_get_uname();
     memset(&pktgen.core_info, 0xff, (sizeof(lc_info_t) * RTE_MAX_LCORE));
@@ -149,7 +146,6 @@ pktgen_page_cpu(void)
     for(i = 0; i< nb_sockets; i++)
     	printf("%4d      ", i);
 
-    lc = &pktgen.core_info[0];
 	for(i = 0; i< nb_cores; i++) {
 		scrn_printf(row++, 1, "  Core %3d : [%2d,%2d]   ", i, sct(0, i, 0),   sct(0, i, 1));
 		if ( nb_sockets > 1 )

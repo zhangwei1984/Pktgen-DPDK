@@ -354,6 +354,20 @@ typedef struct cmdline_etheraddr cmdline_etheraddr_t;
 
 extern pktgen_t		pktgen;
 
+extern void pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__((unused)) void *arg);
+
+extern void pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type);
+extern void pktgen_packet_rate(port_info_t * info);
+
+extern void pktgen_send_mbuf(struct rte_mbuf *m, uint8_t pid, uint8_t qid);
+
+extern pkt_seq_t * pktgen_find_matching_ipsrc( port_info_t * info, uint32_t addr );
+extern pkt_seq_t * pktgen_find_matching_ipdst( port_info_t * info, uint32_t addr );
+
+extern int pktgen_launch_one_lcore(__attribute__ ((unused)) void * arg);
+
+extern void rte_timer_setup(void);
+
 static __inline__ void
 pktgen_set_port_flags(port_info_t * info, uint32_t flags) {
 	uint32_t	val;
@@ -493,14 +507,5 @@ display_dashline(int last_row)
 #define MEMPOOL_F_DMA       0
 #endif
 
-extern void pktgen_stop_running(void);
-
-
-#define lua_c
-#include <lua.h>
-#include "lualib.h"
-#include "lauxlib.h"
-#include "lua-socket.h"
-#include "lpktgenlib.h"
 
 #endif /* _PKTGEN_H_ */

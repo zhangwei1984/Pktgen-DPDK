@@ -70,6 +70,8 @@
 
 #include <wr_pcap.h>
 
+#include "pktgen-port-cfg.h"
+
 
 extern void pktgen_page_pcap(uint16_t pid);
 

@@ -83,6 +83,8 @@ typedef struct pkt_stats_s {
 } pkt_stats_t;
 
 
+typedef struct port_info_s port_info_t;
+
 extern void pktgen_get_link_status(port_info_t * info, int pid, int wait);
 extern void pktgen_process_stats(__attribute__((unused)) struct rte_timer *tim, __attribute__((unused)) void *arg);
 

@@ -1,16 +1,11 @@
 /*
- * SOURCE: pktgen-arp.c
- * STUB: pktgen.h pktgen-cmds.h
- * LIBS: libwr_scrn
+ * SOURCE: pktgen-gre.c
+ * LIBS: libwr_common
  */
 
 #include "pktgen.h"
 
 pktgen_t pktgen;
-
-
-// Variable stubs
-__thread unsigned per_lcore__lcore_id;
 
 
 // Test driver

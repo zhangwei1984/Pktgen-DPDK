@@ -71,6 +71,9 @@
 
 #include <netinet/in.h>
 
+#include <rte_memory.h>
+
+
 #define PCAP_MAGIC_NUMBER	0xa1b2c3d4
 #define PCAP_MAJOR_VERSION	2
 #define PCAP_MINOR_VERSION	4

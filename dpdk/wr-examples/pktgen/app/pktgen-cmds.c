@@ -126,7 +126,7 @@ pktgen_save(char * path)
 
 	fprintf(fd, "# Port Descriptions (-- = blacklisted port):\n");
 	for(i=0; i < RTE_MAX_ETHPORTS; i++) {
-		if ( pktgen.portdesc[i] && strlen(pktgen.portdesc[i]) ) {
+		if ( pktgen.portdesc[i] && strlen((char *)pktgen.portdesc[i]) ) {
 	    	if ( (pktgen.enabled_port_mask & (1 << i)) == 0 )
 	    		strcpy(buff, "--");
 	    	else
@@ -621,7 +621,6 @@ pktgen_set_rx_tap(port_info_t * info, uint32_t onOff)
 	if ( onOff == ENABLE_STATE ) {
 		struct ifreq	ifr;
 		int sockfd, i;
-		struct sockaddr_in	sai;
 		static char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
 
 		for(i = 0; tapdevs[i]; i++) {
@@ -684,7 +683,6 @@ pktgen_set_tx_tap(port_info_t * info, uint32_t onOff)
 	if ( onOff == ENABLE_STATE ) {
 		struct ifreq	ifr;
 		int sockfd, i;
-		struct sockaddr_in	sai;
 		static char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
 
 		for(i = 0; tapdevs[i]; i++) {

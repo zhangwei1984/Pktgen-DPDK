@@ -1,16 +1,13 @@
 /*
- * SOURCE: pktgen-arp.c
- * STUB: pktgen.h pktgen-cmds.h
- * LIBS: libwr_scrn
+ * SOURCE: pktgen-vlan.c
+ * STUB: pktgen-arp.h pktgen-ipv4.h pktgen-ipv6.h
+ *
+ * LIBS:
  */
 
 #include "pktgen.h"
 
 pktgen_t pktgen;
-
-
-// Variable stubs
-__thread unsigned per_lcore__lcore_id;
 
 
 // Test driver

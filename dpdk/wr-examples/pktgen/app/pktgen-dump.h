@@ -68,6 +68,8 @@
 #ifndef _PKTGEN_DUMP_H_
 #define _PKTGEN_DUMP_H_
 
+#include <rte_mbuf.h>
+
 
 #define MAX_DUMP_PACKETS		32
 

@@ -236,7 +236,6 @@ pktgen_pcap_mbuf_ctor(struct rte_mempool *mp, void *opaque_arg, void *_m, unsign
 {
     struct rte_mbuf *m = _m;
 	uint32_t	buf_len = mp->elt_size - sizeof(struct rte_mbuf);
-	uint16_t	type;
     pcaprec_hdr_t hdr;
     ssize_t	len = -1;
     char buffer[2048];
@@ -304,9 +303,8 @@ int
 pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
 {
     pcaprec_hdr_t hdr;
-    uint32_t    elt_count, data_size, elt_size, len, i;
-    uint64_t	pkt_sizes = 0, rate;
-	uint16_t	type;
+    uint32_t    elt_count, data_size, len, i;
+    uint64_t	pkt_sizes = 0;
     char		buffer[2048];
 	char		name[RTE_MEMZONE_NAMESIZE];
 

@@ -67,11 +67,8 @@
 
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern     pktgen_t        pktgen;
+#include "pktgen-cmds.h"
 
-extern pkt_seq_t * pktgen_find_matching_ipdst( port_info_t * info, uint32_t addr );
-extern pkt_seq_t * pktgen_find_matching_ipsrc( port_info_t * info, uint32_t addr );
 
 /**************************************************************************//**
 *
@@ -158,7 +155,6 @@ pktgen_process_arp( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 {
     port_info_t   * info = &pktgen.info[pid];
     pkt_seq_t     * pkt;
-    uint32_t        i;
     struct ether_hdr *eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
     arpPkt_t      * arp = (arpPkt_t *)&eth[1];
 

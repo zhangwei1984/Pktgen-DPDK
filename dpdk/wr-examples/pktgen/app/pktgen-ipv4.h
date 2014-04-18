@@ -65,45 +65,15 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen.h"
-#include "pktgen-arp.h"
-#include "pktgen-ipv4.h"
-#include "pktgen-ipv6.h"
+#ifndef _PKTGEN_IPV4_H_
+#define _PKTGEN_IPV4_H_
+
+#include "pktgen-seq.h"
 
 
-/**************************************************************************//**
-*
-* pktgen_process_vlan - Process a VLAN packet
-*
-* DESCRIPTION
-* Process a input VLAN packet.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
+extern void pktgen_ipv4_ctor(pkt_seq_t * pkt, ipHdr_t * ip);
+extern void pktgen_send_ping4( uint32_t pid, uint8_t seq_idx );
+extern void pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan );
 
-void
-pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid )
-{
-	pktType_e        pType;
-    struct ether_hdr *eth;
-    struct vlan_hdr  *vlan_hdr;
-    port_info_t      *info = &pktgen.info[pid];
 
-    eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
-
-    /* Now dealing with the inner header */
-    vlan_hdr = (struct vlan_hdr*)(eth+1);
-
-    pType = ntohs(vlan_hdr->eth_proto);
-
-	/* No support for nested tunnel */
-	switch((int)pType) {
-	case ETHER_TYPE_ARP:    info->stats.arp_pkts++;         pktgen_process_arp(m, pid, 1);		break;
-	case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;          pktgen_process_ping4(m, pid, 1);    break;
-	case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;        pktgen_process_ping6(m, pid, 1);    break;
-	case UNKNOWN_PACKET:    /* FALL THRU */
-	default:                break;
-	};
-}
+#endif	//  _PKTGEN_IPV4_H_

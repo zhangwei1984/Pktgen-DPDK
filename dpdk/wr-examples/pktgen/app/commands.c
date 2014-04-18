@@ -92,9 +92,29 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen.h"
+
+#include "commands.h"
+
+#include <stdio.h>
+#include <termios.h>	// cmdline.h uses struct termios
+#include <string.h>
+#include <unistd.h>
+
+#include <cmdline_rdline.h>
+#include <cmdline_parse_string.h>
+#include <cmdline.h>
+#include <rte_atomic.h>
+#include <rte_scrn.h>
+#include <wr_copyright_info.h>
 
 #include "pktgen-cmds.h"
+#include "pktgen-main.h"
+#include "lpktgenlib.h"
+
+#include "pktgen.h"
+
+
+cmdline_parse_ctx_t main_ctx[];
 
 
 /**************************************************************************//**
@@ -1699,7 +1719,6 @@ static void cmd_set_seq_parsed(void *parsed_result,
 			   __attribute__((unused)) void *data)
 {
 	struct cmd_set_seq_result *res = parsed_result;
-	uint32_t	pid;
 
 	if ( (res->proto[0] == 'i') && (res->eth[3] == '6') ) {
 		cmdline_printf(cl, "Must use IPv4 with ICMP type packets\n");
@@ -2147,11 +2166,10 @@ struct cmd_off_result {
 * SEE ALSO:
 */
 
-static void cmd_off_parsed(void *parsed_result,
+static void cmd_off_parsed(__attribute__ ((unused))void *parsed_result,
 		__attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
-	struct cmd_off_result *res = parsed_result;
 
 	pktgen_screen("off");
 }
@@ -2187,11 +2205,10 @@ struct cmd_on_result {
 * SEE ALSO:
 */
 
-static void cmd_on_parsed(void *parsed_result,
+static void cmd_on_parsed(__attribute__ ((unused))void *parsed_result,
 		__attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
-	struct cmd_on_result *res = parsed_result;
 
 	pktgen_screen("on");
 }
@@ -2227,11 +2244,10 @@ struct cmd_tx_debug_result {
 * SEE ALSO:
 */
 
-static void cmd_tx_debug_parsed(void *parsed_result,
+static void cmd_tx_debug_parsed(__attribute__ ((unused))void *parsed_result,
 		__attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
-	struct cmd_tx_debug_result *res = parsed_result;
 
 	if ( (pktgen.flags & TX_DEBUG_FLAG) == 0 )
 		pktgen.flags |= TX_DEBUG_FLAG;
@@ -2271,11 +2287,10 @@ struct cmd_l2p_result {
 * SEE ALSO:
 */
 
-static void cmd_l2p_parsed(void *parsed_result,
+static void cmd_l2p_parsed(__attribute__ ((unused))void *parsed_result,
 		__attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
-	struct cmd_l2p_result *res = parsed_result;
 
 	pktgen_l2p_dump();
 }
@@ -3153,7 +3168,7 @@ struct cmd_setmac_result {
 
 /**************************************************************************//**
 *
-//* cmd_setmac_parsed - Set the single packet MAC address
+* cmd_setmac_parsed - Set the single packet MAC address
 *
 * DESCRIPTION
 * Set the single packet MAC address.
@@ -3305,11 +3320,10 @@ struct cmd_str_result {
 * SEE ALSO:
 */
 
-static void cmd_str_parsed(void *parsed_result,
+static void cmd_str_parsed(__attribute__ ((unused))void *parsed_result,
 			    __attribute__((unused)) struct cmdline *cl,
 			    __attribute__((unused)) void *data)
 {
-	struct cmd_str_result *res = parsed_result;
 
 	foreach_port( 0xFFFFFFFF,
 			pktgen_start_transmitting(info) );
@@ -3346,11 +3360,10 @@ struct cmd_stp_result {
 * SEE ALSO:
 */
 
-static void cmd_stp_parsed(void *parsed_result,
+static void cmd_stp_parsed(__attribute__ ((unused))void *parsed_result,
 			    __attribute__((unused)) struct cmdline *cl,
 			    __attribute__((unused)) void *data)
 {
-	struct cmd_stp_result *res = parsed_result;
 
 	foreach_port( 0xFFFFFFFF,
 		pktgen_stop_transmitting(info) );
@@ -3481,7 +3494,6 @@ static void cmd_clr_parsed(__attribute__((unused)) void *parsed_result,
 				__attribute__((unused)) struct cmdline *cl,
 			    __attribute__((unused)) void *data)
 {
-	struct cmd_clr_result *res = parsed_result;
 
 	foreach_port( 0xFFFFFFFF,
 		pktgen_clear_stats(info) );
@@ -3643,7 +3655,6 @@ static void cmd_rst_parsed(__attribute__((unused)) void *parsed_result,
 				__attribute__((unused)) struct cmdline *cl,
 			    __attribute__((unused)) void *data)
 {
-	struct cmd_rst_result *res = parsed_result;
 
 	foreach_port( 0xFFFFFFFF,
 		pktgen_reset(info) );
@@ -3771,3 +3782,52 @@ pktgen_cmdline_start(void)
 
 	cmdline_stdin_exit(pktgen.cl);
 }
+
+
+/**************************************************************************//**
+*
+* pktgen_load_cmds - Load and execute a command file or Lua script file.
+*
+* DESCRIPTION
+* Load and execute a command file or Lua script file.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+int
+pktgen_load_cmds( char * filename )
+{
+    if ( filename == NULL )
+        return 0;
+
+    if ( strstr(filename, ".lua") || strstr(filename, ".LUA") ) {
+    	if ( pktgen.L == NULL )
+    		return -1;
+
+    	// Execute the Lua script file.
+    	if ( luaL_dofile(pktgen.L, filename) != 0 ) {
+    		fprintf(stderr,"%s\n", lua_tostring(pktgen.L,-1));
+    		return -1;
+    	}
+    } else {
+        FILE    * fd;
+        char    buff[256];
+
+		fd = fopen((const char *)filename, "r");
+		if ( fd == NULL )
+			return -1;
+
+		// Reset the command line system for the script.
+		rdline_reset(&pktgen.cl->rdl);
+
+		// Read and feed the lines to the cmdline parser.
+		while(fgets(buff, sizeof(buff), fd) )
+			cmdline_in(pktgen.cl, buff, strlen(buff));
+
+		fclose(fd);
+    }
+    return 0;
+}
+

@@ -65,13 +65,17 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
+#include "pktgen-main.h"
+
 #include "pktgen.h"
+#include "lpktgenlib.h"
+#include "lua-socket.h"
+#include "pktgen-cmds.h"
+#include "commands.h"
 
-// Allocated the pktgen structure for global use
-extern     pktgen_t        pktgen;
+/* Defined in libwr_lua/lua_shell.c */
+extern void execute_lua_close(lua_State * L);
 
-extern int pktgen_launch_one_lcore(void * arg);
-extern void rte_timer_setup(void);
 
 /**************************************************************************//**
 *
@@ -342,53 +346,6 @@ pktgen_parse_args(int argc, char **argv)
 
 /**************************************************************************//**
 *
-* pktgen_load_cmds - Load and execute a command file or Lua script file.
-*
-* DESCRIPTION
-* Load and execute a command file or Lua script file.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
-
-int
-pktgen_load_cmds( char * filename )
-{
-    if ( filename == NULL )
-        return 0;
-
-    if ( strstr(filename, ".lua") || strstr(filename, ".LUA") ) {
-    	if ( pktgen.L == NULL )
-    		return -1;
-
-    	// Execute the Lua script file.
-    	if ( luaL_dofile(pktgen.L, filename) != 0 ) {
-    		fprintf(stderr,"%s\n", lua_tostring(pktgen.L,-1));
-    		return -1;
-    	}
-    } else {
-        FILE    * fd;
-        char    buff[256];
-
-		fd = fopen((const char *)filename, "r");
-		if ( fd == NULL )
-			return -1;
-
-		// Reset the command line system for the script.
-		rdline_reset(&pktgen.cl->rdl);
-
-		// Read and feed the lines to the cmdline parser.
-		while(fgets(buff, sizeof(buff), fd) )
-			cmdline_in(pktgen.cl, buff, strlen(buff));
-
-		fclose(fd);
-    }
-    return 0;
-}
-
-/**************************************************************************//**
-*
 * main - Main routine to setup pktgen.
 *
 * DESCRIPTION
@@ -402,8 +359,7 @@ pktgen_load_cmds( char * filename )
 int
 main(int argc, char **argv)
 {
-    int ret, i, idx;
-    unsigned lcore_id = 0;
+    int ret, i;
 
     // call before the rte_eal_init()
     (void)rte_set_application_usage_hook(pktgen_usage);
@@ -503,7 +459,7 @@ main(int argc, char **argv)
 
     pktgen_cmdline_start();
 
-    execute_lua_close();
+    execute_lua_close(pktgen.L);
 	pktgen_stop_running();
 
     scrn_pause();

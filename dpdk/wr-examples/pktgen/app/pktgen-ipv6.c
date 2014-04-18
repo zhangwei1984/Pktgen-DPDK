@@ -100,9 +100,9 @@ pktgen_ipv6_ctor(pkt_seq_t * pkt, ipv6Hdr_t * ip)
     ip->next_header     = pkt->ipProto;
 
     addr                = htonl(pkt->ip_dst_addr);
-    rte_memcpy(&ip->daddr[8], &addr, sizeof(uint32_t));
+    (void)rte_memcpy(&ip->daddr[8], &addr, sizeof(uint32_t));
     addr                = htonl(pkt->ip_src_addr);
-    rte_memcpy(&ip->saddr[8], &addr, sizeof(uint32_t));
+    (void)rte_memcpy(&ip->saddr[8], &addr, sizeof(uint32_t));
 }
 
 /**************************************************************************//**

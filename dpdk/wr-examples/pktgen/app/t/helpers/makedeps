@@ -7,7 +7,7 @@ die "Usage: $0 <sourcefile> <depfile>\n" .
 my ($src_fn, $dep_fn) = @ARGV;
 
 open my $in_fh,  '<', $src_fn or die "Could not open $src_fn for reading\n";
-my @source, @libs;
+my @source, @libs, @syslibs;
 while (<$in_fh>) {
     chomp;
 
@@ -27,6 +27,13 @@ while (<$in_fh>) {
                 $ENV{RTE_SDK} . '/' . $ENV{RTE_TARGET} . '/lib/' . $_ . '.a'
             } split /\s+/;
     }
+
+    if (/\bSYSLIBS\b/) {
+        # Remove keyword and trailing punctuation/whitespace.
+        s/^.+SYSLIBS\W+//;
+
+        push @syslibs, split /\s+/;
+    }
 }
 close $in_fh;
 
@@ -37,8 +44,8 @@ open my $out_fh, '>', $dep_fn or die "Could not open $dep_fn for writing\n";
 # prerequisites whenever any of the source files change.
 # Add '../' prefix to source filenames, so they point to the Pktgen source code.
 (my $obj_fn = 'build/' . $src_fn) =~ s/\.c$/.o/;
-print $out_fh "$obj_fn $dep_fn: helpers/test_helpers.h $src_fn ",
-    (map { '../' . $_ } @source),
+print $out_fh "$obj_fn $dep_fn: helpers/test_helpers.h $src_fn",
+    (map { ' ../' . $_ } @source),
     "\n\n";
 
 # Extra CFLAGS for the compilation of the object file. "-include ../<foo>.h" is
@@ -54,8 +61,14 @@ print $out_fh "${obj_fn}_CFLAGS :=",
 # build/app/ directory (so we can, for example, specify compiler flags for code
 # coverage measuring).
 (my $exe_fn = $src_fn) =~ s/\.c$//;
-print $out_fh "$exe_fn: $obj_fn ",
-    (map { (my $obj = $_) =~ s/\.c$/.o/; 'build/app/' . $obj . ' ' } @source),
-    "@libs",
+print $out_fh "$exe_fn: $obj_fn build/${exe_fn}.stubs.o",
+    (map { (my $obj = $_) =~ s/\.c$/.o/; ' build/app/' . $obj } @source),
+    " @libs",
+    "\n\n";
+
+# Extra LDFLAGS for linking the test executable. This links against system
+# libraries specified with SYSLIBS in the test file.
+print $out_fh "${exe_fn}_LDFLAGS :=",
+    (map { ' -l' . $_ } @syslibs),
     "\n\n";
 

@@ -85,7 +85,6 @@
 char *
 pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * eth)
 {
-    struct vlan_hdr *vlan_hdr;
 	uint32_t	flags;
 
     /* src and dest addr */

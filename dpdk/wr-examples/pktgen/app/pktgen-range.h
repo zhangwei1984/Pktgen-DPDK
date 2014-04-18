@@ -68,6 +68,10 @@
 #ifndef _PKTGEN_RANGE_H_
 #define _PKTGEN_RANGE_H_
 
+#include <stdint.h>
+
+#include "pktgen-seq.h"
+
 
 typedef struct range_info_s {
 	uint32_t				src_ip_inc;			/**< Source IP increment */

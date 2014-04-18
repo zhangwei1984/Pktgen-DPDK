@@ -67,13 +67,30 @@
 #define lpktgenlib_c
 #define LUA_LIB
 
-#include "pktgen.h"
-#include "luaconf.h"
+#include "lpktgenlib.h"
+
+#include <stdint.h>
+#include <netinet/in.h>
+
+#include <cmdline_parse.h>
+#include <cmdline_parse_etheraddr.h>
+#include <cmdline_parse_ipaddr.h>
+#include <cmdline_parse_portlist.h>
+#include <lua-socket.h>
+#include <lualib.h>
+
 #include "pktgen-cmds.h"
+#include "commands.h"
+
 
 #ifndef __INTEL_COMPILER
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
+
+
+/* Defined in libwr_lua/lua_shell.c */
+extern int execute_lua_string(lua_State * L, char * str);
+extern int dolibrary(lua_State *L, const char *name);
 
 /**************************************************************************//**
 *
@@ -851,8 +868,6 @@ static __inline__ void __delay(int32_t t) {
 */
 
 static int pktgen_delay (lua_State *L) {
-	int32_t	t;
-
 	switch( lua_gettop(L) ) {
 	default: return luaL_error(L, "delay, wrong number of arguments");
 	case 1:
@@ -878,7 +893,6 @@ static int pktgen_delay (lua_State *L) {
 
 static int pktgen_pause (lua_State *L) {
 	char * str;
-	int32_t	t;
 
 	switch( lua_gettop(L) ) {
 	default: return luaL_error(L, "pause, wrong number of arguments");
@@ -1803,7 +1817,6 @@ static int pktgen_blink (lua_State *L) {
 
 static void isSending(lua_State * L, port_info_t * info)
 {
-	char buff[32];
 	int pktgen_port_transmitting(int);
 
 	lua_pushinteger(L, info->pid);		// Push the table index

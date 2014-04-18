@@ -158,7 +158,6 @@ void
 pktgen_print_packet_dump(void)
 {
 	port_info_t * info;
-	struct cmdline *cl = pktgen.cl;
 
 	unsigned int pid;
 	unsigned int i, j;

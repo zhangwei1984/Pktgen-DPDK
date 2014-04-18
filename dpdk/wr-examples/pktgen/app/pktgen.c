@@ -65,33 +65,22 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
+
+#include <stdint.h>
+
 #include "pktgen.h"
+#include "pktgen-gre.h"
+#include "pktgen-tcp.h"
+#include "pktgen-ipv4.h"
+#include "pktgen-ipv6.h"
+#include "pktgen-udp.h"
+#include "pktgen-arp.h"
+#include "pktgen-vlan.h"
+#include "pktgen-cpu.h"
+
 
 // Allocated the pktgen structure for global use
-    pktgen_t        pktgen;
-
-// Forward declaration of functions.
-extern void pktgen_page_cpu(void);
-extern void pktgen_page_pcap(uint16_t pid);
-extern void pktgen_page_seq(uint32_t pid);
-extern void pktgen_print_packet_dump(void);
-extern void pktgen_packet_dump( struct rte_mbuf * m, int pid );
-extern void pktgen_packet_dump_bulk(struct rte_mbuf ** pkts, int nb_dump, int pid );
-extern void pktgen_page_stats(void);
-extern void pktgen_process_stats(struct rte_timer *tim, void *arg);
-extern void pktgen_get_link_status(port_info_t * info, int pid, int wait);
-extern void pktgen_ipv6_ctor(pkt_seq_t * pkt, ipv6Hdr_t * ip);
-extern void pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan );
-extern void pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan);
-extern void pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan );
-extern void pktgen_ipv4_ctor(pkt_seq_t * pkt, ipHdr_t * ip);
-extern void pktgen_process_arp( struct rte_mbuf * m, uint32_t pid, uint32_t vlan );
-extern void pktgen_send_arp( uint32_t pid, uint32_t type, uint8_t seq_idx );
-extern char * pktgen_gre_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, greIp_t * gre);
-extern char * pktgen_ether_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, struct ether_hdr * eth);
-extern void pktgen_tcp_hdr_ctor(pkt_seq_t * pkt, tcpip_t * tip, int type);
-extern void pktgen_udp_hdr_ctor(pkt_seq_t * pkt, udpip_t * uip, int type);
-extern void pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid );
+pktgen_t        pktgen;
 
 /**************************************************************************//**
 *
@@ -493,9 +482,9 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 
 			// Create the pseudo header and TCP information
 			addr                = htonl(pkt->ip_dst_addr);
-			rte_memcpy(&tip->ip.daddr[8], &addr, sizeof(uint32_t));
+			(void)rte_memcpy(&tip->ip.daddr[8], &addr, sizeof(uint32_t));
 			addr                = htonl(pkt->ip_src_addr);
-			rte_memcpy(&tip->ip.saddr[8], &addr, sizeof(uint32_t));
+			(void)rte_memcpy(&tip->ip.saddr[8], &addr, sizeof(uint32_t));
 
 			tlen           		= sizeof(tcpHdr_t) + (pkt->pktSize - pkt->ether_hdr_size - sizeof(ipv6Hdr_t) - sizeof(tcpHdr_t));
 			tip->ip.tcp_length  = htonl(tlen);
@@ -529,9 +518,9 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 
 			// Create the pseudo header and TCP information
 			addr                = htonl(pkt->ip_dst_addr);
-			rte_memcpy(&uip->ip.daddr[8], &addr, sizeof(uint32_t));
+			(void)rte_memcpy(&uip->ip.daddr[8], &addr, sizeof(uint32_t));
 			addr                = htonl(pkt->ip_src_addr);
-			rte_memcpy(&uip->ip.saddr[8], &addr, sizeof(uint32_t));
+			(void)rte_memcpy(&uip->ip.saddr[8], &addr, sizeof(uint32_t));
 
 			tlen           		= sizeof(udpHdr_t) + (pkt->pktSize - pkt->ether_hdr_size - sizeof(ipv6Hdr_t) - sizeof(udpHdr_t));
 			uip->ip.tcp_length  = htonl(tlen);

@@ -1,6 +1,7 @@
 /*
  * SOURCE: pktgen-capture.c
  * LIBS:
+ * SYSLIBS: pcap
  */
 
 #include <rte_mbuf.h>
@@ -9,15 +10,6 @@
 #include <string.h>
 
 #include "pktgen-cmds.h"
-
-
-/* libpcap stubs */
-STUB_NULL(pcap_t *, pcap_open_dead, int linktype, int snaplen);
-STUB_NULL(pcap_dumper_t *, pcap_dump_open, pcap_t *p, const char *fname);
-STUB_VOID(pcap_dump, u_char *user, const struct pcap_pkthdr *h, const u_char *sp);
-STUB_VOID(pcap_dump_close, pcap_dumper_t *p);
-STUB_VOID(pcap_close, pcap_t *p);
-
 
 
 /* pktgen global variable stub */

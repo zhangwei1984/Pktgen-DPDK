@@ -87,13 +87,14 @@ extern char * pktgen_link_state(int port, char * buff, int len);
 extern char * pktgen_transmit_count(int port, char * buff, int len);
 extern char * pktgen_transmit_rate(int port, char * buff, int len);
 extern int pktgen_port_sizes(int port, port_sizes_t * psizes);
+extern char * pktgen_transmit_count_rate(int port, char * buff, int len);
 extern int pktgen_pkt_stats(int port, pkt_stats_t * pstats);
 extern int pktgen_port_stats(int port, const char * name, eth_stats_t * pstats);
 extern char * pktgen_flags_string( port_info_t * info );
 extern void pktgen_matrix_dump(void);
-extern void pktgen_l2p_dump(void);
 extern void pktgen_redisplay( int cls_flag );
 extern void pktgen_update_display(void);
+extern void pktgen_update(void);
 extern void pktgen_set_page_size(uint32_t page_size);
 extern void pktgen_screen(const char * onOff);
 extern void pktgen_set_port_number(uint32_t port_number);
@@ -159,5 +160,22 @@ extern void pktgen_compile_pkt(port_info_t * info, uint32_t seqnum,
 		uint16_t vlanid, uint32_t pktsize);
 
 extern void pktgen_quit(void);
+
+extern void pktgen_set_vlan(port_info_t * info, uint32_t onOff);
+extern void pktgen_set_vlan_id(port_info_t * info, char * what, uint16_t id);
+extern void pktgen_set_vlanid(port_info_t * info, uint16_t vlanid);
+
+extern void pktgen_set_mpls(port_info_t * info, uint32_t onOff);
+extern void pktgen_set_mpls_entry(port_info_t * info, uint32_t mpls_entry);
+
+extern void pktgen_set_qinq(port_info_t * info, uint32_t onOff);
+extern void pktgen_set_qinqids(port_info_t * info, uint16_t outerid, uint16_t innerid);
+
+extern void pktgen_set_gre(port_info_t * info, uint32_t onOff);
+extern void pktgen_set_gre_key(port_info_t * info, uint32_t gre_key);
+
+extern void pktgen_garp_enable_disable(port_info_t * info, char * str);
+
+extern void pktgen_mac_from_arp(uint32_t onOff);
 
 #endif /* _PKTGEN_CMDS_H_ */

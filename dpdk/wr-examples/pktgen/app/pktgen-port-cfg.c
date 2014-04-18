@@ -70,6 +70,7 @@
 #include <rte_memzone.h>
 
 #include "pktgen.h"
+#include "pktgen-cmds.h"
 
 
 enum {
@@ -83,11 +84,6 @@ enum {
 	TX_WTHRESH_1GB			= 16,	/**< Default value for 1GB ports */
 };
 
-
-/*
- * Receive Side Scaling (RSS) configuration.
- */
-static uint16_t rss_hf = ETH_RSS_IPV4 | ETH_RSS_IPV6; /* RSS IP by default. */
 
 const struct rte_eth_conf port_conf = {
     .rxmode = {

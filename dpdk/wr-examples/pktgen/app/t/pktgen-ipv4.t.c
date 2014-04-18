@@ -1,15 +1,14 @@
 /*
- * SOURCE: pktgen-arp.c
- * STUB: pktgen.h pktgen-cmds.h
- * LIBS: libwr_scrn
+ * SOURCE: pktgen-ipv4.c
+ * STUB: pktgen.h
+ *
+ * LIBS: libwr_common libwr_scrn
  */
 
 #include "pktgen.h"
 
 pktgen_t pktgen;
 
-
-// Variable stubs
 __thread unsigned per_lcore__lcore_id;
 
 

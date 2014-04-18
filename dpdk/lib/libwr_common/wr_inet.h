@@ -73,6 +73,9 @@
 
 #include <nmmintrin.h>
 #include <stdio.h>
+#include <stdint.h>
+
+#include <rte_ether.h>
 
 
 /* Internet protocol header structure */
