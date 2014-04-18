@@ -65,10 +65,24 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
+#include "pktgen-port-cfg.h"
+
+#include <rte_memzone.h>
+
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
+
+enum {
+	RX_PTHRESH 				= 8,	/**< Default values of RX prefetch threshold reg. */
+	RX_HTHRESH 				= 8,	/**< Default values of RX host threshold reg. */
+	RX_WTHRESH 				= 4,	/**< Default values of RX write-back threshold reg. */
+
+	TX_PTHRESH 				= 36,	/**< Default values of TX prefetch threshold reg. */
+	TX_HTHRESH 				= 0,	/**< Default values of TX host threshold reg. */
+	TX_WTHRESH 				= 0,	/**< Default values of TX write-back threshold reg. */
+	TX_WTHRESH_1GB			= 16,	/**< Default value for 1GB ports */
+};
+
 
 /*
  * Receive Side Scaling (RSS) configuration.
@@ -181,7 +195,6 @@ void pktgen_config_ports(void)
     char buff[RTE_MEMZONE_NAMESIZE];
     int32_t ret, cache_size;
     struct rte_eth_txconf tx;
-	char memzone_name[RTE_MEMZONE_NAMESIZE];
 
     // Get a local copy the tx configure information.
     memcpy(&tx, &tx_conf, sizeof(struct rte_eth_txconf));
@@ -375,17 +388,6 @@ void pktgen_config_ports(void)
         pktgen_range_setup(info);
     }
 
-	for (sid = 0; sid < RTE_MAX_NUMA_NODES; sid++) {
-		pktgen.capture[sid].lcore = RTE_MAX_LCORE;
-		pktgen.capture[sid].port = RTE_MAX_ETHPORTS;
-		pktgen.capture[sid].mem_used = 0;
-
-		// TODO: use rte_snprintf() ?
-		snprintf(memzone_name, sizeof(memzone_name), "Capture_MZ_%d", sid);
-		pktgen.capture[sid].mz = rte_memzone_reserve(memzone_name, 0, sid,
-				RTE_MEMZONE_1GB | RTE_MEMZONE_SIZE_HINT_ONLY);
-
-		if (pktgen.capture[sid].mz == NULL)
-			continue;
-	}
+	for (sid = 0; sid < RTE_MAX_NUMA_NODES; sid++)
+		pktgen_packet_capture_init(&pktgen.capture[sid], sid);
 }

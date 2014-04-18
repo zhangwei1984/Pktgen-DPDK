@@ -7,16 +7,16 @@
  * are met:
  *
  * - Redistributions of source code must retain the above copyright
- *   notice, this list of conditions and the following disclaimer.
+ *	 notice, this list of conditions and the following disclaimer.
  *
  * - Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in
- *   the documentation and/or other materials provided with the
- *   distribution.
+ *	 notice, this list of conditions and the following disclaimer in
+ *	 the documentation and/or other materials provided with the
+ *	 distribution.
  *
  * - Neither the name of Intel Corporation nor the names of its
- *   contributors may be used to endorse or promote products derived
- *   from this software without specific prior written permission.
+ *	 contributors may be used to endorse or promote products derived
+ *	 from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -53,7 +53,7 @@
  * above and can not be removed without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
  * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -65,45 +65,48 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen.h"
-
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
+#ifndef _PKTGEN_SEQ_H_
+#define _PKTGEN_SEQ_H_
 
 
-/**************************************************************************//**
-*
-* pktgen_process_vlan - Process a VLAN packet
-*
-* DESCRIPTION
-* Process a input VLAN packet.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
+#include <rte_ether.h>
+#include <wr_inet.h>
 
-void
-pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid )
-{
-	pktType_e        pType;
-    struct ether_hdr *eth;
-    struct vlan_hdr  *vlan_hdr;
-    port_info_t      *info = &pktgen.info[pid];
+#include "pktgen-constants.h"
 
-    eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
 
-    /* Now dealing with the inner header */
-    vlan_hdr = (struct vlan_hdr*)(eth+1);
+typedef struct pkt_seq_s {
+	// Packet type and information
+	struct ether_addr	eth_dst_addr;			/**< Destination Ethernet address */
+	struct ether_addr	eth_src_addr;			/**< Source Ethernet address */
 
-    pType = ntohs(vlan_hdr->eth_proto);
+	uint32_t			ip_src_addr;			/**< Source IPv4 address also used for IPv6 */
+	uint32_t			ip_dst_addr;			/**< Destination IPv4 address */
+	uint32_t			ip_mask;				/**< IPv4 Netmask value */
 
-	/* No support for nested tunnel */
-	switch((int)pType) {
-	case ETHER_TYPE_ARP:    info->stats.arp_pkts++;         pktgen_process_arp(m, pid, 1);		break;
-	case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;          pktgen_process_ping4(m, pid, 1);    break;
-	case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;        pktgen_process_ping6(m, pid, 1);    break;
-	case UNKNOWN_PACKET:    /* FALL THRU */
-	default:                break;
-	};
-}
+	uint16_t			sport;					/**< Source port value */
+	uint16_t			dport;					/**< Destination port value */
+	uint16_t			ethType;				/**< IPv4 or IPv6 */
+	uint16_t			ipProto;				/**< TCP or UDP or ICMP */
+	uint16_t			vlanid;					/**< VLAN ID value if used */
+	uint16_t			ether_hdr_size;			/**< Size of Ethernet header in packet for VLAN ID */
+
+	uint32_t			mpls_entry;				/**< MPLS entry if used */
+	uint16_t			qinq_outerid;			/**< Outer VLAN ID if Q-in-Q */
+	uint16_t			qinq_innerid;			/**< Inner VLAN ID if Q-in-Q */
+	uint32_t			gre_key;				/**< GRE key if used */
+
+	uint16_t			pktSize;				/**< Size of packet in bytes not counting FCS */
+	uint16_t			tlen;					/**< Total length of packet data */
+	/* 28 bytes + (2 * sizeof(struct ether_addr)) */
+	pkt_hdr_t			hdr;					/**< Packet header data */
+	uint8_t				pad[DEFAULT_BUFF_SIZE - (sizeof(pkt_hdr_t) + (sizeof(struct ether_addr)*2) + 28)];
+} pkt_seq_t;
+
+
+typedef struct port_info_s port_info_t;
+extern void pktgen_send_seq_pkt(port_info_t * info, uint32_t seq_idx);
+
+extern void pktgen_page_seq(uint32_t pid);
+
+#endif	// _PKTGEN_SEQ_H_

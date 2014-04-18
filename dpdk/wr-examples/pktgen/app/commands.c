@@ -94,6 +94,9 @@
 
 #include "pktgen.h"
 
+#include "pktgen-cmds.h"
+
+
 /**************************************************************************//**
 *
 * cmd_port_display - Create a string based on the port list.

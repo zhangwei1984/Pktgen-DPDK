@@ -73,13 +73,10 @@
 // Forward declaration of functions.
 extern void pktgen_page_cpu(void);
 extern void pktgen_page_pcap(uint16_t pid);
-extern void pktgen_page_range(void);
-extern void pktgen_range_ctor(port_info_t * info, pkt_seq_t * pkt);
 extern void pktgen_page_seq(uint32_t pid);
 extern void pktgen_print_packet_dump(void);
 extern void pktgen_packet_dump( struct rte_mbuf * m, int pid );
 extern void pktgen_packet_dump_bulk(struct rte_mbuf ** pkts, int nb_dump, int pid );
-extern void pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, int nb_dump, capture_t *capture );
 extern void pktgen_page_stats(void);
 extern void pktgen_process_stats(struct rte_timer *tim, void *arg);
 extern void pktgen_get_link_status(port_info_t * info, int pid, int wait);
@@ -859,7 +856,7 @@ pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp, uint8_t qid)
 			m->pkt.pkt_len  = pkt->pktSize;
 			m->pkt.data_len = pkt->pktSize;
 		} else if ( mp == info->q[qid].range_mp ) {
-			pktgen_range_ctor(info, pkt);
+			pktgen_range_ctor(&info->range, pkt);
 			pktgen_packet_ctor(info, RANGE_PKT, -1);
 
 			rte_memcpy((uint8_t *)m->pkt.data, (uint8_t *)&pkt->hdr, MAX_PKT_SIZE);

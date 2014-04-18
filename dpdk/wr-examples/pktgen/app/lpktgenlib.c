@@ -69,6 +69,7 @@
 
 #include "pktgen.h"
 #include "luaconf.h"
+#include "pktgen-cmds.h"
 
 #ifndef __INTEL_COMPILER
 #pragma GCC diagnostic ignored "-Wcast-qual"

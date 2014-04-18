@@ -65,10 +65,10 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen.h"
+#include "pktgen-ether.h"
+#include "pktgen-seq.h"
+#include "pktgen-port-cfg.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
 
 /**************************************************************************//**
 *

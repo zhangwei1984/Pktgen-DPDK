@@ -71,6 +71,10 @@
 #define IPv4_VERSION    4
 #define IPv6_VERSION	6
 
+#include <nmmintrin.h>
+#include <stdio.h>
+
+
 /* Internet protocol header structure */
 /* Basic IPv4 packet header
  *

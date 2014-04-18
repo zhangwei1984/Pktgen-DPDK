@@ -65,6 +65,9 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
+#ifndef _PKTGEN_H_
+#define _PKTGEN_H_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -147,13 +150,9 @@
 #include <wr_lscpu.h>
 #include <wr_utils.h>
 
-#undef BPF_MAJOR_VERSION
-#include <pcap/pcap.h>
+#include "pktgen-port-cfg.h"
+#include "pktgen-capture.h"
 
-#ifndef _PKTGEN_H_
-#define _PKTGEN_H_
-
-int main(int argc, char **argv);
 
 #define PKTGEN_VERSION			"2.6.0"
 #define PKTGEN_APP_NAME			"Pktgen"
@@ -163,8 +162,6 @@ int main(int argc, char **argv);
 #define MAX_STRING              256
 #define Million					(uint64_t)(1000ULL * 1000ULL)
 #define Mega					(uint64_t)(1024ULL * 1024ULL)
-
-#define MAX_DUMP_PACKETS        32
 
 #define iBitsTotal(_x) \
     (((_x.ipackets * (INTER_FRAME_GAP + PKT_PREAMBLE_SIZE)) + _x.ibytes) << 3)
@@ -231,7 +228,6 @@ enum {
 	MAX_ETHER_TYPE_SIZE		= 0x600,
 	OVERHEAD_FUDGE_VALUE	= 50,
 
-	DEFAULT_BUFF_SIZE		= 2048,
 	DEFAULT_PORTS_PER_PAGE	= 4,
 	VLAN_TAG_SIZE			= 4,
 	MAX_PRIME_COUNT			= 4,
@@ -246,14 +242,6 @@ enum {
 	EXTRA_TX_PKT			= (RANGE_PKT + 1),						// 19
 	NUM_TOTAL_PKTS			= (EXTRA_TX_PKT + NUM_EXTRA_TX_PKTS),
 
-	DEFAULT_PKT_BURST		= 16,		// Increasing this number consumes memory very fast
-	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 16),
-	DEFAULT_TX_DESC			= DEFAULT_RX_DESC,
-	MAX_MBUFS_PER_PORT		= (DEFAULT_TX_DESC * 8),	// number of buffers to support per port
-	MAX_SPECIAL_MBUFS		= 64,
-
-	MBUF_CACHE_SIZE			= (MAX_MBUFS_PER_PORT/8),
-
 	ALL_PORTS				= 0xFFFFFFFF,
 	INTER_FRAME_GAP			= 12,
 	PKT_PREAMBLE_SIZE		= 8,
@@ -264,211 +252,17 @@ enum {
 	MAX_RX_QUEUES			= 16,	/**< RX Queues per port */
 	MAX_TX_QUEUES			= 16,	/**< TX Queues per port */
 
-	RX_PTHRESH 				= 8,	/**< Default values of RX prefetch threshold reg. */
-	RX_HTHRESH 				= 8,	/**< Default values of RX host threshold reg. */
-	RX_WTHRESH 				= 4,	/**< Default values of RX write-back threshold reg. */
-
-	TX_PTHRESH 				= 36,	/**< Default values of TX prefetch threshold reg. */
-	TX_HTHRESH 				= 0,	/**< Default values of TX host threshold reg. */
-	TX_WTHRESH 				= 0,	/**< Default values of TX write-back threshold reg. */
-	TX_WTHRESH_1GB			= 16,	/**< Default value for 1GB ports */
-
 	PCAP_PAGE_SIZE			= 25,	/**< Size of the PCAP display page */
-
-	NUM_Q					= 8,	/**< Number of cores per port. */
 
 	SOCKET0					= 0		/**< Socket ID value for allocation */
 };
 
-enum { DISABLE_STATE = 0, ENABLE_STATE = 1 };
-
-typedef struct rte_eth_stats	eth_stats_t;
-
-typedef struct port_sizes_s {
-	uint64_t			_64;				/**< Number of 64 byte packets */
-	uint64_t			_65_127;			/**< Number of 65-127 byte packets */
-	uint64_t			_128_255;			/**< Number of 128-255 byte packets */
-	uint64_t			_256_511;			/**< Number of 256-511 byte packets */
-	uint64_t			_512_1023;			/**< Number of 512-1023 byte packets */
-	uint64_t			_1024_1518;			/**< Number of 1024-1518 byte packets */
-	uint64_t			broadcast;			/**< Number of broadcast packets */
-	uint64_t			multicast;			/**< Number of multicast packets */
-	uint64_t			jumbo;				/**< Number of Jumbo frames */
-	uint64_t			runt;				/**< Number of Runt frames */
-} port_sizes_t;
-
-typedef struct pkt_stats_s {
-	uint64_t			arp_pkts;			/**< Number of ARP packets received */
-	uint64_t			echo_pkts;			/**< Number of ICMP echo requests received */
-	uint64_t			ip_pkts;			/**< Number of IPv4 packets received */
-	uint64_t			ipv6_pkts;			/**< Number of IPv6 packets received */
-	uint64_t			vlan_pkts;			/**< Number of VLAN packets received */
-	uint64_t			dropped_pkts;		/**< Hyperscan dropped packets */
-	uint64_t			unknown_pkts;		/**< Number of Unknown packets */
-	uint64_t			tx_failed;			/**< Transmits that failed to send */
-} pkt_stats_t;
-
 typedef struct rte_mbuf	rte_mbuf_t;
-
-struct mbuf_table {
-	unsigned len;
-	struct rte_mbuf *m_table[DEFAULT_PKT_BURST+1];
-};
-
-typedef struct pkt_seq_s {
-    // Packet type and information
-    struct ether_addr   eth_dst_addr;           /**< Destination Ethernet address */
-    struct ether_addr   eth_src_addr;           /**< Source Ethernet address */
-
-    uint32_t            ip_src_addr;            /**< Source IPv4 address also used for IPv6 */
-    uint32_t            ip_dst_addr;            /**< Destination IPv4 address */
-    uint32_t            ip_mask;                /**< IPv4 Netmask value */
-
-    uint16_t            sport;                  /**< Source port value */
-    uint16_t            dport;                  /**< Destination port value */
-    uint16_t            ethType;                /**< IPv4 or IPv6 */
-    uint16_t            ipProto;                /**< TCP or UDP or ICMP */
-    uint16_t			vlanid;					/**< VLAN ID value if used */
-    uint16_t			ether_hdr_size;			/**< Size of Ethernet header in packet for VLAN ID */
-
-	uint32_t			mpls_entry;				/**< MPLS entry if used */
-	uint16_t			qinq_outerid;			/**< Outer VLAN ID if Q-in-Q */
-	uint16_t			qinq_innerid;			/**< Inner VLAN ID if Q-in-Q */
-	uint32_t			gre_key;				/**< GRE key if used */
-
-    uint16_t            pktSize;                /**< Size of packet in bytes not counting FCS */
-    uint16_t            tlen;					/**< Total length of packet data */
-    											/* 28 bytes + (2 * sizeof(struct ether_addr)) */
-    pkt_hdr_t			hdr;					/**< Packet header data */
-    uint8_t				pad[DEFAULT_BUFF_SIZE - (sizeof(pkt_hdr_t) + (sizeof(struct ether_addr)*2) + 28)];
-} pkt_seq_t;
 
 typedef union {
 	struct ether_addr	addr;
 	uint64_t			u64;
 } ethaddr_t;
-
-typedef struct range_info_s {
-	uint32_t				src_ip_inc;			/**< Source IP increment */
-	uint32_t				dst_ip_inc;			/**< Destination increment IP address */
-	uint16_t				src_port_inc;		/**< Source port increment */
-	uint16_t				dst_port_inc;		/**< Destination port increment */
-	uint16_t				vlan_id_inc;		/**< VLAN id increment */
-	uint16_t				pkt_size_inc;		/**< PKT size increment */
-    uint64_t				src_mac_inc;		/**< Source MAC increment */
-    uint64_t				dst_mac_inc;		/**< Destination MAC increment */
-
-	uint32_t				src_ip;				/**< Source starting IP address */
-	uint32_t				src_ip_min;			/**< Source IP minimum */
-	uint32_t				src_ip_max;			/**< Source IP maximum */
-
-	uint32_t				dst_ip;				/**< Destination starting IP address */
-	uint32_t				dst_ip_min;			/**< Destination minimum IP address */
-	uint32_t				dst_ip_max;			/**< Destination maximum IP address */
-
-	uint16_t				src_port;			/**< Source port starting */
-	uint16_t				src_port_min;		/**< Source port minimum */
-	uint16_t				src_port_max;		/**< Source port maximum */
-
-	uint16_t				dst_port;			/**< Destination port starting */
-	uint16_t				dst_port_min;		/**< Destination port minimum */
-	uint16_t				dst_port_max;		/**< Destination port maximum */
-
-	uint16_t				vlan_id;			/**< VLAN id starting */
-	uint16_t				vlan_id_min;		/**< VLAN id minimum */
-	uint16_t				vlan_id_max;		/**< VLAN id maximum */
-
-	uint16_t				pkt_size;			/**< PKT Size starting */
-	uint16_t				pkt_size_min;		/**< PKT Size minimum */
-	uint16_t				pkt_size_max;		/**< PKT Size maximum */
-
-	uint64_t				dst_mac;			/**< Destination starting MAC address */
-	uint64_t				dst_mac_min;		/**< Destination minimum MAC address */
-	uint64_t				dst_mac_max;		/**< Destination maximum MAC address */
-
-	uint64_t				src_mac;			/**< Source starting MAC address */
-	uint64_t				src_mac_min;		/**< Source minimum MAC address */
-	uint64_t				src_mac_max;		/**< Source maximum MAC address */
-} range_info_t;
-
-typedef struct port_info_s {
-	uint16_t				pid;				/**< Port ID value */
-	uint16_t				tx_burst;			/**< Number of TX burst packets */
-	uint8_t					transmitting;		/**< Is port transmitting */
-	uint8_t					tx_rate;			/**< Percentage rate for tx packets */
-	rte_atomic32_t			port_flags;			/**< Special send flags for ARP and other */
-
-	uint64_t				transmit_count;		/**< Packets to transmit loaded into current_tx_count */
-	uint64_t				current_tx_count;	/**< Current number of packets to send */
-	uint64_t				tx_cycles;			/**< Number cycles between TX bursts */
-	uint64_t				tx_pps;				/**< Transmit packets per seconds */
-	uint64_t				delta;				/**< Delta value for latency testing */
-	uint64_t				tx_count;			/**< Total count of tx attempts */
-
-	// Packet buffer space for traffic generator, shared for all packets per port
-	uint16_t				seqIdx;				/**< Current Packet sequence index 0 to NUM_SEQ_PKTS */
-	uint16_t				seqCnt;				/**< Current packet sequence max count */
-	uint16_t				prime_cnt;			/**< Set the number of packets to send in a prime command */
-	uint16_t				vlanid;				/**< Set the port VLAN ID value */
-	pkt_seq_t			  * seq_pkt;			/**< Sequence of packets seq_pkt[NUM_SEQ_PKTS]=default packet */
-	range_info_t			range;				/**< Range Information */
-
-	uint32_t				mpls_entry;			/**< Set the port MPLS entry */
-	uint16_t				qinq_outerid;		/**< Set the port outer VLAN ID value for Q-in-Q */
-	uint16_t				qinq_innerid;		/**< Set the port inner VLAN ID value for Q-in-Q */
-	uint32_t				gre_key;			/**< GRE key if used */
-
-	uint16_t				nb_mbufs;			/**< Number of mbufs in the system */
-	uint16_t				pad0;
-
-	pkt_stats_t				stats;				/**< Statistics for a number of stats */
-	port_sizes_t			sizes;				/**< Stats for the different packets sizes */
-
-	eth_stats_t				init_stats;			/**< Initial packet statistics */
-	eth_stats_t				port_stats;			/**< current port statistics */
-	eth_stats_t				rate_stats;			/**< current packet rate statistics */
-
-	struct rte_eth_link		link;				/**< Link Information like speed and duplex */
-
-	struct q_info {
-		rte_atomic32_t		 flags;				/**< Special send flags for ARP and other */
-		struct mbuf_table	 tx_mbufs;			/**< mbuf holder for transmit packets */
-		struct rte_mempool * rx_mp;				/**< Pool pointer for port RX mbufs */
-		struct rte_mempool * tx_mp;				/**< Pool pointer for default TX mbufs */
-		struct rte_mempool * range_mp;			/**< Pool pointer for port Range TX mbufs */
-		struct rte_mempool * seq_mp;			/**< Pool pointer for port Sequence TX mbufs */
-		struct rte_mempool * pcap_mp;			/**< Pool pointer for port PCAP TX mbufs */
-		struct rte_mempool * special_mp;		/**< Pool pointer for special TX mbufs */
-	} q[NUM_Q];
-
-	int32_t					rx_tapfd;			/**< Rx Tap file descriptor */
-	int32_t					tx_tapfd;			/**< Tx Tap file descriptor */
-	pcap_info_t			  * pcap;				/**< PCAP information header */
-	uint64_t				pcap_cycles;		/**< number of cycles for pcap sending */
-
-	int32_t					pcap_result;		/**< PCAP result of filter compile */
-	struct bpf_program		pcap_program;		/**< PCAP filter program structure */
-
-	// Packet dump related
-	struct packet {
-		void *		data;						/**< Packet data */
-		uint32_t	len;						/**< Length of data */
-	} dump_list[MAX_DUMP_PACKETS];
-	uint8_t					dump_head;			/**< Index of last packet written to screen */
-	uint8_t					dump_tail;			/**< Index of last valid packet in dump_list */
-	uint8_t					dump_count;			/**< Number of packets the user requested */
-} port_info_t;
-
-#define MAX_PORT_DESC_SIZE	132
-
-/* packet capture data */
-typedef struct capture_s {
-	const struct rte_memzone  * mz;			/**< Memory region to store packets */
-	size_t						mem_used;	/**< Memory used by captured packets */
-	uint8_t						lcore;		/**< lcore that captures to this memzone */
-	uint8_t						port;		/**< port for this memzone */
-} capture_t;
-
 
 /* Ethernet addresses of ports */
 typedef struct pktgen_s {
@@ -527,27 +321,6 @@ typedef struct pktgen_s {
 	capture_t				capture[RTE_MAX_NUMA_NODES];	/**< Packet capture, 1 struct per socket */
 } pktgen_t;
 
-enum {		// Per port flag bits
-	SEND_ARP_REQUEST		= 0x00000001,		/**< Send a ARP request */
-	SEND_GRATUITOUS_ARP		= 0x00000002,		/**< Send a Gratuitous ARP */
-	ICMP_ECHO_ENABLE_FLAG	= 0x00000004,		/**< Enable ICMP Echo support */
-	SEND_PCAP_PKTS			= 0x00000008,		/**< Send a pcap file of packets */
-	SEND_RANGE_PKTS			= 0x00000010,		/**< Send a range of packets */
-	SEND_SEQ_PKTS			= 0x00000020,		/**< Send a sequence of packets */
-	PROCESS_INPUT_PKTS		= 0x00000040,		/**< Process input packets */
-	SEND_PING4_REQUEST		= 0x00000080,		/**< Send a IPv4 Ping request */
-	SEND_PING6_REQUEST		= 0x00000100,		/**< Send a IPv6 Ping request */
-	SEND_SPECIAL_REQUEST	= (SEND_ARP_REQUEST | SEND_GRATUITOUS_ARP | SEND_PING4_REQUEST | SEND_PING6_REQUEST),
-	PROCESS_RX_TAP_PKTS		= 0x00000200,		/**< Handle RX TAP interface packets */
-	PROCESS_TX_TAP_PKTS		= 0x00000400,		/**< Handle TX TAP interface packets */
-	SEND_VLAN_ID			= 0x00000800,		/**< Send packets with VLAN ID */
-	PROCESS_GARP_PKTS		= 0x00001000,		/**< Process GARP packets and update the dst MAC address */
-	CAPTURE_PKTS			= 0x00002000,		/**< Capture received packets */
-	SEND_MPLS_LABEL			= 0x00004000,		/**< Send MPLS label */
-	SEND_Q_IN_Q_IDS			= 0x00008000,		/**< Send packets with Q-in-Q */
-	SEND_GRE_HEADER			= 0x00010000		/**< Send GRE header */
-};
-
 enum {	// Queue flags
 	DO_TX_CLEANUP			= 0x00000001,		/**< Do a TX cleanup */
 	CLEAR_FAST_ALLOC_FLAG	= 0x00000002,		/**< Clear the TX fast alloc flag */
@@ -585,7 +358,7 @@ pktgen_set_port_flags(port_info_t * info, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->port_flags);
-    } while( rte_atomic32_cmpset(&info->port_flags.cnt, val, (val | flags)) == 0 );
+    } while( rte_atomic32_cmpset((uint32_t *)&info->port_flags.cnt, val, (val | flags)) == 0 );
 }
 
 static __inline__ void
@@ -594,7 +367,7 @@ pktgen_clr_port_flags(port_info_t * info, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->port_flags);
-    } while( rte_atomic32_cmpset(&info->port_flags.cnt, val, (val & ~flags)) == 0 );
+    } while( rte_atomic32_cmpset((uint32_t *)&info->port_flags.cnt, val, (val & ~flags)) == 0 );
 }
 
 static __inline__ void
@@ -603,7 +376,7 @@ pktgen_set_q_flags(port_info_t * info, uint8_t q, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->q[q].flags);
-    } while( rte_atomic32_cmpset(&info->q[q].flags.cnt, val, (val | flags)) == 0 );
+    } while( rte_atomic32_cmpset((uint32_t *)&info->q[q].flags.cnt, val, (val | flags)) == 0 );
 }
 
 static __inline__ void
@@ -612,7 +385,7 @@ pktgen_clr_q_flags(port_info_t * info, uint8_t q, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->q[q].flags);
-    } while( rte_atomic32_cmpset(&info->q[q].flags.cnt, val, (val & ~flags)) == 0 );
+    } while( rte_atomic32_cmpset((uint32_t *)&info->q[q].flags.cnt, val, (val & ~flags)) == 0 );
 }
 
 /**
@@ -626,12 +399,6 @@ pktgen_version(void) {
 			RTE_STR(RTE_VER_MAJOR)"."
 			RTE_STR(RTE_VER_MINOR)"."
 			RTE_STR(RTE_VER_PATCH_LEVEL)")";
-}
-
-static __inline__ uint32_t
-parseState(const char * state) {
-	return ( !strcasecmp(state, "on") || !strcasecmp(state, "enable") || !strcasecmp(state, "start") ) ?
-			ENABLE_STATE : DISABLE_STATE;
 }
 
 static __inline__ char *
@@ -724,16 +491,8 @@ display_dashline(int last_row)
 #define MEMPOOL_F_DMA       0
 #endif
 
-enum {
-    MBUF_SIZE   = (DEFAULT_BUFF_SIZE - sizeof(struct rte_mbuf))
-};
-
 extern void pktgen_stop_running(void);
-extern void pktgen_send_seq_pkt(port_info_t * info, uint32_t seqnum);
 
-#endif /* _PKTGEN_H_ */
-
-#include "pktgen-cmds.h"
 
 #define lua_c
 #include <lua.h>
@@ -742,3 +501,4 @@ extern void pktgen_send_seq_pkt(port_info_t * info, uint32_t seqnum);
 #include "lua-socket.h"
 #include "lpktgenlib.h"
 
+#endif /* _PKTGEN_H_ */

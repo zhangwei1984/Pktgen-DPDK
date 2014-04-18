@@ -65,77 +65,57 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
+#ifndef _PKTGEN_RANGE_H_
+#define _PKTGEN_RANGE_H_
 
-#ifndef _WR_PCAP_H_
-#define _WR_PCAP_H_
 
-#include <netinet/in.h>
+typedef struct range_info_s {
+	uint32_t				src_ip_inc;			/**< Source IP increment */
+	uint32_t				dst_ip_inc;			/**< Destination increment IP address */
+	uint16_t				src_port_inc;		/**< Source port increment */
+	uint16_t				dst_port_inc;		/**< Destination port increment */
+	uint16_t				vlan_id_inc;		/**< VLAN id increment */
+	uint16_t				pkt_size_inc;		/**< PKT size increment */
+    uint64_t				src_mac_inc;		/**< Source MAC increment */
+    uint64_t				dst_mac_inc;		/**< Destination MAC increment */
 
-#define PCAP_MAGIC_NUMBER	0xa1b2c3d4
-#define PCAP_MAJOR_VERSION	2
-#define PCAP_MINOR_VERSION	4
+	uint32_t				src_ip;				/**< Source starting IP address */
+	uint32_t				src_ip_min;			/**< Source IP minimum */
+	uint32_t				src_ip_max;			/**< Source IP maximum */
 
-typedef struct pcap_hdr_s {
-        uint32_t magic_number;   /**< magic number */
-        uint16_t version_major;  /**< major version number */
-        uint16_t version_minor;  /**< minor version number */
-        int32_t  thiszone;       /**< GMT to local correction */
-        uint32_t sigfigs;        /**< accuracy of timestamps */
-        uint32_t snaplen;        /**< max length of captured packets, in octets */
-        uint32_t network;        /**< data link type */
-} pcap_hdr_t;
+	uint32_t				dst_ip;				/**< Destination starting IP address */
+	uint32_t				dst_ip_min;			/**< Destination minimum IP address */
+	uint32_t				dst_ip_max;			/**< Destination maximum IP address */
 
-typedef struct pcaprec_hdr_s {
-        uint32_t ts_sec;         /**< timestamp seconds */
-        uint32_t ts_usec;        /**< timestamp microseconds */
-        uint32_t incl_len;       /**< number of octets of packet saved in file */
-        uint32_t orig_len;       /**< actual length of packet */
-} pcaprec_hdr_t;
+	uint16_t				src_port;			/**< Source port starting */
+	uint16_t				src_port_min;		/**< Source port minimum */
+	uint16_t				src_port_max;		/**< Source port maximum */
 
-typedef struct pcap_info_s {
-	FILE	  * fd;				/**< File descriptor */
-	char 	  * filename;		/**< allocated string for filename of pcap */
-	uint32_t	endian;			/**< Endian flag value */
-	uint32_t	pkt_size;		/**< Average packet size */
-	uint32_t	pkt_count;		/**< pcap count of packets */
-	uint32_t	pkt_idx;		/**< Index into the current PCAP file */
-	pcap_hdr_t	info;			/**< information on the PCAP file */
-} pcap_info_t;
+	uint16_t				dst_port;			/**< Destination port starting */
+	uint16_t				dst_port_min;		/**< Destination port minimum */
+	uint16_t				dst_port_max;		/**< Destination port maximum */
 
-#ifndef BIG_ENDIAN
-#define BIG_ENDIAN		0x4321
-#endif
-#ifndef LITTLE_ENDIAN
-#define LITTLE_ENDIAN	0x1234
-#endif
+	uint16_t				vlan_id;			/**< VLAN id starting */
+	uint16_t				vlan_id_min;		/**< VLAN id minimum */
+	uint16_t				vlan_id_max;		/**< VLAN id maximum */
 
-typedef struct pcap_pkt_data_s {		/**< Keep these in this order as pkt_seq_t mirrors the first three objects */
-	uint8_t			  * buffAddr;		/**< Start of buffer virtual address */
-	uint8_t			  * virtualAddr;	/**< Pointer to the start of the packet data */
-	phys_addr_t			physAddr;		/**< Packet physical address */
-	uint32_t			size;			/**< Real packet size (hdr.incl_len) */
-	pcaprec_hdr_t		hdr;			/**< Packet header from the .pcap file for each packet */
-} pcap_pkt_data_t;
+	uint16_t				pkt_size;			/**< PKT Size starting */
+	uint16_t				pkt_size_min;		/**< PKT Size minimum */
+	uint16_t				pkt_size_max;		/**< PKT Size maximum */
 
-static __inline__ void
-wr_pcap_convert(pcap_info_t * pcap, pcaprec_hdr_t * pHdr)
-{
-	if ( pcap->endian == BIG_ENDIAN ) {
-		pHdr->incl_len	= ntohl(pHdr->incl_len);
-		pHdr->orig_len	= ntohl(pHdr->orig_len);
-		pHdr->ts_sec	= ntohl(pHdr->ts_sec);
-		pHdr->ts_usec	= ntohl(pHdr->ts_usec);
-	}
-}
+	uint64_t				dst_mac;			/**< Destination starting MAC address */
+	uint64_t				dst_mac_min;		/**< Destination minimum MAC address */
+	uint64_t				dst_mac_max;		/**< Destination maximum MAC address */
 
-extern pcap_info_t * wr_pcap_open(char * filename, uint16_t port);
-extern int wr_pcap_valid(char * filename);
-extern void wr_pcap_close(pcap_info_t * pcap);
-extern void wr_pcap_rewind(pcap_info_t * pcap);
-extern void wr_pcap_skip(pcap_info_t * pcap, uint32_t skip);
-extern void wr_pcap_info(pcap_info_t * pcap, uint16_t port, int flag);
-extern size_t wr_pcap_read(pcap_info_t * pcap, pcaprec_hdr_t * pHdr, char * pktBuff, uint32_t bufLen );
-extern int wr_payloadOffset(const unsigned char *pkt_data, unsigned int *offset,
-                          unsigned int *length);
+	uint64_t				src_mac;			/**< Source starting MAC address */
+	uint64_t				src_mac_min;		/**< Source minimum MAC address */
+	uint64_t				src_mac_max;		/**< Source maximum MAC address */
+} range_info_t;
 
-#endif /* _WR_PCAP_H_ */
+
+extern void pktgen_range_ctor(range_info_t * range, pkt_seq_t * pkt);
+extern void pktgen_range_setup(port_info_t * info);
+
+extern void pktgen_page_range(void);
+
+#endif  // _PKTGEN_RANGE_H_

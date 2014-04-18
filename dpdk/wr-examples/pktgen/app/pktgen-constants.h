@@ -7,16 +7,16 @@
  * are met:
  *
  * - Redistributions of source code must retain the above copyright
- *   notice, this list of conditions and the following disclaimer.
+ *	 notice, this list of conditions and the following disclaimer.
  *
  * - Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in
- *   the documentation and/or other materials provided with the
- *   distribution.
+ *	 notice, this list of conditions and the following disclaimer in
+ *	 the documentation and/or other materials provided with the
+ *	 distribution.
  *
  * - Neither the name of Intel Corporation nor the names of its
- *   contributors may be used to endorse or promote products derived
- *   from this software without specific prior written permission.
+ *	 contributors may be used to endorse or promote products derived
+ *	 from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -53,7 +53,7 @@
  * above and can not be removed without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
  * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -65,45 +65,27 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen.h"
+#ifndef _PKTGEN_CONSTANTS_H_
+#define _PKTGEN_CONSTANTS_H_
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
+#include <rte_mbuf.h>
 
 
-/**************************************************************************//**
-*
-* pktgen_process_vlan - Process a VLAN packet
-*
-* DESCRIPTION
-* Process a input VLAN packet.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
+enum {
+	DEFAULT_PKT_BURST		= 16,		// Increasing this number consumes memory very fast
+	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 16),
+	DEFAULT_TX_DESC			= DEFAULT_RX_DESC,
 
-void
-pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid )
-{
-	pktType_e        pType;
-    struct ether_hdr *eth;
-    struct vlan_hdr  *vlan_hdr;
-    port_info_t      *info = &pktgen.info[pid];
+	MAX_MBUFS_PER_PORT		= (DEFAULT_TX_DESC * 8),	// number of buffers to support per port
+	MAX_SPECIAL_MBUFS		= 64,
+	MBUF_CACHE_SIZE			= (MAX_MBUFS_PER_PORT/8),
 
-    eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
 
-    /* Now dealing with the inner header */
-    vlan_hdr = (struct vlan_hdr*)(eth+1);
+	DEFAULT_BUFF_SIZE		= 2048,
+	MBUF_SIZE				= (DEFAULT_BUFF_SIZE - sizeof(struct rte_mbuf)),
 
-    pType = ntohs(vlan_hdr->eth_proto);
+	NUM_Q					= 8,	/**< Number of cores per port. */
+};
 
-	/* No support for nested tunnel */
-	switch((int)pType) {
-	case ETHER_TYPE_ARP:    info->stats.arp_pkts++;         pktgen_process_arp(m, pid, 1);		break;
-	case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;          pktgen_process_ping4(m, pid, 1);    break;
-	case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;        pktgen_process_ping6(m, pid, 1);    break;
-	case UNKNOWN_PACKET:    /* FALL THRU */
-	default:                break;
-	};
-}
+
+#endif	// _PKTGEN_CONSTANTS_H_

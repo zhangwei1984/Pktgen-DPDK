@@ -68,6 +68,20 @@
 #ifndef _PKTGEN_CMDS_H_
 #define _PKTGEN_CMDS_H_
 
+#include <inttypes.h>
+
+#include "pktgen.h"
+
+/* onOff values */
+enum { DISABLE_STATE = 0, ENABLE_STATE = 1 };
+
+static __inline__ uint32_t
+parseState(const char * state) {
+	return ( !strcasecmp(state, "on") || !strcasecmp(state, "enable") || !strcasecmp(state, "start") ) ?
+			ENABLE_STATE : DISABLE_STATE;
+}
+
+
 extern int pktgen_port_transmitting(int port);
 extern char * pktgen_link_state(int port, char * buff, int len);
 extern char * pktgen_transmit_count(int port, char * buff, int len);
@@ -90,7 +104,6 @@ extern void pktgen_start_transmitting(port_info_t * info);
 extern void pktgen_stop_transmitting(port_info_t * info);
 extern void pktgen_prime_ports(port_info_t * info);
 extern void pktgen_set_proto(port_info_t * info, char type);
-extern void pktgen_set_capture(port_info_t * info, uint32_t onOff);
 extern void pktgen_set_rx_tap(port_info_t * info, uint32_t onOff);
 extern void pktgen_set_tx_tap(port_info_t * info, uint32_t onOff);
 extern int pktgen_save(char * path);
