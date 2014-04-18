@@ -149,18 +149,18 @@ typedef struct ipv6Hdr_s {
 
 /******************************************************************************
  * ipHdr_t.proto values in the IP Header.
- *  1     ICMP        Internet Control Message             [RFC792]
- *  2     IGMP        Internet Group Management           [RFC1112]
- *  4     IP          IP in IP (encapsulation)            [RFC2003]
- *  6     TCP         Transmission Control                 [RFC793]
- * 17     UDP         User Datagram                    [RFC768,JBP]
- * 41     IPv6        Ipv6                                [Deering]
- * 43     IPv6-Route  Routing Header for IPv6             [Deering]
- * 44     IPv6-Frag   Fragment Header for IPv6            [Deering]
- * 47     GRE         Generic Routing Encapsulation  [RFC2784,2890]
- * 58     IPv6-ICMP   ICMP for IPv6                       [RFC1883]
- * 59     IPv6-NoNxt  No Next Header for IPv6             [RFC1883]
- * 60     IPv6-Opts   Destination Options for IPv6        [RFC1883]
+ *  1     ICMP        Internet Control Message            [RFC792]
+ *  2     IGMP        Internet Group Management          [RFC1112]
+ *  4     IP          IP in IP (encapsulation)           [RFC2003]
+ *  6     TCP         Transmission Control                [RFC793]
+ * 17     UDP         User Datagram                   [RFC768,JBP]
+ * 41     IPv6        Ipv6                               [Deering]
+ * 43     IPv6-Route  Routing Header for IPv6            [Deering]
+ * 44     IPv6-Frag   Fragment Header for IPv6           [Deering]
+ * 47     GRE         Generic Routing Encapsulation [RFC2784,2890]
+ * 58     IPv6-ICMP   ICMP for IPv6                      [RFC1883]
+ * 59     IPv6-NoNxt  No Next Header for IPv6            [RFC1883]
+ * 60     IPv6-Opts   Destination Options for IPv6       [RFC1883]
  */
 #define PG_IPPROTO_NONE         0
 #define PG_IPPROTO_IP           IPPROTO_IP

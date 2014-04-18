@@ -257,11 +257,11 @@ pktgen_print_range(void)
 
 	row++;
 	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "dst.port / inc");
-	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "		min / max");
+	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "     min / max");
 
 	row++;
 	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "src.port / inc");
-	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "		min / max");
+	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "     min / max");
 
 	row++;
 	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "vlan.id / inc");
@@ -269,7 +269,7 @@ pktgen_print_range(void)
 
 	row++;
 	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "pkt.size / inc");
-	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "		min / max");
+	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "     min / max");
 
 	row++;
 	scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "dst.mac");

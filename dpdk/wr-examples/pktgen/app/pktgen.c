@@ -416,8 +416,10 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
     if ( likely(pkt->ethType == ETHER_TYPE_IPv4) ) {
 
 		if ( likely(pkt->ipProto == PG_IPPROTO_TCP) ) {
-			/* Start with Ethernet header */
-			tcpip_t *tip = (tcpip_t *)ether_hdr;
+			tcpip_t	  * tip;
+
+			// Construct the Ethernet header
+			tip = (tcpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
 
 			// Construct the TCP header
 			pktgen_tcp_hdr_ctor(pkt, tip, ETHER_TYPE_IPv4);
@@ -428,8 +430,10 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(tcpHdr_t);
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_UDP) ) {
-			/* Start with Ethernet header */
-			udpip_t *udp = (udpip_t *)ether_hdr;
+			udpip_t	  * udp;
+
+			// Construct the Ethernet header
+			udp = (udpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
 
 			// Construct the UDP header
 			pktgen_udp_hdr_ctor(pkt, udp, ETHER_TYPE_IPv4);
@@ -440,9 +444,11 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(udpHdr_t);
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_ICMP) ) {
-			/* Start with Ethernet header */
-			udpip_t           * uip = (udpip_t *)ether_hdr;
+			udpip_t           * uip;
 			icmpv4Hdr_t       * icmp;
+
+			// Construct the Ethernet header
+			uip = (udpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
 
 			// Create the ICMP header
 			uip->ip.src         = htonl(pkt->ip_src_addr);
@@ -479,10 +485,11 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 		}
     } else if ( pkt->ethType == ETHER_TYPE_IPv6 ) {
 		if ( (pkt->ipProto == PG_IPPROTO_TCP) ) {
-			/* Start with Ethernet header */
-			tcpipv6_t         * tip = (tcpipv6_t *)ether_hdr;
-
 			uint32_t            addr;
+			tcpipv6_t         * tip;
+
+			// Construct the Ethernet header
+			tip = (tcpipv6_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
 
 			// Create the pseudo header and TCP information
 			addr                = htonl(pkt->ip_dst_addr);
@@ -514,9 +521,11 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 				pkt->pktSize = pkt->tlen;
 
 		} else if ( (pkt->ipProto == PG_IPPROTO_UDP) ) {
-			/* Start with Ethernet header */
-			udpipv6_t         * uip = (udpipv6_t *)ether_hdr;
 			uint32_t            addr;
+			udpipv6_t         * uip;
+
+			// Construct the Ethernet header
+			uip = (udpipv6_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
 
 			// Create the pseudo header and TCP information
 			addr                = htonl(pkt->ip_dst_addr);
@@ -712,49 +721,21 @@ pktgen_packet_classify_bulk(struct rte_mbuf ** pkts, int nb_rx, int pid )
 {
 	int j;
 
+	/* Prefetch first packets */
+	for (j = 0; j < PREFETCH_OFFSET && j < nb_rx; j++)
+		rte_prefetch0(rte_pktmbuf_mtod(pkts[j], void *));
+
+	/* Prefetch and handle already prefetched packets */
+	for (j = 0; j < (nb_rx - PREFETCH_OFFSET); j++) {
+		rte_prefetch0(rte_pktmbuf_mtod(pkts[j + PREFETCH_OFFSET], void *));
+		pktgen_packet_classify(pkts[j], pid);
+	}
+
 	/* Handle remaining prefetched packets */
-	for (j = 0; j < nb_rx; j++)
+	for (; j < nb_rx; j++)
 		pktgen_packet_classify(pkts[j], pid);
 }
 
-#if 0
-/**************************************************************************//**
-*
-* pktgen_process_vlan - Process a VLAN packet
-*
-* DESCRIPTION
-* Process a input VLAN packet.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
-
-void
-pktgen_process_vlan( struct rte_mbuf * m, uint32_t pid )
-{
-	pktType_e        pType;
-    struct ether_hdr *eth;
-    struct vlan_hdr  *vlan_hdr;
-    port_info_t      *info = &pktgen.info[pid];
-
-    eth = rte_pktmbuf_mtod(m, struct ether_hdr *);
-
-    /* Now dealing with the inner header */
-    vlan_hdr = (struct vlan_hdr*)(eth+1);
-
-    pType = ntohs(vlan_hdr->eth_proto);
-
-	/* No support for nested tunnel */
-	switch((int)pType) {
-	case ETHER_TYPE_ARP:    info->stats.arp_pkts++;         pktgen_process_arp(m, pid, 1);		break;
-	case ETHER_TYPE_IPv4:   info->stats.ip_pkts++;          pktgen_process_ping4(m, pid, 1);    break;
-	case ETHER_TYPE_IPv6:   info->stats.ipv6_pkts++;        pktgen_process_ping6(m, pid, 1);    break;
-	case UNKNOWN_PACKET:    /* FALL THRU */
-	default:                break;
-	};
-}
-#endif
 /**************************************************************************//**
 *
 * pktgen_send_special - Send a special packet to the given port.
@@ -1006,10 +987,7 @@ pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbu
 	if ( (nb_rx = rte_eth_rx_burst(pid, qid, pkts_burst, info->tx_burst)) == 0 )
 		return;
 
-	/* Prefetch packets */
-	for (i = 0; i < nb_rx; i++)
-		rte_prefetch0(rte_pktmbuf_mtod(pkts_burst[i], void *));
-
+	// packets are not freed in the next call.
 	pktgen_packet_classify_bulk(pkts_burst, nb_rx, pid);
 
 	if ( unlikely(info->dump_count > 0) )

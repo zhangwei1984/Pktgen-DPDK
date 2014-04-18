@@ -264,6 +264,8 @@ typedef union {
 	uint64_t			u64;
 } ethaddr_t;
 
+#define MAX_PORT_DESC_SIZE	132
+
 /* Ethernet addresses of ports */
 typedef struct pktgen_s {
 	struct cmdline		  * cl;					/**< Command Line information pointer */
