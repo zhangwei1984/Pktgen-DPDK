@@ -65,108 +65,68 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen-display.h"
+#ifndef _PKTGEN_DISPLAY_H_
+#define _PKTGEN_DISPLAY_H_
+
+#include <rte_scrn.h>
+
+#include <wr_copyright_info.h>
 
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
 
-static int
-save_uname(char * line, __attribute__ ((unused))int i) {
-	pktgen.uname = wr_strdupf(pktgen.uname, line);
-	return 0;
-}
+/* Screen structure pointer */
+extern rte_scrn_t *scrn;
 
-static void
-pktgen_get_uname(void)
-{
-	do_command("uname -a", save_uname);
-}
 
-static __inline__ uint8_t
-sct( uint8_t s, uint8_t c, uint8_t t) {
-	lc_info_t	* lc = &pktgen.core_info[0];
-	uint8_t		i;
+/* Initialize screen data structures */
+void pktgen_init_screen(void);
 
-	for(i=0; i<pktgen.core_cnt; i++, lc++) {
-		if ( lc->s.socket_id == s && lc->s.core_id == c && lc->s.thread_id == t )
-			return lc->s.id;
-	}
-
-	return 0;
-}
 
 /**************************************************************************//**
 *
-* pktgen_page_cpu - Display the CPU data page.
+* display_topline - Print out the top line on the screen.
 *
 * DESCRIPTION
-* Display the CPU data page for a given port.
+* Print out the top line on the screen and any other information.
 *
 * RETURNS: N/A
 *
 * SEE ALSO:
 */
 
-void
-pktgen_page_cpu(void)
+static __inline__ void
+display_topline(const char * msg)
 {
-    uint32_t    i, row, cnt, nb_sockets, nb_cores, nb_threads;
-	static int counter = 0;
-
-    display_topline("** CPU Information Page **");
-
-    row = PORT_STATE_ROW;
-
-    pktgen_get_uname();
-    memset(&pktgen.core_info, 0xff, (sizeof(lc_info_t) * RTE_MAX_LCORE));
-    cnt = wr_coremap("array", pktgen.core_info, RTE_MAX_LCORE, NULL);
-    pktgen.lscpu		= wr_lscpu_info(NULL, NULL);
-    pktgen.core_cnt		= cnt;
-
-    nb_sockets = wr_coremap_cnt(pktgen.core_info, cnt, 0);
-    nb_cores = wr_coremap_cnt(pktgen.core_info, cnt, 1);
-    nb_threads = wr_coremap_cnt(pktgen.core_info, cnt, 2);
-
-    if ( (counter++ & 3) != 0 )
-    	return;
-
-    row = 3;
-    scrn_printf(row++, 1, "Kernel: %s", pktgen.uname);
-    row++;
-    scrn_printf(row++, 1, "Model Name: %s", pktgen.lscpu->model_name);
-    scrn_printf(row++, 1, "CPU Speed : %s", pktgen.lscpu->cpu_mhz);
-    scrn_printf(row++, 1, "Cache Size: %s", pktgen.lscpu->cache_size);
-    row++;
-    scrn_printf(row++, 1, "CPU Flags : %s", pktgen.lscpu->cpu_flags);
-    row += 4;
-
-    scrn_printf(row++, 5, "%d sockets, %d cores per socket and %d threads per core.",
-    	nb_sockets, nb_cores, nb_threads);
-    scrn_printf(row++, 3, "Socket   : ");
-    for(i = 0; i< nb_sockets; i++)
-    	printf("%4d      ", i);
-
-	for(i = 0; i< nb_cores; i++) {
-		scrn_printf(row++, 1, "  Core %3d : [%2d,%2d]   ", i, sct(0, i, 0),   sct(0, i, 1));
-		if ( nb_sockets > 1 )
-			printf("[%2d,%2d]   ", sct(1, i, 0), sct(1, i, 1));
-		if ( nb_sockets > 2 )
-			printf("[%2d,%2d]   ", sct(2, i, 0), sct(2, i, 1));
-		if ( nb_sockets > 3 )
-			printf("[%2d,%2d]   ", sct(3, i, 0), sct(3, i, 1));
-		printf("\n");
-	}
-	wr_port_matrix_dump(pktgen.l2p);
-
-	if ( pktgen.flags & PRINT_LABELS_FLAG ) {
-
-		pktgen.last_row = 36;
-	    display_dashline(pktgen.last_row);
-
-		scrn_setw(pktgen.last_row);
-		scrn_printf(100, 1, "");        // Put cursor on the last row.
-	}
-    pktgen.flags &= ~PRINT_LABELS_FLAG;
+	scrn_center(1, "%s  %s, %s", msg, wr_copyright_msg(), wr_powered_by());
 }
+
+/**************************************************************************//**
+*
+* display_dashline - Print out the dashed line on the screen.
+*
+* DESCRIPTION
+* Print out the dashed line on the screen and any other information.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static __inline__ void
+display_dashline(int last_row)
+{
+	int		i;
+
+	scrn_setw(last_row);
+	last_row--;
+    scrn_pos(last_row, 1);
+    for(i=0; i<(scrn->ncols-15); i++)
+    	printf_info("-");
+    scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
+}
+
+#define printf_info(...)	scrn_fprintf(0,0,stdout, __VA_ARGS__)
+
+
+#endif	// _PKTGEN_DISPLAY_H_

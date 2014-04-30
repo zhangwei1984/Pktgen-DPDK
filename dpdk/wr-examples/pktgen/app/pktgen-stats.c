@@ -66,6 +66,7 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen-cmds.h"
+#include "pktgen-display.h"
 
 #include "pktgen.h"
 

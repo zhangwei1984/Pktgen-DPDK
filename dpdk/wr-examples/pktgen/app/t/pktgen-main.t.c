@@ -1,6 +1,7 @@
 /*
  * SOURCE: pktgen-main.c
  * STUB: pktgen-port-cfg.h pktgen.h pktgen-cmds.h commands.h lpktgenlib.h
+ * STUB: pktgen-display.h
  *
  * LIBS: librte_eal librte_mempool librte_pmd_e1000 librte_pmd_ixgbe
  * LIBS: librte_pmd_virtio librte_pmd_vmxnet3 libwr_scrn librte_timer

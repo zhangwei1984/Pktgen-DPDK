@@ -65,108 +65,42 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen-display.h"
+#ifndef _PKTGEN_RANDOM_H_
+#define _PKTGEN_RANDOM_H_
 
-#include "pktgen.h"
+#include <stdint.h>
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
+#include <rte_mbuf.h>
 
-static int
-save_uname(char * line, __attribute__ ((unused))int i) {
-	pktgen.uname = wr_strdupf(pktgen.uname, line);
-	return 0;
-}
 
-static void
-pktgen_get_uname(void)
-{
-	do_command("uname -a", save_uname);
-}
+/* Bitfield size and max. entries */
+#define MAX_RND_BITFIELDS		32
 
-static __inline__ uint8_t
-sct( uint8_t s, uint8_t c, uint8_t t) {
-	lc_info_t	* lc = &pktgen.core_info[0];
-	uint8_t		i;
+#define BITFIELD_T				uint32_t
+#define MAX_BITFIELD_SIZE		(sizeof(BITFIELD_T) << 3)
 
-	for(i=0; i<pktgen.core_cnt; i++, lc++) {
-		if ( lc->s.socket_id == s && lc->s.core_id == c && lc->s.thread_id == t )
-			return lc->s.id;
-	}
 
-	return 0;
-}
+typedef struct rnd_bits_s rnd_bits_t;
+typedef struct pkt_seq_s pkt_seq_t;
 
-/**************************************************************************//**
-*
-* pktgen_page_cpu - Display the CPU data page.
-*
-* DESCRIPTION
-* Display the CPU data page for a given port.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
 
-void
-pktgen_page_cpu(void)
-{
-    uint32_t    i, row, cnt, nb_sockets, nb_cores, nb_threads;
-	static int counter = 0;
+/* Data structure initialization */
+extern void pktgen_rnd_bits_init(rnd_bits_t **rnd_bits);
 
-    display_topline("** CPU Information Page **");
+/* Set random bitfield */
+extern uint32_t pktgen_set_random_bitfield(rnd_bits_t * rnd_bits, uint8_t idx, uint8_t offset, const char *mask);
 
-    row = PORT_STATE_ROW;
+/* Apply random bitfields description to packet contents */
+extern void pktgen_rnd_bits_apply(struct rte_mbuf ** pkt, size_t cnt, rnd_bits_t * rnd_bits);
 
-    pktgen_get_uname();
-    memset(&pktgen.core_info, 0xff, (sizeof(lc_info_t) * RTE_MAX_LCORE));
-    cnt = wr_coremap("array", pktgen.core_info, RTE_MAX_LCORE, NULL);
-    pktgen.lscpu		= wr_lscpu_info(NULL, NULL);
-    pktgen.core_cnt		= cnt;
+/* Display page with random bitfield settings */
+extern void pktgen_page_random_bitfields(uint32_t print_labels, uint16_t pid, rnd_bits_t * rnd_bits);
 
-    nb_sockets = wr_coremap_cnt(pktgen.core_info, cnt, 0);
-    nb_cores = wr_coremap_cnt(pktgen.core_info, cnt, 1);
-    nb_threads = wr_coremap_cnt(pktgen.core_info, cnt, 2);
 
-    if ( (counter++ & 3) != 0 )
-    	return;
+#ifdef TESTING
+/* Change PRNG function at runtime */
+typedef BITFIELD_T (*rnd_func_t)(void);
+rnd_func_t pktgen_set_rnd_func(rnd_func_t rnd_func);
+#endif
 
-    row = 3;
-    scrn_printf(row++, 1, "Kernel: %s", pktgen.uname);
-    row++;
-    scrn_printf(row++, 1, "Model Name: %s", pktgen.lscpu->model_name);
-    scrn_printf(row++, 1, "CPU Speed : %s", pktgen.lscpu->cpu_mhz);
-    scrn_printf(row++, 1, "Cache Size: %s", pktgen.lscpu->cache_size);
-    row++;
-    scrn_printf(row++, 1, "CPU Flags : %s", pktgen.lscpu->cpu_flags);
-    row += 4;
-
-    scrn_printf(row++, 5, "%d sockets, %d cores per socket and %d threads per core.",
-    	nb_sockets, nb_cores, nb_threads);
-    scrn_printf(row++, 3, "Socket   : ");
-    for(i = 0; i< nb_sockets; i++)
-    	printf("%4d      ", i);
-
-	for(i = 0; i< nb_cores; i++) {
-		scrn_printf(row++, 1, "  Core %3d : [%2d,%2d]   ", i, sct(0, i, 0),   sct(0, i, 1));
-		if ( nb_sockets > 1 )
-			printf("[%2d,%2d]   ", sct(1, i, 0), sct(1, i, 1));
-		if ( nb_sockets > 2 )
-			printf("[%2d,%2d]   ", sct(2, i, 0), sct(2, i, 1));
-		if ( nb_sockets > 3 )
-			printf("[%2d,%2d]   ", sct(3, i, 0), sct(3, i, 1));
-		printf("\n");
-	}
-	wr_port_matrix_dump(pktgen.l2p);
-
-	if ( pktgen.flags & PRINT_LABELS_FLAG ) {
-
-		pktgen.last_row = 36;
-	    display_dashline(pktgen.last_row);
-
-		scrn_setw(pktgen.last_row);
-		scrn_printf(100, 1, "");        // Put cursor on the last row.
-	}
-    pktgen.flags &= ~PRINT_LABELS_FLAG;
-}
+#endif	// _PKTGEN_RANDOM_H_

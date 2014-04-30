@@ -65,6 +65,8 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
+#include "pktgen-display.h"
+
 #include "pktgen.h"
 
 // Allocated the pktgen structure for global use

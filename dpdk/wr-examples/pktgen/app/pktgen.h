@@ -154,7 +154,7 @@
 #include "pktgen-capture.h"
 
 
-#define PKTGEN_VERSION			"2.6.0"
+#define PKTGEN_VERSION			"2.6.01"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -242,7 +242,7 @@ enum {
 	EXTRA_TX_PKT			= (RANGE_PKT + 1),						// 19
 	NUM_TOTAL_PKTS			= (EXTRA_TX_PKT + NUM_EXTRA_TX_PKTS),
 
-	ALL_PORTS				= 0xFFFFFFFF,
+	ALL_PORTS				= ((1LL << RTE_MAX_ETHPORTS) - 1),
 	INTER_FRAME_GAP			= 12,
 	PKT_PREAMBLE_SIZE		= 8,
 	FCS_SIZE				= 4,
@@ -271,7 +271,6 @@ typedef struct pktgen_s {
 	struct cmdline		  * cl;					/**< Command Line information pointer */
 	char				  * cmd_filename;		/**< Command file path and name */
 	void				  * L;					/**< Lua State pointer */
-	rte_scrn_t			  * scrn;				/**< Screen structure pointer */
 	char				  * hostname;			/**< GUI hostname */
 	char				  * prompt;				/**< Pktgen command line prompt */
 	uint64_t				coremask;			/**< Coremask of lcores */
@@ -344,7 +343,8 @@ enum {		// Pktgen flags bits
 	IS_SERVER_FLAG			= 0x00000800,		/**< Pktgen is a Server */
 	ENABLE_GUI_FLAG			= 0x00001000,		/**< GUI support is enabled */
 	LUA_SHELL_FLAG			= 0x00002000,		/**< Enable Lua Shell */
-	TX_DEBUG_FLAG			= 0x00004000		/**< TX Debug output */
+	TX_DEBUG_FLAG			= 0x00004000,		/**< TX Debug output */
+	RND_BITFIELD_PAGE_FLAG	= 0x00008000		/**< Display the random bitfield page */
 };
 
 struct cmdline_etheraddr {
@@ -457,51 +457,6 @@ do_command(const char * cmd, int (*display)(char *, int)) {
 
 	return i;
 }
-
-/**************************************************************************//**
-*
-* display_topline - Print out the top line on the screen.
-*
-* DESCRIPTION
-* Print out the top line on the screen and any other information.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
-
-static __inline__ void
-display_topline(const char * msg)
-{
-	scrn_center(1, "%s  %s, %s", msg, wr_copyright_msg(), wr_powered_by());
-}
-
-/**************************************************************************//**
-*
-* display_dashline - Print out the dashed line on the screen.
-*
-* DESCRIPTION
-* Print out the dashed line on the screen and any other information.
-*
-* RETURNS: N/A
-*
-* SEE ALSO:
-*/
-
-static __inline__ void
-display_dashline(int last_row)
-{
-	int		i;
-
-	scrn_setw(last_row);
-	last_row--;
-    scrn_pos(last_row, 1);
-    for(i=0; i<(pktgen.scrn->ncols-15); i++)
-    	printf_info("-");
-    scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
-}
-
-#define printf_info(...)	scrn_fprintf(0,0,stdout, __VA_ARGS__)
 
 #ifndef MEMPOOL_F_DMA
 #define MEMPOOL_F_DMA       0

@@ -68,6 +68,12 @@
 #ifndef __INC_RTE_SCRN_H
 #define __INC_RTE_SCRN_H
 
+#include <string.h>
+#include <stdio.h>
+
+#include <rte_atomic.h>
+
+
 #define SCRN_VERSION	"1.0.0"
 
 typedef struct rte_scrn_s {

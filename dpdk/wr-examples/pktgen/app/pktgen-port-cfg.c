@@ -382,6 +382,8 @@ void pktgen_config_ports(void)
             pktgen_port_defaults(pid, s);
 
         pktgen_range_setup(info);
+
+		pktgen_rnd_bits_init(&pktgen.info[pid].rnd_bitfields);
     }
 
 	for (sid = 0; sid < RTE_MAX_NUMA_NODES; sid++)

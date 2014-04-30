@@ -7,7 +7,7 @@ die "Usage: $0 <sourcefile> <depfile>\n" .
 my ($src_fn, $dep_fn) = @ARGV;
 
 open my $in_fh,  '<', $src_fn or die "Could not open $src_fn for reading\n";
-my @source, @libs, @syslibs;
+my @source, @libs, @syslibs, @stubs;
 while (<$in_fh>) {
     chomp;
 
@@ -34,6 +34,13 @@ while (<$in_fh>) {
 
         push @syslibs, split /\s+/;
     }
+
+    if (/\bSTUB\b/) {
+        # Remove keyword and trailing punctuation/whitespace.
+        s/^.+STUB\W+//;
+
+        push @stubs, split /\s+/;
+    }
 }
 close $in_fh;
 
@@ -44,7 +51,8 @@ open my $out_fh, '>', $dep_fn or die "Could not open $dep_fn for writing\n";
 # prerequisites whenever any of the source files change.
 # Add '../' prefix to source filenames, so they point to the Pktgen source code.
 (my $obj_fn = 'build/' . $src_fn) =~ s/\.c$/.o/;
-print $out_fh "$obj_fn $dep_fn: helpers/test_helpers.h $src_fn",
+(my $hdr_fn = 'build/' . $src_fn) =~ s/\.c$/.h/;
+print $out_fh "$obj_fn $dep_fn: helpers/test_helpers.h $src_fn $hdr_fn",
     (map { ' ../' . $_ } @source),
     "\n\n";
 
@@ -55,7 +63,8 @@ print $out_fh "${obj_fn}_CFLAGS :=",
         grep { -r $_ }
         map { (my $fn = '../' . $_) =~ s/\.c$/.h/; $fn; }
         @source),
-    "\n\n";
+    "\n";
+print $out_fh "${obj_fn}_CFLAGS += -include ${hdr_fn}\n";
 
 # Dependencies for the test executable. Pktgen source files are compiled to the
 # build/app/ directory (so we can, for example, specify compiler flags for code
@@ -64,6 +73,14 @@ print $out_fh "${obj_fn}_CFLAGS :=",
 print $out_fh "$exe_fn: $obj_fn build/${exe_fn}.stubs.o",
     (map { (my $obj = $_) =~ s/\.c$/.o/; ' build/app/' . $obj } @source),
     " @libs",
+    "\n\n";
+
+# Compile those parts of helpers/fake_impl.c that have been stubbed.
+my $fake_fn = "build/${exe_fn}.fake_impl.o";
+print $out_fh "${fake_fn}_CFLAGS := ",
+    (map { ' -DSTUB_' . $_ }
+        map { (my $def = $_) =~ s/\W/_/g; uc $def; }
+        @stubs),
     "\n\n";
 
 # Extra LDFLAGS for linking the test executable. This links against system

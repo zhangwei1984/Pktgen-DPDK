@@ -1,7 +1,7 @@
 /*
  * SOURCE: pktgen-port-cfg.c
  * STUB: pktgen-pcap.h pktgen-stats.h pktgen-cmds.h pktgen-range.h
- * STUB: pktgen-capture.h
+ * STUB: pktgen-capture.h pktgen-random.h
  *
  * LIBS: librte_mbuf librte_eal librte_mempool libwr_scrn libethdev libwr_common
  * LIBS: librte_malloc librte_pmd_ring librte_ring

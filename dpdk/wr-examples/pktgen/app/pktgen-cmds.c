@@ -138,7 +138,7 @@ pktgen_save(char * path)
 	fprintf(fd, "\n#######################################################################\n");
 
 	fprintf(fd, "# Global configuration:\n");
-	fprintf(fd, "geometry %dx%d\n", pktgen.scrn->ncols, pktgen.scrn->nrows);
+	fprintf(fd, "geometry %dx%d\n", scrn->ncols, scrn->nrows);
 	fprintf(fd, "mac_from_arp %s\n\n", (pktgen.flags & MAC_FROM_ARP_FLAG)? "enable" : "disable");
 
 	for(i=0; i < RTE_MAX_ETHPORTS; i++) {
@@ -439,7 +439,7 @@ pktgen_flags_string( port_info_t * info )
     static char buff[32];
     uint32_t	flags = rte_atomic32_read(&info->port_flags);
 
-    snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c%c%c%c",
+    snprintf(buff, sizeof(buff), "%c%c%c%c%c%c%c%c%c%c%c%c%c%c",
             (pktgen.flags & PROMISCUOUS_ON_FLAG)? 'P' : '-',
             (flags & ICMP_ECHO_ENABLE_FLAG)? 'E' : '-',
             (flags & SEND_ARP_REQUEST)? 'A' : '-',
@@ -454,7 +454,8 @@ pktgen_flags_string( port_info_t * info )
 				(flags & SEND_Q_IN_Q_IDS)? 'Q' : '-',
             (flags & PROCESS_GARP_PKTS)? 'g' : '-',
 			(flags & SEND_GRE_HEADER)? 'G' : '-',
-			(flags & CAPTURE_PKTS)? 'C' : '-');
+			(flags & CAPTURE_PKTS)? 'C' : '-',
+			(flags & SEND_RANDOM_PKTS) ? 'R' : '-');
 
     return buff;
 }
@@ -746,6 +747,27 @@ pktgen_mac_from_arp(uint32_t onOff)
 		pktgen.flags |= MAC_FROM_ARP_FLAG;
 	else
 		pktgen.flags &= ~MAC_FROM_ARP_FLAG;
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_random - Enable/disable random bitfield mode
+*
+* DESCRIPTION
+* Enable/disable random bitfield mode
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_random(port_info_t *info, uint32_t onOff)
+{
+	if ( onOff == ENABLE_STATE )
+		pktgen_set_port_flags(info, SEND_RANDOM_PKTS);
+	else
+		pktgen_clr_port_flags(info, SEND_RANDOM_PKTS);
 }
 
 /**************************************************************************//**
@@ -1964,33 +1986,45 @@ void pktgen_set_page( char * str )
 		pktgen.flags &= ~CONFIG_PAGE_FLAG;
 		pktgen.flags &= ~RANGE_PAGE_FLAG;
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
+		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
 		pktgen.flags |= CPU_PAGE_FLAG;
 	} else if ( str[0] == 'p' ) {
 		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
 		pktgen.flags &= ~CONFIG_PAGE_FLAG;
 		pktgen.flags &= ~RANGE_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
+		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
 		pktgen.flags |= PCAP_PAGE_FLAG;
 		if ( pktgen.info[pktgen.portNum].pcap )
 			pktgen.info[pktgen.portNum].pcap->pkt_idx = 0;
-	} else if ( str[0] == 'r' ) {
+	} else if ( ( str[0] == 'r' ) && (str[1] == 'a') ) {
 		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
 		pktgen.flags &= ~CONFIG_PAGE_FLAG;
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
+		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
 		pktgen.flags |= RANGE_PAGE_FLAG;
 	} else if ( str[0] == 'c' ) {
 		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
 		pktgen.flags &= ~RANGE_PAGE_FLAG;
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
+		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
 		pktgen.flags |= CONFIG_PAGE_FLAG;
 	} else if ( str[0] == 's' ) {
 		pktgen.flags &= ~CONFIG_PAGE_FLAG;
 		pktgen.flags &= ~RANGE_PAGE_FLAG;
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
+		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
 		pktgen.flags |= SEQUENCE_PAGE_FLAG;
+	} else if ( str[0] == 'r') {
+		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
+		pktgen.flags &= ~RANGE_PAGE_FLAG;
+		pktgen.flags &= ~PCAP_PAGE_FLAG;
+		pktgen.flags &= ~CPU_PAGE_FLAG;
+		pktgen.flags &= ~CONFIG_PAGE_FLAG;
+		pktgen.flags |= RND_BITFIELD_PAGE_FLAG;
 	} else {
 		uint16_t start_port = (page * pktgen.nb_ports_per_page);
 		if ( (pktgen.starting_port != start_port) && (start_port < pktgen.nb_ports) ) {
@@ -1999,8 +2033,8 @@ void pktgen_set_page( char * str )
 			if ( pktgen.ending_port > (pktgen.starting_port + pktgen.nb_ports) )
 				pktgen.ending_port = (pktgen.starting_port + pktgen.nb_ports);
 		}
-		if ( pktgen.flags & (CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | PCAP_PAGE_FLAG | CPU_PAGE_FLAG) ) {
-			pktgen.flags &= ~(CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | PCAP_PAGE_FLAG | CPU_PAGE_FLAG);
+		if ( pktgen.flags & (CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | PCAP_PAGE_FLAG | CPU_PAGE_FLAG | RND_BITFIELD_PAGE_FLAG) ) {
+			pktgen.flags &= ~(CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | PCAP_PAGE_FLAG | CPU_PAGE_FLAG | RND_BITFIELD_PAGE_FLAG);
 			pktgen.flags |= PRINT_LABELS_FLAG;
 		}
 	}

@@ -79,6 +79,7 @@
 #include "pktgen-pcap.h"
 #include "pktgen-dump.h"
 #include "pktgen-ether.h"
+#include "pktgen-random.h"
 
 
 #define MAX_PORT_DESC_SIZE	132
@@ -122,7 +123,8 @@ enum {		// Per port flag bits
 	CAPTURE_PKTS			= 0x00002000,		/**< Capture received packets */
 	SEND_MPLS_LABEL			= 0x00004000,		/**< Send MPLS label */
 	SEND_Q_IN_Q_IDS			= 0x00008000,		/**< Send packets with Q-in-Q */
-	SEND_GRE_HEADER			= 0x00010000		/**< Send GRE header */
+	SEND_GRE_HEADER			= 0x00010000,		/**< Send GRE header */
+	SEND_RANDOM_PKTS		= 0x00020000		/**< Send random bitfields in packets */
 };
 
 typedef struct port_info_s {
@@ -191,6 +193,8 @@ typedef struct port_info_s {
 	uint8_t					dump_head;			/**< Index of last packet written to screen */
 	uint8_t					dump_tail;			/**< Index of last valid packet in dump_list */
 	uint8_t					dump_count;			/**< Number of packets the user requested */
+
+	rnd_bits_t			  * rnd_bitfields;		/**< Random bitfield settings */
 } port_info_t;
 
 

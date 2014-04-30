@@ -77,6 +77,8 @@
 #include "pktgen-arp.h"
 #include "pktgen-vlan.h"
 #include "pktgen-cpu.h"
+#include "pktgen-display.h"
+#include "pktgen-random.h"
 
 
 // Allocated the pktgen structure for global use
@@ -268,6 +270,9 @@ pktgen_send_burst(port_info_t * info, uint8_t qid)
 	flags = rte_atomic32_read(&info->port_flags);
     mtab->len = 0;
 	do {
+		if ( unlikely(flags & SEND_RANDOM_PKTS) ) {
+			pktgen_rnd_bits_apply(pkts, cnt, info->rnd_bitfields);
+		}
     	ret = rte_eth_tx_burst(info->pid, qid, pkts, cnt);
 		if ( unlikely(flags & PROCESS_TX_TAP_PKTS) ) {
 			for(i = 0; i < ret; i++) {
@@ -1254,12 +1259,17 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
         pktgen_page_config();
     else if ( pktgen.flags & SEQUENCE_PAGE_FLAG )
         pktgen_page_seq(pktgen.portNum);
+	else if ( pktgen.flags & RND_BITFIELD_PAGE_FLAG )
+		pktgen_page_random_bitfields(pktgen.flags & PRINT_LABELS_FLAG, pktgen.portNum, pktgen.info[pktgen.portNum].rnd_bitfields);
     else
         pktgen_page_stats();
 
     scrn_restore();
 
     pktgen_print_packet_dump();
+
+	if (pktgen.flags & PRINT_LABELS_FLAG)
+		pktgen.flags &= ~PRINT_LABELS_FLAG;
 }
 
 static struct rte_timer timer0;

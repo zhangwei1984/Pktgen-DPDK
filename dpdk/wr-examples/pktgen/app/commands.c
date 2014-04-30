@@ -110,6 +110,8 @@
 #include "pktgen-cmds.h"
 #include "pktgen-main.h"
 #include "lpktgenlib.h"
+#include "pktgen-display.h"
+#include "pktgen-random.h"
 
 #include "pktgen.h"
 
@@ -232,7 +234,7 @@ const char * help_info[] = {
 		"ping6 <portlist>                   - Send a IPv6 ICMP echo request on the given portlist",
 #endif
 		"<<PageBreak>>",
-		"page [0-7]|range|config|seq|pcap|next|cpu- Show the port pages or configuration or sequence page",
+		"page [0-7]|range|config|seq|pcap|next|cpu|rnd- Show the port pages or configuration or sequence page",
 		"     [0-7]                         - Page of different ports",
 		"     range                         - Display the range packet page",
 		"     config                        - Display the configuration page (not used)",
@@ -240,6 +242,8 @@ const char * help_info[] = {
 		"     cpu                           - Display some information about the CPU system",
 		"     next                          - Display next page of PCAP packets.",
 		"     sequence | seq                - sequence will display a set of packets for a given port",
+		"                                     Note: use the 'port <number>' to display a new port sequence",
+		"     rnd                           - Display the random bitfields to packets for a given port",
 		"                                     Note: use the 'port <number>' to display a new port sequence",
 		"port <number>                      - Sets the sequence of packets to display for a given port",
 		"process <portlist> <state>         - Enable or Disable processing of ARP/ICMP/IPv4/IPv6 packets",
@@ -294,26 +298,35 @@ const char * help_info[] = {
 		"pkt.size max <portlist> value      - Set vlan id maximum address",
 		"pkt.size inc <portlist> value      - Set vlan id increment address",
 		"range <portlist> <state>           - Enable or Disable the given portlist for sending a range of packets",
+		"rnd <portlist> <idx> <off> <mask>  - Set random mask for all transmitted packets from portlist",
+		"                                     idx: random mask slot",
+		"                                     off: offset in packets, where to apply mask",
+		"                                     mask: up to 32 bit long mask specification (empty to disable):",
+		"                                       0: bit will be 0",
+		"                                       1: bit will be 1",
+		"                                       .: bit will be ignored (original value is retained)",
+		"                                       X: bit will get random value",
 		"",
 		"<<PageBreak>>",
 		"Notes: <state> - Use enable|disable or on|off to set the state.",
-		"       Flags: P-------------- - Promiscuous mode enabled",
-		"               E              - ICMP Echo enabled",
-		"                A             - Send ARP Request flag",
-		"                 G            - Send Gratuitous ARP flag",
-		"                  C           - TX Cleanup flag",
-		"                   p          - PCAP enabled flag",
-		"                    S         - Send Sequence packets enabled",
-		"                     R        - Send Range packets enabled",
-		"                      D       - DPI Scanning enabled (If Enabled)",
-		"                       I      - Process packets on input enabled",
-		"                        T     - Using TAP interface for this port",
-		"                         V    - Send VLAN ID tag",
-		"                         M    - Send MPLS header",
-		"                         Q    - Send Q-in-Q tags",
-		"                          g   - Process GARP packets",
-		"                           G  - Perform GRE encapsulation",
-		"                            C - Capture received packets",
+		"       Flags: P--------------- - Promiscuous mode enabled",
+		"               E               - ICMP Echo enabled",
+		"                A              - Send ARP Request flag",
+		"                 G             - Send Gratuitous ARP flag",
+		"                  C            - TX Cleanup flag",
+		"                   p           - PCAP enabled flag",
+		"                    S          - Send Sequence packets enabled",
+		"                     R         - Send Range packets enabled",
+		"                      D        - DPI Scanning enabled (If Enabled)",
+		"                       I       - Process packets on input enabled",
+		"                        T      - Using TAP interface for this port",
+		"                         V     - Send VLAN ID tag",
+		"                         M     - Send MPLS header",
+		"                         Q     - Send Q-in-Q tags",
+		"                          g    - Process GARP packets",
+		"                           G   - Perform GRE encapsulation",
+		"                            C  - Capture received packets",
+		"                             R - Random bitfield(s) are applied",
 		"",
 		"*** To see a set of example Lua commands see the files in wr-examples/pktgen/test",
 		NULL
@@ -624,6 +637,83 @@ cmdline_parse_inst_t cmd_range = {
 	},
 };
 
+
+/**********************************************************/
+
+struct cmd_rnd_result {
+	cmdline_fixed_string_t rnd;
+	cmdline_portlist_t portlist;
+	uint8_t idx;
+	uint8_t off;
+	cmdline_fixed_string_t mask;
+};
+
+/**************************************************************************//**
+*
+* cmd_rnd_parsed - Set random bitfields.
+*
+* DESCRIPTION
+* Set random bitfields.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_rnd_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_rnd_result *res = parsed_result;
+
+	char mask[33] = { 0 };
+	int i, mask_idx = 0;
+	char curr_bit;
+
+	if (strcmp(res->mask, "off")) {
+		/* Filter invalid characters from provided mask. This way the user can
+		 * more easily enter long bitmasks, using for example '_' as a separator
+		 * every 8 bits. */
+		for (i = 0; (mask_idx < 32) && ((curr_bit = res->mask[i]) != '\0'); ++i) {
+			if ((curr_bit == '0') || (curr_bit == '1') || (curr_bit == '.') || (curr_bit == 'X')) {
+				mask[mask_idx++] = curr_bit;
+			}
+		}
+	}
+
+	foreach_port( res->portlist.map,
+			pktgen_set_random(info,
+				pktgen_set_random_bitfield(info->rnd_bitfields, res->idx, res->off, mask) ? ENABLE_STATE : DISABLE_STATE)
+			);
+
+	pktgen_update_display();
+}
+
+cmdline_parse_token_string_t cmd_rnd_rnd =
+	TOKEN_STRING_INITIALIZER(struct cmd_rnd_result, rnd, "rnd");
+cmdline_parse_token_portlist_t cmd_rnd_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_rnd_result, portlist);
+cmdline_parse_token_num_t cmd_rnd_idx =
+	TOKEN_NUM_INITIALIZER(struct cmd_rnd_result, idx, UINT8);
+cmdline_parse_token_num_t cmd_rnd_off =
+	TOKEN_NUM_INITIALIZER(struct cmd_rnd_result, off, UINT8);
+cmdline_parse_token_string_t cmd_rnd_mask =
+	TOKEN_STRING_INITIALIZER(struct cmd_rnd_result, mask, NULL);
+
+cmdline_parse_inst_t cmd_rnd = {
+	.f = cmd_rnd_parsed,
+	.data = NULL,
+	.help_str = "rnd <portlist> <idx> <off> <mask>",
+	.tokens = {
+		(void *)&cmd_rnd_rnd,
+		(void *)&cmd_rnd_portlist,
+		(void *)&cmd_rnd_idx,
+		(void *)&cmd_rnd_off,
+		(void *)&cmd_rnd_mask,
+		NULL,
+	},
+};
+
 /**********************************************************/
 
 struct cmd_set_geometry_result {
@@ -654,13 +744,13 @@ static void cmd_set_geometry_parsed(void *parsed_result,
 		char * p;
 		p = strchr(res->what, 'x');
 		if ( p ) {
-			pktgen.scrn->ncols	= strtol(res->what, NULL, 10);
-			pktgen.scrn->nrows	= strtol(++p, NULL, 10);
+			scrn->ncols	= strtol(res->what, NULL, 10);
+			scrn->nrows	= strtol(++p, NULL, 10);
 			pktgen_cls();
 			//printf("New Geometry is %dx%d\n", pktgen.scrn->ncols, pktgen.scrn->nrows);
 		} else {
 			printf("Geometry string is invalid (%s) must be CxR format\n", res->what);
-			printf("Current Geometry is %dx%d\n", pktgen.scrn->ncols, pktgen.scrn->nrows);
+			printf("Current Geometry is %dx%d\n", scrn->ncols, scrn->nrows);
 		}
 	}
 }
@@ -2091,12 +2181,12 @@ static void cmd_set_page_parsed(void *parsed_result,
 cmdline_parse_token_string_t cmd_set_page =
 	TOKEN_STRING_INITIALIZER(struct cmd_page_result, page, "page");
 cmdline_parse_token_string_t cmd_set_pageType =
-	TOKEN_STRING_INITIALIZER(struct cmd_page_result, pageType, "0#1#2#3#4#5#6#7#range#config#sequence#seq#pcap#next#cpu");
+	TOKEN_STRING_INITIALIZER(struct cmd_page_result, pageType, "0#1#2#3#4#5#6#7#range#config#sequence#seq#pcap#next#cpu#rnd");
 
 cmdline_parse_inst_t cmd_page = {
 	.f = cmd_set_page_parsed,
 	.data = NULL,
-	.help_str = "page [0-7]|range|config|sequence|seq|pcap|next|cpu",
+	.help_str = "page [0-7]|range|config|sequence|seq|pcap|next|cpu|rnd",
 	.tokens = {
 		(void *)&cmd_set_page,
 		(void *)&cmd_set_pageType,
@@ -3325,7 +3415,7 @@ static void cmd_str_parsed(__attribute__ ((unused))void *parsed_result,
 			    __attribute__((unused)) void *data)
 {
 
-	foreach_port( 0xFFFFFFFF,
+	foreach_port( ALL_PORTS,
 			pktgen_start_transmitting(info) );
 }
 
@@ -3365,7 +3455,7 @@ static void cmd_stp_parsed(__attribute__ ((unused))void *parsed_result,
 			    __attribute__((unused)) void *data)
 {
 
-	foreach_port( 0xFFFFFFFF,
+	foreach_port( ALL_PORTS,
 		pktgen_stop_transmitting(info) );
 }
 
@@ -3495,7 +3585,7 @@ static void cmd_clr_parsed(__attribute__((unused)) void *parsed_result,
 			    __attribute__((unused)) void *data)
 {
 
-	foreach_port( 0xFFFFFFFF,
+	foreach_port( ALL_PORTS,
 		pktgen_clear_stats(info) );
 }
 
@@ -3656,7 +3746,7 @@ static void cmd_rst_parsed(__attribute__((unused)) void *parsed_result,
 			    __attribute__((unused)) void *data)
 {
 
-	foreach_port( 0xFFFFFFFF,
+	foreach_port( ALL_PORTS,
 		pktgen_reset(info) );
 }
 
@@ -3718,6 +3808,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_proto,
 	    (cmdline_parse_inst_t *)&cmd_quit,
 	    (cmdline_parse_inst_t *)&cmd_range,
+		(cmdline_parse_inst_t *)&cmd_rnd,
 	    (cmdline_parse_inst_t *)&cmd_reset,
 	    (cmdline_parse_inst_t *)&cmd_save,
 	    (cmdline_parse_inst_t *)&cmd_screen,

@@ -72,6 +72,7 @@
 #include "lua-socket.h"
 #include "pktgen-cmds.h"
 #include "commands.h"
+#include "pktgen-display.h"
 
 /* Defined in libwr_lua/lua_shell.c */
 extern void execute_lua_close(lua_State * L);
@@ -366,8 +367,8 @@ main(int argc, char **argv)
 
     memset(&pktgen, 0, sizeof(pktgen));
 
-	// Also scrolls the screen to clear it.
-	pktgen.scrn				= scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS);
+    /* Initialize the screen */
+    pktgen_init_screen();
 
     wr_print_copyright(PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
 
