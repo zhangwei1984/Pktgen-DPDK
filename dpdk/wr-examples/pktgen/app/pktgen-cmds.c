@@ -171,11 +171,12 @@ pktgen_save(char * path)
 		fprintf(fd, "set %d sport %d\n", info->pid, pkt->sport);
 		fprintf(fd, "set %d dport %d\n", info->pid, pkt->dport);
 		fprintf(fd, "set %d prime %d\n", info->pid, info->prime_cnt);
-		fprintf(fd, "set %s %d\n",
+		fprintf(fd, "type %s %d\n",
 				(pkt->ethType == ETHER_TYPE_IPv4)? "ipv4" :
 				(pkt->ethType == ETHER_TYPE_IPv6)? "ipv6" :
-				(pkt->ethType == ETHER_TYPE_VLAN)? "vlan" : "unknown", i);
-		fprintf(fd, "set %s %d\n",
+				(pkt->ethType == ETHER_TYPE_VLAN)? "vlan" :
+				(pkt->ethType == ETHER_TYPE_ARP) ? "arp" :"unknown", i);
+		fprintf(fd, "proto %s %d\n",
 				(pkt->ipProto == PG_IPPROTO_TCP)? "tcp" :
 				(pkt->ipProto == PG_IPPROTO_ICMP)? "icmp" : "udp", i);
 		fprintf(fd, "set ip dst %d %s\n", i, inet_ntop4(buff, sizeof(buff), ntohl(pkt->ip_dst_addr), 0xFFFFFFFF));
@@ -899,16 +900,11 @@ pktgen_set_proto(port_info_t * info, char type)
 	info->seq_pkt[SINGLE_PKT].ipProto = (type == 'u')? PG_IPPROTO_UDP :
 									(type == 'i') ? PG_IPPROTO_ICMP :
 									(type == 't') ? PG_IPPROTO_TCP :
-									(type == 'a') ? info->seq_pkt[SINGLE_PKT].ipProto :		// don't change ipProto: it's unused for ARP
-									PG_IPPROTO_TCP;
+									/* TODO print error: unknown type */ PG_IPPROTO_TCP;
 
 	// ICMP only works on IPv4 packets.
 	if ( type == 'i' )
 		info->seq_pkt[SINGLE_PKT].ethType = ETHER_TYPE_IPv4;
-
-	// ARP is an EtherType, not an IP subtype
-	if ( type == 'a' )
-		info->seq_pkt[SINGLE_PKT].ethType = ETHER_TYPE_ARP;
 
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
 }
@@ -1039,9 +1035,13 @@ pktgen_garp_enable_disable(port_info_t * info, char * str)
 */
 
 void
-pktgen_set_pkt_type(port_info_t * info, char type)
+pktgen_set_pkt_type(port_info_t * info, const char * type)
 {
-	info->seq_pkt[SINGLE_PKT].ethType = (type == '6')? ETHER_TYPE_IPv6 : ETHER_TYPE_IPv4;
+	info->seq_pkt[SINGLE_PKT].ethType = (type[0] == 'a') ? ETHER_TYPE_ARP  :
+									    (type[3] == '4') ? ETHER_TYPE_IPv4 :
+										(type[3] == '6') ? ETHER_TYPE_IPv6 :
+										/* TODO print error: unknown type */ ETHER_TYPE_IPv4;
+
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
 }
 

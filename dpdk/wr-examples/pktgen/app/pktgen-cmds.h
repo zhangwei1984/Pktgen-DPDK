@@ -113,7 +113,7 @@ extern void pktgen_pcap_enable_disable(port_info_t * info, char * str);
 extern void pktgen_blink_enable_disable(port_info_t * info, char * str);
 extern void pktgen_process_enable_disable(port_info_t * info, char * str);
 extern void pktgen_pcap_filter(port_info_t * info, char * str);
-extern void pktgen_set_pkt_type(port_info_t * info, char type);
+extern void pktgen_set_pkt_type(port_info_t * info, const char * type);
 extern void pktgen_clear_stats(port_info_t * info);
 extern void pktgen_cls(void);
 extern void pktgen_port_defaults(uint32_t pid, uint8_t seq);

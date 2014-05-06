@@ -412,8 +412,8 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 		if ( likely(pkt->ipProto == PG_IPPROTO_TCP) ) {
 			tcpip_t	  * tip;
 
-			// Construct the Ethernet header
-			tip = (tcpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			// Start from Ethernet header
+			tip = (tcpip_t *)ether_hdr;
 
 			// Construct the TCP header
 			pktgen_tcp_hdr_ctor(pkt, tip, ETHER_TYPE_IPv4);
@@ -427,7 +427,8 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			udpip_t	  * udp;
 
 			// Construct the Ethernet header
-			udp = (udpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			//udp = (udpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			udp = (udpip_t *)ether_hdr;
 
 			// Construct the UDP header
 			pktgen_udp_hdr_ctor(pkt, udp, ETHER_TYPE_IPv4);
@@ -441,8 +442,8 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			udpip_t           * uip;
 			icmpv4Hdr_t       * icmp;
 
-			// Construct the Ethernet header
-			uip = (udpip_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			// Start from Ethernet header
+			uip = (udpip_t *)ether_hdr;
 
 			// Create the ICMP header
 			uip->ip.src         = htonl(pkt->ip_src_addr);
@@ -482,8 +483,8 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			uint32_t            addr;
 			tcpipv6_t         * tip;
 
-			// Construct the Ethernet header
-			tip = (tcpipv6_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			// Start from Ethernet header
+			tip = (tcpipv6_t *)ether_hdr;
 
 			// Create the pseudo header and TCP information
 			addr                = htonl(pkt->ip_dst_addr);
@@ -518,8 +519,8 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			uint32_t            addr;
 			udpipv6_t         * uip;
 
-			// Construct the Ethernet header
-			uip = (udpipv6_t *)pktgen_ether_hdr_ctor(info, pkt, eth);
+			// Start from Ethernet header
+			uip = (udpipv6_t *)ether_hdr;
 
 			// Create the pseudo header and TCP information
 			addr                = htonl(pkt->ip_dst_addr);
@@ -548,7 +549,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 		}
     }
 	else if ( pkt->ethType == ETHER_TYPE_ARP) {
-		/* Start with Ethernet header */
+		/* Start from Ethernet header */
 		arpPkt_t *arp = (arpPkt_t *)ether_hdr;
 
 		arp->hrd = htons(1);

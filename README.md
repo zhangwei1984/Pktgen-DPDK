@@ -1,4 +1,4 @@
-Pktgen version 2.6.1 using DPDK-1.6.0
+Pktgen version 2.6.2 using DPDK-1.6.0
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,7 @@ Pktgen version 2.6.1 using DPDK-1.6.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.6.2   - Fixup GRE and ARP problems
  - 2.6.1   - Add random bits support and more cleanup
  - 2.6.0   - Split up the code for testing to be added later
  - 2.5.2   - Remove extra_ethertypes.h file.
@@ -223,7 +224,7 @@ Dst  IP Address  :       192.168.1.1       192.168.0.1       192.168.3.1       1
 Src  IP Address  :    192.168.0.1/24    192.168.1.1/24    192.168.2.1/24    192.168.3.1/24
 Dst MAC Address  :    001b:218e:b1e9    001b:218e:b1e8    001b:218e:b761    001b:218e:b760
 Src MAC Address  :    001b:218e:b1e8    001b:218e:b1e9    001b:218e:b760    001b:218e:b761
-- Pktgen Ver:2.6.1(DPDK-1.6.0) --------------------------------------------------------------------------------------
+- Pktgen Ver:2.6.2(DPDK-1.6.0) --------------------------------------------------------------------------------------
 
 
 

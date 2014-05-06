@@ -645,7 +645,7 @@ static int pktgen_set_type (lua_State *L) {
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
 
 	foreach_port( portlist,
-		pktgen_set_pkt_type(info, type[3]) );
+		pktgen_set_pkt_type(info, type) );
 
 	pktgen_update_display();
 	return 0;

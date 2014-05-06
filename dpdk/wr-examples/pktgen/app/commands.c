@@ -209,8 +209,8 @@ const char * help_info[] = {
 		"set mac <portlist> etheraddr       - Set MAC addresses 00:11:22:33:44:55",
 		"                                     You can use 0011:2233:4455 format as well",
 		"mac_from_arp <state>               - Set the option to get MAC from ARP request",
-		"set udp|tcp|icmp <portlist>        - Set the packet type UDP or TCP or ICMP per port",
-		"set ipv4|ipv6|vlan <portlist>      - Set the packet type to IPv4 or IPv6 or VLAN",
+		"proto udp|tcp|icmp <portlist>      - Set the packet protocol to UDP or TCP or ICMP per port",
+		"type ipv4|ipv6|vlan <portlist>     - Set the packet type to IPv4 or IPv6 or VLAN",
 		"set ip src|dst <portlist> ipaddr   - Set IP addresses",
 		"geometry <geom>                    - Set the display geometry Columns by Rows (ColxRow)",
 		"capture <portlist> <state>         - Enable/disable packet capturing on a portlist",
@@ -2087,14 +2087,14 @@ static void cmd_set_proto_parsed(void *parsed_result,
 cmdline_parse_token_string_t cmd_set_set_proto =
 	TOKEN_STRING_INITIALIZER(struct cmd_set_proto_result, set, "proto");
 cmdline_parse_token_string_t cmd_set_type =
-	TOKEN_STRING_INITIALIZER(struct cmd_set_proto_result, type, "udp#tcp#icmp#arp");
+	TOKEN_STRING_INITIALIZER(struct cmd_set_proto_result, type, "udp#tcp#icmp");
 cmdline_parse_token_portlist_t cmd_set_proto_portlist =
 	TOKEN_PORTLIST_INITIALIZER(struct cmd_set_proto_result, portlist);
 
 cmdline_parse_inst_t cmd_proto = {
 	.f = cmd_set_proto_parsed,
 	.data = NULL,
-	.help_str = "proto udp|tcp|icmp|arp <portlist>",
+	.help_str = "proto udp|tcp|icmp <portlist>",
 	.tokens = {
 		(void *)&cmd_set_set_proto,
 		(void *)&cmd_set_type,
@@ -2479,22 +2479,22 @@ static void cmd_set_pkt_type_parsed(void *parsed_result,
 	struct cmd_set_proto_result *res = parsed_result;
 
 	foreach_port( res->portlist.map,
-			pktgen_set_pkt_type(info, res->type[3]) );
+			pktgen_set_pkt_type(info, res->type) );
 
 	pktgen_update_display();
 }
 
 cmdline_parse_token_string_t cmd_set_set_pkt_type =
-	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, set, "set");
+	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, set, "type");
 cmdline_parse_token_string_t cmd_set_pkt_type =
-	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, type, "ipv4#ipv6");
+	TOKEN_STRING_INITIALIZER(struct cmd_set_pkt_type_result, type, "ipv4#ipv6#arp");
 cmdline_parse_token_portlist_t cmd_set_pkt_type_portlist =
 	TOKEN_PORTLIST_INITIALIZER(struct cmd_set_pkt_type_result, portlist);
 
 cmdline_parse_inst_t cmd_pkt_type = {
 	.f = cmd_set_pkt_type_parsed,
 	.data = NULL,
-	.help_str = "set ipv4|ipv6 <portlist>",
+	.help_str = "type ipv4|ipv6|arp <portlist>",
 	.tokens = {
 		(void *)&cmd_set_set_pkt_type,
 		(void *)&cmd_set_pkt_type,
