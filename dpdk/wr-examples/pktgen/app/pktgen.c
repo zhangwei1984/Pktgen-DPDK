@@ -325,6 +325,8 @@ pktgen_tx_cleanup(port_info_t * info, uint8_t qid)
 	// Flush any done transmit buffers and descriptors.
 	pktgen_tx_flush(info, qid);
 
+	rte_delay_ms(25);
+
 	// Stop and start the device to flush TX and RX buffers from the device rings.
 	rte_eth_dev_stop(info->pid);
 
