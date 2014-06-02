@@ -1,4 +1,4 @@
-Pktgen version 2.6.3 using DPDK-1.6.0
+Pktgen version 2.6.4 using DPDK-1.6.0
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,9 @@ Pktgen version 2.6.3 using DPDK-1.6.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.6.4   - It consists of 3 commits: improvements to the pktgen-random.c unit tests,
+             the real CentOS compilation fixes and a small update to tap.{c,h} so they
+             are identical to those from zorgnax/libtap on github.
  - 2.6.3   - Add a delay when traffic stops to make sure all packets are sent.
              Remove the rte_hash_crc.h include in wr_pcap.c file.
  - 2.6.2   - Fixup GRE and ARP problems

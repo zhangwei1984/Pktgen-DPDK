@@ -70,8 +70,9 @@
 
 #include <wr_inet.h>
 
+#include "pktgen-seq.h"
 
-typedef struct pkt_seq_s pkt_seq_t;
+
 extern void pktgen_udp_hdr_ctor(pkt_seq_t * pkt, udpip_t * uip, __attribute__ ((unused)) int type);
 
 

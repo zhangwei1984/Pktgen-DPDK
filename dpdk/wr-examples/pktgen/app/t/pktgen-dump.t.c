@@ -1,8 +1,6 @@
 /*
  * SOURCE: pktgen-dump.c
- * LIBS: librte_malloc librte_eal librte_mempool librte_pmd_ring librte_ring
- * LIBS: libethdev
- * SYSLIBS: pthread
+ * STUB: rte_malloc.h
  */
 
 #include "pktgen.h"

@@ -139,40 +139,36 @@ void test_pktgen_set_random_bitfield(void)
 void test_pktgen_rnd_bits_apply(void)
 {
 	rnd_bits_t *rnd = NULL;
-	int i, j;
+	int i;
 
-	pktgen_rnd_bits_init(&rnd);
+	/* Expected values in tests */
+	const uint8_t all_0x00[64] = { 0 };
+	const uint8_t all_0xff[64] = { [0 ... 63] = 0xff };
 
 	struct rte_mbuf *mbuf = _alloc_mbuf(64);
 	uint8_t *data_ptr = (uint8_t *)mbuf->pkt.data;
-	int success;
+
+	pktgen_rnd_bits_init(&rnd);
 
 	/* Work correctly when no bitmasks are enabled */
 	/* all 0's */
 	memset(mbuf->pkt.data, 0x00, 64);
 	pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
-	success = 1;
-	for (i = 0; i < 64; ++i) {
-		success &= !!(data_ptr[i] == 0x00);
-	}
-	ok(success, "Must not set bits when called with no bitmasks enabled");
+	cmp_mem(data_ptr, all_0x00, 64, "Must not set bits when called with no bitmasks enabled");
 
 	/* all 1's */
 	memset(mbuf->pkt.data, 0xff, 64);
 	pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
-	success = 1;
-	for (i = 0; i < 64; ++i) {
-		success &= !!(data_ptr[i] == 0xff);
-	}
-	ok(success, "Must not clear bits when called with no bitmasks enabled");
+	cmp_mem(data_ptr, all_0xff, 64, "Must not clear bits when called with no bitmasks enabled");
 
 
 	/* Work correctly for all valid mask lengths and all mask values */
 	for (i = 1; i < MAX_BITFIELD_SIZE; ++i) {
 		/* + 1 for trailing \0 */
 		char mask0[i + 1], mask1[i + 1], maskIgn[i + 1], maskRnd[i + 1];
+		int j;
 		for (j = 0; j < i; ++j) {
 			mask0[j]   = '0';
 			mask1[j]   = '1';
@@ -210,35 +206,25 @@ void test_pktgen_rnd_bits_apply(void)
 		 * matching the mask are touched.
 		 */
 		memset(mbuf->pkt.data, 0x00, 64);
-		pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
-		cmp_ok(*(uint32_t *) &(data_ptr[i]), "==", 0, "... after applying, no bits must be set at the offset");
-
-		for (j = 0; j < 64; ++j) {
-			// Skip bytes touched by pktgen_rnd_bits_apply: they are tested in
-			// the previous cmp_ok()
-			if ((j < i) || (j >= i + 4)) {
-				cmp_ok(data_ptr[j], "==", 0x00, "    ... and byte %d must be untouched", j);
-			}
-		}
+		lives_ok( { pktgen_rnd_bits_apply(&mbuf, 1, rnd); }, "... and must be applied to all 0 bits");
+		cmp_mem(data_ptr, all_0x00, i, "    ... without touching anything before the offset");
+		cmp_ok(*(uint32_t *) &(data_ptr[i]), "==", 0, "    ... and affecting the bits at the offset");
+		cmp_mem(data_ptr + i + 4, all_0x00 + i + 4, 64 - (i + 4), "    ... and without touching anything after the offset");
 
 		/* Set memory to all 1's and check if only bits at the specified offset
 		 * matching the mask are touched.
 		 */
 		memset(mbuf->pkt.data, 0xff, 64);
-		pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
-		cmp_ok(*(uint32_t *) &(data_ptr[i]), "==", htonl(~(uint32_t)0 >> i), "... after applying, bits must be cleared at the offset");
+		lives_ok( { pktgen_rnd_bits_apply(&mbuf, 1, rnd); }, "... and must be applied to all 1 bits");
+		cmp_mem(data_ptr, all_0xff, i, "    ... without touching anything before the offset");
+		cmp_ok(*(uint32_t *) &(data_ptr[i]), "==", htonl(~(uint32_t)0 >> i), "    ... and affecting the bits at the offset");
+		cmp_mem(data_ptr + i + 4, all_0xff + i + 4, 64 - (i + 4), "    ... and without touching anything after the offset");
 
-		for (j = 0; j < 64; ++j) {
-			// Skip bytes touched by pktgen_rnd_bits_apply: they are tested in
-			// the previous cmp_ok()
-			if ((j < i) || (j >= i + 4)) {
-				cmp_ok(data_ptr[j], "==", 0xff, "    ... and byte %d must be untouched", j);
-			}
-		}
 
-		pktgen_set_random_bitfield(rnd, i, 0, "");	/* clean up for next test */
+		/* clean up for next test */
+		pktgen_set_random_bitfield(rnd, i, 0, "");
 
 
 		/* Mask of 1's
@@ -271,37 +257,27 @@ void test_pktgen_rnd_bits_apply(void)
 		 * matching the mask are touched.
 		 */
 		memset(mbuf->pkt.data, 0x00, 64);
-		pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
+		lives_ok( { pktgen_rnd_bits_apply(&mbuf, 1, rnd); }, "... and must be applied to all 0 bits");
+		cmp_mem(data_ptr, all_0x00, i, "    ... without touching anything before the offset");
 		cmp_ok(*(uint32_t *) &(data_ptr[i]), "==", htonl((~(uint32_t)0) << (MAX_BITFIELD_SIZE - i)),
-				"... after applying, correct bits must be set at the offset");
-
-		for (j = 0; j < 64; ++j) {
-			// Skip bytes touched by pktgen_rnd_bits_apply: they are tested in
-			// the previous cmp_ok()
-			if ((j < i) || (j >= i + 4)) {
-				cmp_ok(data_ptr[j], "==", 0x00, "    ... and byte %d must be untouched", j);
-			}
-		}
+				"    ... and affecting the bits at the offset");
+		cmp_mem(data_ptr + i + 4, all_0x00 + i + 4, 64 - (i + 4), "    ... and without touching anything after the offset");
 
 		/* Set memory to all 1's and check if only bits at the specified offset
 		 * matching the mask are touched.
 		 */
 		memset(mbuf->pkt.data, 0xff, 64);
-		pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
+		lives_ok( { pktgen_rnd_bits_apply(&mbuf, 1, rnd); }, "... and must be applied to all 1 bits");
+		cmp_mem(data_ptr, all_0xff, i, "    ... without touching anything before the offset");
 		cmp_ok(*(uint32_t *) &(data_ptr[i]), "==", ~(uint32_t)0,
-				"... after applying, no bits must be cleared at the offset");
+				"    ... and affecting the bits at the offset");
+		cmp_mem(data_ptr + i + 4, all_0xff + i + 4, 64 - (i + 4), "    ... and without touching anything after the offset");
 
-		for (j = 0; j < 64; ++j) {
-			// Skip bytes touched by pktgen_rnd_bits_apply: they are tested in
-			// the previous cmp_ok()
-			if ((j < i) || (j >= i + 4)) {
-				cmp_ok(data_ptr[j], "==", 0xff, "    ... and byte %d must be untouched", j);
-			}
-		}
 
-		pktgen_set_random_bitfield(rnd, i, 0, "");	/* clean up for next test */
+		/* clean up for next test */
+		pktgen_set_random_bitfield(rnd, i, 0, "");
 
 
 		/* Mask of .'s (ignore)
@@ -332,39 +308,21 @@ void test_pktgen_rnd_bits_apply(void)
 		 * matching the mask are touched.
 		 */
 		memset(mbuf->pkt.data, 0x00, 64);
-		pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
-		cmp_ok(*(uint32_t *) &(data_ptr[i]), "==", 0,
-				"... after applying, no bits must be set at the offset");
-
-		for (j = 0; j < 64; ++j) {
-			// Skip bytes touched by pktgen_rnd_bits_apply: they are tested in
-			// the previous cmp_ok()
-			if ((j < i) || (j >= i + 4)) {
-				cmp_ok(data_ptr[j], "==", 0x00,
-						"    ... and byte %d must be untouched", j);
-			}
-		}
+		lives_ok( { pktgen_rnd_bits_apply(&mbuf, 1, rnd); }, "... and must be applied to all 0 bits");
+		cmp_mem(data_ptr, all_0x00, 64, "    ... without touching any bits");
 
 		/* Set memory to all 1's and check if only bits at the specified offset
 		 * matching the mask are touched.
 		 */
 		memset(mbuf->pkt.data, 0xff, 64);
-		pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
-		cmp_ok(*(uint32_t *) &(data_ptr[i]), "==", ~(uint32_t)0,
-				"... after applying, no bits must be cleared at the offset");
+		lives_ok( { pktgen_rnd_bits_apply(&mbuf, 1, rnd); }, "... and must be applied to all 1 bits");
+		cmp_mem(data_ptr, all_0xff, 64, "    ... without touching any bits");
 
-		for (j = 0; j < 64; ++j) {
-			// Skip bytes touched by pktgen_rnd_bits_apply: they are tested in
-			// the previous cmp_ok()
-			if ((j < i) || (j >= i + 4)) {
-				cmp_ok(data_ptr[j], "==", 0xff,
-						"    ... and byte %d must be untouched", j);
-			}
-		}
 
-		pktgen_set_random_bitfield(rnd, i, 0, "");	/* clean up for next test */
+		/* clean up for next test */
+		pktgen_set_random_bitfield(rnd, i, 0, "");
 
 
 		/* Mask of X's (random)
@@ -408,42 +366,31 @@ void test_pktgen_rnd_bits_apply(void)
 			 * matching the mask are touched.
 			 */
 			memset(mbuf->pkt.data, 0x00, 64);
-			pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
+			lives_ok( { pktgen_rnd_bits_apply(&mbuf, 1, rnd); }, "... and must be applied to all 0 bits");
+			cmp_mem(data_ptr, all_0x00, i, "    ... without touching anything before the offset");
 			cmp_ok(*(uint32_t *) &(data_ptr[i]), "==",
 					htonl((rnd_func == 0) ? 0 : (~(uint32_t)0 << (MAX_BITFIELD_SIZE - i))),
-					"... after applying, no bits must be set at the offset");
-
-			for (j = 0; j < 64; ++j) {
-				// Skip bytes touched by pktgen_rnd_bits_apply: they are tested in
-				// the previous cmp_ok()
-				if ((j < i) || (j >= i + 4)) {
-					cmp_ok(data_ptr[j], "==", 0x00,
-							"    ... and byte %d must be untouched", j);
-				}
-			}
+					"    ... and affecting the bits at the offset");
+			cmp_mem(data_ptr + i + 4, all_0x00 + i + 4, 64 - (i + 4), "    ... and and without touching anything after the offset");
 
 			/* Set memory to all 1's and check if only bits at the specified offset
 			 * matching the mask are touched.
 			 */
 			memset(mbuf->pkt.data, 0xff, 64);
-			pktgen_rnd_bits_apply(&mbuf, 1, rnd);
 
+			lives_ok( { pktgen_rnd_bits_apply(&mbuf, 1, rnd); }, "... and must be applied to all 1 bits");
+			cmp_mem(data_ptr, all_0xff, i,
+					"    ... without touching anything before the offset");
 			cmp_ok(*(uint32_t *) &(data_ptr[i]), "==",
 					htonl((rnd_func == 0) ? (~(uint32_t)0 >> i) : ~(uint32_t)0),
-					"... after applying, bits must be cleared at the offset (rnd_func=%d, i=%d)", rnd_func, i);
-
-			for (j = 0; j < 64; ++j) {
-				// Skip bytes touched by pktgen_rnd_bits_apply: they are tested in
-				// the previous cmp_ok()
-				if ((j < i) || (j >= i + 4)) {
-					cmp_ok(data_ptr[j], "==", 0xff,
-							"    ... and byte %d must be untouched", j);
-				}
-			}
+					"    ... and affecting the bits at the offset");
+			cmp_mem(data_ptr + i + 4, all_0xff + i + 4, 64 - (i + 4),
+					"    ... and without touching anything after the offset");
 		}
 
-		pktgen_set_random_bitfield(rnd, i, 0, "");	/* clean up for next test */
+		/* clean up for next test */
+		pktgen_set_random_bitfield(rnd, i, 0, "");
 	}
 
 	/* Multiple bitfield specs active at the same time */

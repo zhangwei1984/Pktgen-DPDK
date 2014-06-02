@@ -1,16 +1,14 @@
 /*
  * SOURCE: pktgen-pcap.c
- * STUB: pktgen.h
- *
- * LIBS: librte_mbuf librte_eal librte_mempool libwr_common libwr_scrn
- * LIBS: librte_malloc librte_pmd_ring librte_ring libethdev
- * SYSLIBS: pthread
+ * STUB: pktgen.h rte_lcore.h wr_copyright_info.h rte_scrn.h wr_pcap.h
+ * STUB: rte_mbuf.h rte_mempool.h rte_debug.h
  */
 
 
 #include "pktgen.h"
 
 pktgen_t pktgen;
+rte_scrn_t *scrn;
 
 
 // Test driver

@@ -72,6 +72,8 @@
 
 #include <rte_mbuf.h>
 
+#include "pktgen-seq.h"
+
 
 /* Bitfield size and max. entries */
 #define MAX_RND_BITFIELDS		32
@@ -80,21 +82,20 @@
 #define MAX_BITFIELD_SIZE		(sizeof(BITFIELD_T) << 3)
 
 
-typedef struct rnd_bits_s rnd_bits_t;
-typedef struct pkt_seq_s pkt_seq_t;
+struct rnd_bits_s;
 
 
 /* Data structure initialization */
-extern void pktgen_rnd_bits_init(rnd_bits_t **rnd_bits);
+extern void pktgen_rnd_bits_init(struct rnd_bits_s **rnd_bits);
 
 /* Set random bitfield */
-extern uint32_t pktgen_set_random_bitfield(rnd_bits_t * rnd_bits, uint8_t idx, uint8_t offset, const char *mask);
+extern uint32_t pktgen_set_random_bitfield(struct rnd_bits_s * rnd_bits, uint8_t idx, uint8_t offset, const char *mask);
 
 /* Apply random bitfields description to packet contents */
-extern void pktgen_rnd_bits_apply(struct rte_mbuf ** pkt, size_t cnt, rnd_bits_t * rnd_bits);
+extern void pktgen_rnd_bits_apply(struct rte_mbuf ** pkt, size_t cnt, struct rnd_bits_s * rnd_bits);
 
 /* Display page with random bitfield settings */
-extern void pktgen_page_random_bitfields(uint32_t print_labels, uint16_t pid, rnd_bits_t * rnd_bits);
+extern void pktgen_page_random_bitfields(uint32_t print_labels, uint16_t pid, struct rnd_bits_s * rnd_bits);
 
 
 #ifdef TESTING

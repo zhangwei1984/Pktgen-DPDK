@@ -194,7 +194,7 @@ typedef struct port_info_s {
 	uint8_t					dump_tail;			/**< Index of last valid packet in dump_list */
 	uint8_t					dump_count;			/**< Number of packets the user requested */
 
-	rnd_bits_t			  * rnd_bitfields;		/**< Random bitfield settings */
+	struct rnd_bits_s	  * rnd_bitfields;		/**< Random bitfield settings */
 } port_info_t;
 
 

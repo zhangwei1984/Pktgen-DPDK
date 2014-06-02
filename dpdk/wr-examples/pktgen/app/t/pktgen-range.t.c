@@ -1,9 +1,7 @@
 /*
  * SOURCE: pktgen-range.c
  *
- * LIBS: libwr_common libwr_scrn librte_eal librte_mempool librte_malloc
- * LIBS: librte_pmd_ring librte_ring libethdev
- * SYSLIBS: pthread
+ * STUB: wr_copyright_info.h rte_scrn.h
  */
 
 #include "pktgen.h"

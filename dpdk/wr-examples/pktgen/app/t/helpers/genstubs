@@ -145,11 +145,11 @@ for my $header (@headers) {
 
         s/}/};/g;       # Add ; after every }, this makes the regexps below easier
 
+        s/\s*LUALIB_API\s*//;   # Remove special markers
+        s/\s+/ /g;              # Compress multiple spaces
+
         next unless /;\s*$/;    # Keep reading until ; line terminator is found
         next if /^\s*$/;        # Don't consider empty lines
-
-        # Remove special markers
-        s/LUALIB_API//;
 
         # Match function declaration
         if( /^\s*                   # Optional whitespace
@@ -157,9 +157,9 @@ for my $header (@headers) {
             (?<ret_type>            # Function return type: can be
                 [\w\d\s_*]+         #   multiple words and include *
             )
-            \s+                     # Delimiting whitespace
+            \b                      # Delimiting whitespace
             (?<func_name>           # Function name: everything between
-                [^(]+               #   return type and first (
+                [^(\s]+             #   return type and first (
             )
             (?<func_params>         # Function parameters: including
                 \(                  #   the surrounding ( ).
@@ -172,23 +172,36 @@ for my $header (@headers) {
             # below.
             my ($ret_type, $func_name, $func_params) = @+{ qw(ret_type func_name func_params) };
 
-            next if $ret_type eq 'typedef';     # function typedef gives false positive
-
-            # Surrounding whitespace would introduce errors in the function name
-            # mangling that happens below.
+            # Surrounding whitespace would introduce errors in the return type
+            # checking and function name mangling that happens below.
+            $ret_type  =~ s/(?:^\s+|\s+$)//g;
             $func_name =~ s/(?:^\s+|\s+$)//g;
+
+            next if $ret_type =~ /^typedef/;        # function typedef gives false positive
+            next if $ret_type =~ /^\s*$/;           # function-like preprocessor macro's
 
             print $out_fh "${ret_type} ${func_name} ${func_params} __attribute__ ((weak, alias(\"_stub_${func_name}\"))); ";
 
             print $out_fh "${ret_type} _stub_${func_name} ${func_params} { ";
             print $out_fh "note(\"STUB called: $header: ${func_name}()\"); ";
             print $out_fh "return ";
-            given (${ret_type}) {
-                when ('void') { break; }
-                when (/\*$/)  { print $out_fh 'NULL'; }
+            given (${ret_type})     {
+                when ('void')       { break; }
+                when (/\*$/)        { print $out_fh 'NULL'; }
                 when (/u?int(?:(?:8|16|32|64)_t)?/)
-                              { print $out_fh '0'; }
-                default       { die "Don't know what value to return for type '$_' (line was [$line])\n"; }
+                                    { print $out_fh '0'; }
+                when (/(?:un)?signed/)
+                                    { print $out_fh '0'; }
+                when (/s?size_t/)   { print $out_fh '0'; }
+                when (/^enum\s/)    { print $out_fh "(${ret_type})0"; }
+
+                when ('rnd_func_t') { print $out_fh 'NULL'; }   # typedef'ed function pointer
+                when ('rte_usage_hook_t') { print $out_fh 'NULL'; } # typedef'ed function pointer
+                when ('phys_addr_t')    { print $out_fh '0'; }      # typedef'ed uint64_t
+
+                default             { die "Don't know what value to return for type '$_'"
+                                        . " (file '$full_header_fn'; line was [$line])\n"
+                                        . " Parsed function: [$ret_type] [$func_name] [$func_params]\n"; }
             }
             print $out_fh "; }\n";
         }

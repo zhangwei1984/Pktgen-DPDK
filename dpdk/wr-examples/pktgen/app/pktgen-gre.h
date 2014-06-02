@@ -70,9 +70,10 @@
 
 #include <wr_inet.h>
 
+#include "pktgen-port-cfg.h"
+#include "pktgen-seq.h"
 
-typedef struct port_info_s port_info_t;
-typedef struct pkt_seq_s pkt_seq_t;
+
 extern char * pktgen_gre_hdr_ctor(port_info_t * info, pkt_seq_t * pkt, greIp_t * gre);
 
 

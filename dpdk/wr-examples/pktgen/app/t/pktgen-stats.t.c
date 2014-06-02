@@ -1,11 +1,23 @@
 /*
  * SOURCE: pktgen-stats.c
- * STUB: pktgen-cmds.h
- *
- * LIBS: librte_eal librte_mempool libwr_common libwr_scrn libethdev
- * LIBS: librte_malloc librte_pmd_ring librte_ring
- * SYSLIBS: pthread
+ * STUB: rte_cycles.h wr_copyright_info.h rte_scrn.h pktgen-cmds.h
  */
+
+
+/*
+ * rte_ethdev.h fake functions.
+ */
+struct rte_eth_link;
+struct rte_eth_stats;
+
+void rte_eth_link_get_nowait(uint8_t port_id, struct rte_eth_link *eth_link) {
+    return;
+}
+int rte_eth_led_on(uint8_t port_id) { return 0; }
+int rte_eth_led_off(uint8_t port_id) { return 0; }
+void rte_eth_stats_get(uint8_t port_id, struct rte_eth_stats *stats) { return; }
+
+
 
 #include "pktgen.h"
 

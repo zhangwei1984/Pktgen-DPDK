@@ -1,11 +1,11 @@
 /*
  * SOURCE: lpktgenlib.c
- * STUB: pktgen-cmds.h commands.h
+ * STUB: pktgen-cmds.h commands.h rte_cycles.h cmdline_parse_etheraddr.h
+ * STUB: cmdline_parse_ipaddr.h cmdline_parse_portlist.h rte_timer.h
+ * STUB: wr_copyright_info.h
  *
- * LIBS: librte_eal libwr_lua librte_mempool librte_cmdline librte_timer
- * LIBS: libwr_common libwr_scrn librte_malloc librte_pmd_ring libethdev
- * LIBS: librte_ring
- * SYSLIBS: pthread m dl
+ * LIBS: libwr_lua
+ * SYSLIBS: m dl pthread
  */
 
 

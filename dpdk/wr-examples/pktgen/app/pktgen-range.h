@@ -116,9 +116,10 @@ typedef struct range_info_s {
 	uint64_t				src_mac_max;		/**< Source maximum MAC address */
 } range_info_t;
 
+struct port_info_s;
 
 extern void pktgen_range_ctor(range_info_t * range, pkt_seq_t * pkt);
-extern void pktgen_range_setup(port_info_t * info);
+extern void pktgen_range_setup(struct port_info_s * info);
 
 extern void pktgen_page_range(void);
 

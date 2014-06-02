@@ -25,5 +25,57 @@ void * rte_zmalloc (const char *type, size_t size, unsigned align)
 #endif
 
 
+#ifdef STUB_RTE_DEBUG_H
+
+#include <stdio.h>
+void __rte_panic(const char *funcname , const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	fprintf(stderr, "PANIC: %s(): ", funcname);
+	fprintf(stderr, format, ap);
+	va_end(ap);
+}
+
+#endif
+
+
+#ifdef STUB_CMDLINE_H
+
+#include <cmdline_parse.h>
+struct cmdline_token_ops cmdline_token_string_ops;
+struct cmdline_token_ops cmdline_token_portlist_ops;
+struct cmdline_token_ops cmdline_token_num_ops;
+struct cmdline_token_ops cmdline_token_etheraddr_ops;
+struct cmdline_token_ops cmdline_token_ipaddr_ops;
+
+#endif
+
+
+#ifdef STUB_LUA_SOCKET_H
+
+#include <lua.h>
+void execute_lua_close(lua_State * L) {
+	return;
+}
+
+#endif
+
+
+#ifdef STUB_RTE_LCORE_H
+
+#include <rte_lcore.h>
+struct lcore_config lcore_config[RTE_MAX_LCORE];
+
+#endif
+
+
+#ifdef STUB_RTE_SCRN_H
+
+#include <rte_scrn.h>
+rte_scrn_t *scrn;
+
+#endif
+
 
 #endif  // _FAKE_IMPL_H

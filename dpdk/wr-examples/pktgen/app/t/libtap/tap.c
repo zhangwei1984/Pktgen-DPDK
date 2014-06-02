@@ -169,6 +169,44 @@ cmp_ok_at_loc (const char *file, int line, int a, const char *op, int b,
     return test;
 }
 
+static int
+find_mem_diff (const char *a, const char *b, size_t n, size_t *offset) {
+    size_t i;
+    if (a == b)
+        return 0;
+    if (!a || !b)
+        return 2;
+    for (i = 0; i < n; i++) {
+        if (a[i] != b[i]) {
+            *offset = i;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int
+cmp_mem_at_loc (const char *file, int line, const void *got,
+                const void *expected, size_t n, const char *fmt, ...)
+{
+    size_t offset;
+    int diff = find_mem_diff(got, expected, n, &offset);
+    va_list args;
+    va_start(args, fmt);
+    vok_at_loc(file, line, !diff, fmt, args);
+    va_end(args);
+    if (diff == 1) {
+        diag("    Difference starts at offset %d", offset);
+        diag("         got: 0x%02x", ((unsigned char *)got)[offset]);
+        diag("    expected: 0x%02x", ((unsigned char *)expected)[offset]);
+    }
+    else if (diff == 2) {
+        diag("         got: %s", got ? "not NULL" : "NULL");
+        diag("    expected: %s", expected ? "not NULL" : "NULL");
+    }
+    return !diff;
+}
+
 static void
 vdiag_to_fh (FILE *fh, const char *fmt, va_list args) {
     char *mesg, *line;

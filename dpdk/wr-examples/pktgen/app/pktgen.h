@@ -154,7 +154,7 @@
 #include "pktgen-capture.h"
 
 
-#define PKTGEN_VERSION			"2.6.3"
+#define PKTGEN_VERSION			"2.6.4"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 

@@ -70,11 +70,12 @@
 
 #include <wr_pcap.h>
 
-#include "pktgen-port-cfg.h"
 
+struct port_info_s;
+
+extern int pktgen_pcap_parse(pcap_info_t * pcap, struct port_info_s * info, unsigned qid);
 
 extern void pktgen_page_pcap(uint16_t pid);
 
-extern int pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid);
 
 #endif	// _PKTGEN_PCAP_H_

@@ -34,6 +34,8 @@
 #ifndef __WR_L2P_H
 #define __WR_L2P_H
 
+#include <rte_memory.h>
+
 #define MAX_MATRIX_ENTRIES      128
 #define MAX_STRING              256
 #define	MAX_MAP_PORTS			(RTE_MAX_ETHPORTS + 1)

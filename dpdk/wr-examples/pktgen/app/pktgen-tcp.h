@@ -70,8 +70,9 @@
 
 #include <wr_inet.h>
 
+#include "pktgen-seq.h"
 
-typedef struct pkt_seq_s pkt_seq_t;
+
 extern void pktgen_tcp_hdr_ctor(pkt_seq_t * pkt, tcpip_t * tip, __attribute__ ((unused)) int type);
 
 

@@ -1,12 +1,12 @@
 /*
  * SOURCE: commands.c
  * STUB: pktgen-cmds.h pktgen-main.h pktgen-capture.h lpktgenlib.h
- * STUB: pktgen-random.h
+ * STUB: pktgen-random.h rte_debug.h rte_cycles.h rte_timer.h cmdline.h
+ * STUB: wr_copyright_info.h rte_pci.h wr_pcap.h cmdline_socket.h rte_scrn.h
+ * STUB: cmdline_rdline.h
  *
- * LIBS: libwr_scrn librte_eal librte_mempool librte_timer librte_cmdline
- * LIBS: libwr_common libwr_lua librte_pmd_ring libethdev librte_malloc
- * LIBS: librte_ring
- * SYSLIBS: pthread m
+ * LIBS: libwr_lua
+ * SYSLIBS: m pthread
  */
 
 #include "pktgen.h"
@@ -14,6 +14,9 @@
 
 
 pktgen_t pktgen;
+rte_scrn_t *scrn = NULL;
+int rte_cycles_vmware_tsc_map = 0;
+enum timer_source eal_timer_source = EAL_TIMER_HPET;
 
 
 // Test driver

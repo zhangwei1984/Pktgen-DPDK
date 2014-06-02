@@ -68,6 +68,9 @@
 #ifndef _LUA_SOCKET_H_
 #define _LUA_SOCKET_H_
 
+#include <lua.h>
+
+
 #define MAX_LUA_BUFFER_SIZE		1024
 
 typedef struct luaServer_s {
