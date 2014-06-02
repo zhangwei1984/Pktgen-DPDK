@@ -125,6 +125,8 @@ You will need to adjust the version number to match your current kernel version.
 If you upgrade your system or kernel version you will need to install the correct
 headers and rebuild the RTE_TARGET directory.
 
+# sudo apt-get install libpcap-dev
+
 export RTE_SDK=<installDir>/Pktgen-DPDK/dpdk
 export RTE_TARGET=x86_64-wr-linuxapp-gcc
 
