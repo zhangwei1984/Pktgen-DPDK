@@ -112,6 +112,7 @@
 #include "lpktgenlib.h"
 #include "pktgen-display.h"
 #include "pktgen-random.h"
+#include "pktgen-log.h"
 
 #include "pktgen.h"
 
@@ -245,6 +246,7 @@ const char * help_info[] = {
 		"                                     Note: use the 'port <number>' to display a new port sequence",
 		"     rnd                           - Display the random bitfields to packets for a given port",
 		"                                     Note: use the 'port <number>' to display a new port sequence",
+		"     log                           - Display the log messages page",
 		"port <number>                      - Sets the sequence of packets to display for a given port",
 		"process <portlist> <state>         - Enable or Disable processing of ARP/ICMP/IPv4/IPv6 packets",
 		"garp <portlist> <state>            - Enable or Disable GARP packet processing and update MAC address",
@@ -467,12 +469,12 @@ static void cmd_script_parsed(void *parsed_result,
 	lua_State *L = pktgen.L;
 
 	if ( L == NULL ) {
-		printf("*** Lua is not initialized!\n");
+		pktgen_log_error("Lua is not initialized!");
 		return;
 	}
 
 	if ( luaL_dofile(L, res->filename) != 0 )
-		fprintf(stderr,"%s\n", lua_tostring(L,-1));
+		pktgen_log_error("%s", lua_tostring(L,-1));
 }
 
 cmdline_parse_token_string_t cmd_script_cmds =
@@ -739,7 +741,7 @@ static void cmd_set_geometry_parsed(void *parsed_result,
 {
 	struct cmd_set_geometry_result *res = parsed_result;
 
-	//printf("Current Geometry is %dx%d\n", pktgen.scrn->ncols, pktgen.scrn->nrows);
+	pktgen_log_debug("Current Geometry is %dx%d", pktgen.scrn->ncols, pktgen.scrn->nrows);
 	if ( strcmp(res->what, "show") ) {
 		char * p;
 		p = strchr(res->what, 'x');
@@ -747,10 +749,10 @@ static void cmd_set_geometry_parsed(void *parsed_result,
 			scrn->ncols	= strtol(res->what, NULL, 10);
 			scrn->nrows	= strtol(++p, NULL, 10);
 			pktgen_cls();
-			//printf("New Geometry is %dx%d\n", pktgen.scrn->ncols, pktgen.scrn->nrows);
+			pktgen_log_debug("New Geometry is %dx%d", pktgen.scrn->ncols, pktgen.scrn->nrows);
 		} else {
-			printf("Geometry string is invalid (%s) must be CxR format\n", res->what);
-			printf("Current Geometry is %dx%d\n", scrn->ncols, scrn->nrows);
+			pktgen_log_error("Geometry string is invalid (%s) must be CxR format", res->what);
+			pktgen_log_error("Current Geometry is %dx%d", scrn->ncols, scrn->nrows);
 		}
 	}
 }
@@ -1458,7 +1460,7 @@ static void cmd_pcap_show_parsed(void *parsed_result,
 	if ( pktgen.info[pktgen.portNum].pcap )
 		wr_pcap_info(pktgen.info[pktgen.portNum].pcap, pktgen.portNum, 1);
 	else
-		printf(" ** PCAP file is not loaded on port %d\n", pktgen.portNum);
+		pktgen_log_error(" ** PCAP file is not loaded on port %d", pktgen.portNum);
 }
 
 cmdline_parse_token_string_t cmd_set_pcap_show =
@@ -1508,7 +1510,7 @@ static void cmd_pcap_index_parsed(void *parsed_result,
 			pcap->pkt_idx = res->value;
 		pktgen.flags |= PRINT_LABELS_FLAG;
 	} else
-		printf(" ** PCAP file is not loaded on port %d\n", pktgen.portNum);
+		pktgen_log_error(" ** PCAP file is not loaded on port %d", pktgen.portNum);
 }
 
 cmdline_parse_token_string_t cmd_set_pcap_index =
@@ -2181,12 +2183,12 @@ static void cmd_set_page_parsed(void *parsed_result,
 cmdline_parse_token_string_t cmd_set_page =
 	TOKEN_STRING_INITIALIZER(struct cmd_page_result, page, "page");
 cmdline_parse_token_string_t cmd_set_pageType =
-	TOKEN_STRING_INITIALIZER(struct cmd_page_result, pageType, "0#1#2#3#4#5#6#7#range#config#sequence#seq#pcap#next#cpu#rnd");
+	TOKEN_STRING_INITIALIZER(struct cmd_page_result, pageType, "0#1#2#3#4#5#6#7#range#config#sequence#seq#pcap#next#cpu#rnd#log");
 
 cmdline_parse_inst_t cmd_page = {
 	.f = cmd_set_page_parsed,
 	.data = NULL,
-	.help_str = "page [0-7]|range|config|sequence|seq|pcap|next|cpu|rnd",
+	.help_str = "page [0-7]|range|config|sequence|seq|pcap|next|cpu|rnd|log",
 	.tokens = {
 		(void *)&cmd_set_page,
 		(void *)&cmd_set_pageType,
@@ -3857,12 +3859,12 @@ pktgen_cmdline_start(void)
 	pktgen.cl = cmdline_stdin_new(main_ctx, pktgen.prompt);
 
 	if ( pktgen.cl && pktgen.cmd_filename ) {
-		printf_info("# *** Executing file (%s)", pktgen.cmd_filename);
+		pktgen_log_info("# *** Executing file (%s)", pktgen.cmd_filename);
 		cmdline_in(pktgen.cl, "\r", 1);
 		if ( pktgen_load_cmds(pktgen.cmd_filename) == -1 )
-			printf_info("*** Unable to find file (%s) or invalid call", pktgen.cmd_filename);
+			pktgen_log_warning("*** Unable to find file (%s) or invalid call", pktgen.cmd_filename);
 		else
-			printf_info("# *** Done.");
+			pktgen_log_info("# *** Done.");
 		cmdline_in(pktgen.cl, "\r", 1);
 
 		free(pktgen.cmd_filename);
@@ -3899,7 +3901,7 @@ pktgen_load_cmds( char * filename )
 
     	// Execute the Lua script file.
     	if ( luaL_dofile(pktgen.L, filename) != 0 ) {
-    		fprintf(stderr,"%s\n", lua_tostring(pktgen.L,-1));
+			pktgen_log_error("%s", lua_tostring(pktgen.L,-1));
     		return -1;
     	}
     } else {

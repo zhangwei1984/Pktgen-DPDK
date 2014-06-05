@@ -66,6 +66,8 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen.h"
+#include "pktgen-log.h"
+
 
 // Allocated the pktgen structure for global use
 extern    pktgen_t        pktgen;
@@ -163,6 +165,7 @@ pktgen_print_packet_dump(void)
 	unsigned int i, j;
 	unsigned char * pdata;
 	uint32_t plen;
+	char buff[4096];
 
 	for (pid = 0; pid < RTE_MAX_ETHPORTS; pid++) {
 		if ( wr_get_map(pktgen.l2p, pid, RTE_MAX_LCORE) == 0 )
@@ -173,34 +176,36 @@ pktgen_print_packet_dump(void)
 			pdata = (unsigned char *)info->dump_list[info->dump_head].data;
 			plen = info->dump_list[info->dump_head].len;
 
-			fprintf(stderr, "Port %d, packet with length %d:\n", pid, plen);
+			snprintf(buff, sizeof(buff),
+					"Port %d, packet with length %d:", pid, plen);
 
 			for (i = 0; i < plen; i += 16) {
+				strncatf(buff, "\n\t");
+
 				/* Byte counter */
-				fprintf(stderr, "%06x: ", i);
+				strncatf(buff, "%06x: ", i);
 
 				for (j = 0; j < 16; ++j) {
 					/* Hex. value of character */
 					if (i + j < plen)
-					    fprintf(stderr, "%02x ", pdata[i + j]);
+						strncatf(buff, "%02x ", pdata[i + j]);
 					else
-					    fprintf(stderr, "   ");
+						strncatf(buff, "   ");
 
 					/* Extra padding after 8 hex values for readability */
 					if ((j + 1) % 8 == 0)
-					    fprintf(stderr, " ");
+						strncatf(buff, " ");
 				}
 
 				/* Separate hex. values and raw characters */
-				fprintf(stderr, "\t");
+				strncatf(buff, "\t");
 
 				for (j = 0; j < 16; ++j) {
 					if (i + j < plen)
-						fprintf(stderr, "%c", isprint(pdata[i + j]) ? pdata[i + j] : '.');
+						strncatf(buff, "%c", isprint(pdata[i + j]) ? pdata[i + j] : '.');
 				}
-
-				fprintf(stderr, "\n");
 			}
+			pktgen_log_info("%s", buff);
 
 			rte_free(info->dump_list[info->dump_head].data);
 			info->dump_list[info->dump_head].data = NULL;

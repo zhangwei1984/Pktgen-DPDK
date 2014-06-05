@@ -66,6 +66,8 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen.h"
+#include "pktgen-log.h"
+
 
 // Allocated the pktgen structure for global use
 extern    pktgen_t        pktgen;
@@ -135,7 +137,7 @@ pktgen_send_ping4( uint32_t pid, uint8_t seq_idx )
 
     m   = rte_pktmbuf_alloc(info->q[qid].special_mp);
     if ( unlikely(m == NULL) ) {
-        scrn_fprintf(0,0,stdout,"%s: No packet buffers found\n", __FUNCTION__);
+        pktgen_log_warning("No packet buffers found");
         return;
     }
 	*ppkt = *spkt;		// Copy the sequence setup to the ping setup.
@@ -186,13 +188,13 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 
         // We do not handle IP options, which will effect the IP header size.
         if ( unlikely(cksum(icmp, (m->pkt.data_len - sizeof(struct ether_hdr) - sizeof(ipHdr_t)), 0)) ) {
-            printf_info("ICMP checksum failed\n");
+            pktgen_log_error("ICMP checksum failed");
             return;
         }
 
         if ( unlikely(icmp->type == ICMP4_ECHO) ) {
             if ( ntohl(ip->dst) == INADDR_BROADCAST ) {
-                printf_info("IP address %s is a Broadcast\n",
+                pktgen_log_warning("IP address %s is a Broadcast",
                         inet_ntop4(buff, sizeof(buff), ip->dst, INADDR_BROADCAST));
                 return;
             }
@@ -202,7 +204,7 @@ pktgen_process_ping4( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 
             // ARP request not for this interface.
             if ( unlikely(pkt == NULL) ) {
-                printf_info("IP address %s not found\n",
+                pktgen_log_warning("IP address %s not found",
                         inet_ntop4(buff, sizeof(buff), ip->dst, INADDR_BROADCAST));
                 return;
             }

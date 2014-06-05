@@ -80,7 +80,7 @@ extern rte_scrn_t *scrn;
 
 
 /* Initialize screen data structures */
-void pktgen_init_screen(void);
+extern void pktgen_init_screen(void);
 
 
 /**************************************************************************//**
@@ -94,12 +94,8 @@ void pktgen_init_screen(void);
 *
 * SEE ALSO:
 */
+extern void display_topline(const char * msg);
 
-static __inline__ void
-display_topline(const char * msg)
-{
-	scrn_center(1, "%s  %s, %s", msg, wr_copyright_msg(), wr_powered_by());
-}
 
 /**************************************************************************//**
 *
@@ -112,21 +108,7 @@ display_topline(const char * msg)
 *
 * SEE ALSO:
 */
-
-static __inline__ void
-display_dashline(int last_row)
-{
-	int		i;
-
-	scrn_setw(last_row);
-	last_row--;
-    scrn_pos(last_row, 1);
-    for(i=0; i<(scrn->ncols-15); i++)
-    	printf_info("-");
-    scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
-}
-
-#define printf_info(...)	scrn_fprintf(0,0,stdout, __VA_ARGS__)
+extern void display_dashline(int last_row);
 
 
 #endif	// _PKTGEN_DISPLAY_H_

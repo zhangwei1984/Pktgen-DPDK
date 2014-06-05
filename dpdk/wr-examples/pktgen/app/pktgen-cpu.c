@@ -66,6 +66,7 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen-display.h"
+#include "pktgen-log.h"
 
 #include "pktgen.h"
 
@@ -114,6 +115,7 @@ pktgen_page_cpu(void)
 {
     uint32_t    i, row, cnt, nb_sockets, nb_cores, nb_threads;
 	static int counter = 0;
+    char buff[1024];
 
     display_topline("** CPU Information Page **");
 
@@ -144,20 +146,25 @@ pktgen_page_cpu(void)
 
     scrn_printf(row++, 5, "%d sockets, %d cores per socket and %d threads per core.",
     	nb_sockets, nb_cores, nb_threads);
-    scrn_printf(row++, 3, "Socket   : ");
-    for(i = 0; i< nb_sockets; i++)
-    	printf("%4d      ", i);
 
+    sprintf(buff, "Socket   : ");
+    for(i = 0; i< nb_sockets; i++)
+        strncatf(buff, "%4d      ", i);
+    scrn_printf(row++, 3, "%s", buff);
+
+    buff[0] = '\0';
 	for(i = 0; i< nb_cores; i++) {
-		scrn_printf(row++, 1, "  Core %3d : [%2d,%2d]   ", i, sct(0, i, 0),   sct(0, i, 1));
+        strncatf(buff, "  Core %3d : [%2d,%2d]   ", i, sct(0, i, 0),   sct(0, i, 1));
 		if ( nb_sockets > 1 )
-			printf("[%2d,%2d]   ", sct(1, i, 0), sct(1, i, 1));
+			strncatf(buff, "[%2d,%2d]   ", sct(1, i, 0), sct(1, i, 1));
 		if ( nb_sockets > 2 )
-			printf("[%2d,%2d]   ", sct(2, i, 0), sct(2, i, 1));
+			strncatf(buff, "[%2d,%2d]   ", sct(2, i, 0), sct(2, i, 1));
 		if ( nb_sockets > 3 )
-			printf("[%2d,%2d]   ", sct(3, i, 0), sct(3, i, 1));
-		printf("\n");
+			strncatf(buff, "[%2d,%2d]   ", sct(3, i, 0), sct(3, i, 1));
+		strncatf(buff, "\n");
 	}
+	scrn_printf(row++, 1, "%s", buff);
+
 	wr_port_matrix_dump(pktgen.l2p);
 
 	if ( pktgen.flags & PRINT_LABELS_FLAG ) {

@@ -116,7 +116,6 @@
 #include <rte_pci.h>
 #include <rte_random.h>
 #include <rte_timer.h>
-#include <rte_debug.h>
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 #include <rte_ring.h>
@@ -152,9 +151,10 @@
 
 #include "pktgen-port-cfg.h"
 #include "pktgen-capture.h"
+#include "pktgen-log.h"
 
 
-#define PKTGEN_VERSION			"2.6.4"
+#define PKTGEN_VERSION			"2.6.5"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -167,14 +167,6 @@
     (((_x.ipackets * (INTER_FRAME_GAP + PKT_PREAMBLE_SIZE)) + _x.ibytes) << 3)
 #define oBitsTotal(_x) \
     (((_x.opackets * (INTER_FRAME_GAP + PKT_PREAMBLE_SIZE)) + _x.obytes) << 3)
-
-#undef PKTGEN_DEBUG
-#ifdef PKTGEN_DEBUG
-/*lint -emacro( {717}, dbgPrintf ) */
-#define dbgPrintf( ... )	do { printf(__VA_ARGS__); fflush(stdout); } while((0))
-#else
-#define dbgPrintf( ... ) 	do { } while((0))
-#endif
 
 #define _do(_exp)		do { _exp; } while((0))
 
@@ -344,7 +336,8 @@ enum {		// Pktgen flags bits
 	ENABLE_GUI_FLAG			= 0x00001000,		/**< GUI support is enabled */
 	LUA_SHELL_FLAG			= 0x00002000,		/**< Enable Lua Shell */
 	TX_DEBUG_FLAG			= 0x00004000,		/**< TX Debug output */
-	RND_BITFIELD_PAGE_FLAG	= 0x00008000		/**< Display the random bitfield page */
+	RND_BITFIELD_PAGE_FLAG	= 0x00008000,		/**< Display the random bitfield page */
+	LOG_PAGE_FLAG			= 0x00010000		/**< Display the message log page */
 };
 
 struct cmdline_etheraddr {
@@ -444,7 +437,7 @@ do_command(const char * cmd, int (*display)(char *, int)) {
 
 	f = popen(cmd, "r");
 	if ( f == NULL ) {
-		printf("Unable to run '%s' command\n", cmd);
+		pktgen_log_error("Unable to run '%s' command", cmd);
 		return -1;
 	}
 

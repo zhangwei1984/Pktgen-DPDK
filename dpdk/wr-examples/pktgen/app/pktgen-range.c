@@ -66,6 +66,7 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen-display.h"
+#include "pktgen-log.h"
 #include "pktgen.h"
 
 // Allocated the pktgen structure for global use
@@ -197,7 +198,7 @@ pktgen_range_ctor(range_info_t * range, pkt_seq_t * pkt)
 
 			break;
 		default:
-			printf_info("%s: IPv4 ipProto %02x\n", __FUNCTION__, pkt->ipProto);
+			pktgen_log_info("IPv4 ipProto %02x", pkt->ipProto);
 			break;
 		}
 		break;
@@ -206,14 +207,15 @@ pktgen_range_ctor(range_info_t * range, pkt_seq_t * pkt)
 		case PG_IPPROTO_UDP:
 		case PG_IPPROTO_TCP:
 			// TODO: Need to handle the IPv6 packets.
+			pktgen_log_warning("IPv6 is not yet implemented");
 			break;
 		default:
-			printf_info("%s: IPv6 ipProto %04x\n", __FUNCTION__, pkt->ipProto);
+			pktgen_log_info("IPv6 ipProto %04x", pkt->ipProto);
 			break;
 		}
 		break;
 	default:
-		printf_info("%s: ethType %04x\n", __FUNCTION__, pkt->ethType);
+		pktgen_log_info("ethType %04x", pkt->ethType);
 		break;
 	}
 }

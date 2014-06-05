@@ -200,6 +200,7 @@ extern void scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...);
 extern void scrn_snprintf(char * buff, int16_t len, const char * fmt, ...);
 extern rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols);
 
-#define printf_info(...)	scrn_fprintf(0,0,stdout, __VA_ARGS__)
+#define printf_status(...)	scrn_fprintf(0, 0, stdout, __VA_ARGS__)
+#define printf_info(...)	scrn_fprintf(0, 0, stdout, __VA_ARGS__)
 
 #endif

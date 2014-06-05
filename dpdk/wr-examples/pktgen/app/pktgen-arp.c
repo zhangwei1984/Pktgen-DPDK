@@ -65,9 +65,11 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen.h"
+#include "pktgen-arp.h"
 
+#include "pktgen.h"
 #include "pktgen-cmds.h"
+#include "pktgen-log.h"
 
 
 /**************************************************************************//**
@@ -96,7 +98,7 @@ pktgen_send_arp( uint32_t pid, uint32_t type, uint8_t seq_idx )
     pkt = &info->seq_pkt[seq_idx];
     m   = rte_pktmbuf_alloc(info->q[qid].special_mp);
     if ( unlikely(m == NULL) ) {
-        scrn_fprintf(0,0, stdout, "%s: No packet buffers found\n", __FUNCTION__);
+        pktgen_log_warning("No packet buffers found");
         return;
     }
     eth = rte_pktmbuf_mtod(m, struct ether_hdr *);

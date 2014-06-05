@@ -631,7 +631,7 @@ pktgen_set_rx_tap(port_info_t * info, uint32_t onOff)
 			}
 		}
 		if ( tapdevs[i] == NULL ) {
-			printf("Unable to create TUN/TAP interface.\n");
+			pktgen_log_error("Unable to create TUN/TAP interface");
 			return;
 		}
 		memset(&ifr, 0, sizeof(struct ifreq));
@@ -640,7 +640,7 @@ pktgen_set_rx_tap(port_info_t * info, uint32_t onOff)
 
 		snprintf(ifr.ifr_name, IFNAMSIZ, "%s%d", "pg_rxtap", info->pid);
 		if ( ioctl(info->rx_tapfd, TUNSETIFF, (void *)&ifr) < 0 ) {
-			printf("Unable to set TUNSETIFF for %s\n", ifr.ifr_name);
+			pktgen_log_error("Unable to set TUNSETIFF for %s", ifr.ifr_name);
 			close(info->rx_tapfd);
 			info->rx_tapfd = 0;
 			return;
@@ -650,7 +650,7 @@ pktgen_set_rx_tap(port_info_t * info, uint32_t onOff)
 
 		ifr.ifr_flags = IFF_UP | IFF_RUNNING;
 		if ( ioctl(sockfd, SIOCSIFFLAGS, (void *)&ifr) < 0 ) {
-			printf("Unable to set SIOCSIFFLAGS for %s\n", ifr.ifr_name);
+			pktgen_log_error("Unable to set SIOCSIFFLAGS for %s", ifr.ifr_name);
 			close(sockfd);
 			close(info->rx_tapfd);
 			info->rx_tapfd = 0;
@@ -693,7 +693,7 @@ pktgen_set_tx_tap(port_info_t * info, uint32_t onOff)
 			}
 		}
 		if ( tapdevs[i] == NULL ) {
-			printf("Unable to create TUN/TAP interface.\n");
+			pktgen_log_error("Unable to create TUN/TAP interface.");
 			return;
 		}
 		memset(&ifr, 0, sizeof(struct ifreq));
@@ -702,7 +702,7 @@ pktgen_set_tx_tap(port_info_t * info, uint32_t onOff)
 
 		snprintf(ifr.ifr_name, IFNAMSIZ, "%s%d", "pg_txtap", info->pid);
 		if ( ioctl(info->tx_tapfd, TUNSETIFF, (void *)&ifr) < 0 ) {
-			printf("Unable to set TUNSETIFF for %s\n", ifr.ifr_name);
+			pktgen_log_error("Unable to set TUNSETIFF for %s", ifr.ifr_name);
 			close(info->tx_tapfd);
 			info->tx_tapfd = 0;
 			return;
@@ -712,7 +712,7 @@ pktgen_set_tx_tap(port_info_t * info, uint32_t onOff)
 
 		ifr.ifr_flags = IFF_UP | IFF_RUNNING;
 		if ( ioctl(sockfd, SIOCSIFFLAGS, (void *)&ifr) < 0 ) {
-			printf("Unable to set SIOCSIFFLAGS for %s\n", ifr.ifr_name);
+			pktgen_log_error("Unable to set SIOCSIFFLAGS for %s", ifr.ifr_name);
 			close(sockfd);
 			close(info->tx_tapfd);
 			info->tx_tapfd = 0;
@@ -1987,6 +1987,7 @@ void pktgen_set_page( char * str )
 		pktgen.flags &= ~RANGE_PAGE_FLAG;
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
 		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
+		pktgen.flags &= ~LOG_PAGE_FLAG;
 		pktgen.flags |= CPU_PAGE_FLAG;
 	} else if ( str[0] == 'p' ) {
 		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
@@ -1994,6 +1995,7 @@ void pktgen_set_page( char * str )
 		pktgen.flags &= ~RANGE_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
 		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
+		pktgen.flags &= ~LOG_PAGE_FLAG;
 		pktgen.flags |= PCAP_PAGE_FLAG;
 		if ( pktgen.info[pktgen.portNum].pcap )
 			pktgen.info[pktgen.portNum].pcap->pkt_idx = 0;
@@ -2003,6 +2005,7 @@ void pktgen_set_page( char * str )
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
 		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
+		pktgen.flags &= ~LOG_PAGE_FLAG;
 		pktgen.flags |= RANGE_PAGE_FLAG;
 	} else if ( str[0] == 'c' ) {
 		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
@@ -2010,6 +2013,7 @@ void pktgen_set_page( char * str )
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
 		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
+		pktgen.flags &= ~LOG_PAGE_FLAG;
 		pktgen.flags |= CONFIG_PAGE_FLAG;
 	} else if ( str[0] == 's' ) {
 		pktgen.flags &= ~CONFIG_PAGE_FLAG;
@@ -2017,6 +2021,7 @@ void pktgen_set_page( char * str )
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
 		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
+		pktgen.flags &= ~LOG_PAGE_FLAG;
 		pktgen.flags |= SEQUENCE_PAGE_FLAG;
 	} else if ( str[0] == 'r') {
 		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
@@ -2024,7 +2029,16 @@ void pktgen_set_page( char * str )
 		pktgen.flags &= ~PCAP_PAGE_FLAG;
 		pktgen.flags &= ~CPU_PAGE_FLAG;
 		pktgen.flags &= ~CONFIG_PAGE_FLAG;
+		pktgen.flags &= ~LOG_PAGE_FLAG;
 		pktgen.flags |= RND_BITFIELD_PAGE_FLAG;
+	} else if ( str[0] == 'l') {
+		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
+		pktgen.flags &= ~RANGE_PAGE_FLAG;
+		pktgen.flags &= ~PCAP_PAGE_FLAG;
+		pktgen.flags &= ~CPU_PAGE_FLAG;
+		pktgen.flags &= ~CONFIG_PAGE_FLAG;
+		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
+		pktgen.flags |= LOG_PAGE_FLAG;
 	} else {
 		uint16_t start_port = (page * pktgen.nb_ports_per_page);
 		if ( (pktgen.starting_port != start_port) && (start_port < pktgen.nb_ports) ) {
@@ -2157,7 +2171,7 @@ void pktgen_send_pkt(port_info_t * info, uint32_t seqnum)
 
 void pktgen_recv_pkt(port_info_t * info)
 {
-	printf("Not working yet!\n");
+	pktgen_log_warning("Not working yet!");
 }
 
 /**************************************************************************//**

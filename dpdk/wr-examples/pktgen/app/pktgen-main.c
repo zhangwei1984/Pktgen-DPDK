@@ -73,6 +73,7 @@
 #include "pktgen-cmds.h"
 #include "commands.h"
 #include "pktgen-display.h"
+#include "pktgen-log.h"
 
 /* Defined in libwr_lua/lua_shell.c */
 extern void execute_lua_close(lua_State * L);
@@ -178,10 +179,11 @@ void * pktgen_get_lua()
 static void
 pktgen_usage(const char *prgname)
 {
-    printf_info("Usage: %s [EAL options] -- -p PORTMASK [-h] [-P] [-G] [-f cmd_file] [-s P:PCAP_file] [-m <string>]\n"
+    printf("Usage: %s [EAL options] -- -p PORTMASK [-h] [-P] [-G] [-f cmd_file] [-l log_file] [-s P:PCAP_file] [-m <string>]\n"
            "  -p PORTMASK  hexadecimal bitmask of ports to configure\n"
            "  -s P:file    PCAP packet stream file, 'P' is the port number\n"
            "  -f filename  Command file (.pkt) to execute or a Lua script (.lua) file\n"
+           "  -l filename  Write log to filename\n"
            "  -P           Enable PROMISCUOUS mode on all ports\n"
     	   "  -g address   Optional IP address and port number default is (localhost:0x5606)\n"
     	   "               If -g is used that enable socket support as a server application\n"
@@ -255,13 +257,13 @@ pktgen_parse_args(int argc, char **argv)
     for (opt = 0; opt < argc; opt++)
     	pktgen.argv[opt] = strdup(argv[opt]);
 
-    while ((opt = getopt_long(argc, argvopt, "p:m:f:s:g:hPNG",
+    while ((opt = getopt_long(argc, argvopt, "p:m:f:l:s:g:hPNG",
                   lgopts, &option_index)) != EOF) {
         switch (opt) {
         case 'p':			// Port mask (required).
             pktgen.enabled_port_mask = wr_parse_portmask(optarg);
             if (pktgen.enabled_port_mask < 0) {
-                printf_info("invalid portmask\n");
+                pktgen_log_error("Invalid portmask");
                 pktgen_usage(prgname);
                 return -1;
             }
@@ -271,9 +273,13 @@ pktgen_parse_args(int argc, char **argv)
             pktgen.cmd_filename = strdup(optarg);
             break;
 
+        case 'l':           // Log file
+            pktgen_log_set_file(optarg);
+            break;
+
         case 'm':			// Matrix for port mapping.
             if ( wr_parse_matrix(pktgen.l2p, optarg) == -1 ) {
-                printf_info("invalid matrix string (%s)\n", optarg);
+                pktgen_log_error("invalid matrix string (%s)", optarg);
                 pktgen_usage(prgname);
                 return -1;
             }
@@ -283,7 +289,7 @@ pktgen_parse_args(int argc, char **argv)
         	port = strtol(optarg, NULL, 10);
         	p = strchr(optarg, ':');
             if( (p == NULL) || (pktgen.info[port].pcap = wr_pcap_open(++p, port)) == NULL ) {
-                printf_info("Invalid PCAP filename (%s) must include port number as P:filename\n", optarg);
+                pktgen_log_error("Invalid PCAP filename (%s) must include port number as P:filename", optarg);
                 pktgen_usage(prgname);
                 return -1;
             }
@@ -315,7 +321,7 @@ pktgen_parse_args(int argc, char **argv)
 					pktgen.hostname = (char *)strdupf(pktgen.hostname, optarg);
 
 	    		pktgen.socket_port = strtol(++p, NULL, 0);
-	    		printf_info(">>> Socket GUI support %s%c0x%x\n", pktgen.hostname, c, pktgen.socket_port);
+				pktgen_log_info(">>> Socket GUI support %s%c0x%x", pktgen.hostname, c, pktgen.socket_port);
         	}
         	break;
 
@@ -332,7 +338,7 @@ pktgen_parse_args(int argc, char **argv)
 
     // If the port mask is not set we exit with usage message.
     if (pktgen.enabled_port_mask == 0) {
-        printf_info("*** Error must specify the portmask\n");
+        pktgen_log_error("Portmask is not specified (parameter -p)");
         pktgen_usage(prgname);
         return -1;
     }
@@ -368,7 +374,8 @@ main(int argc, char **argv)
 
     memset(&pktgen, 0, sizeof(pktgen));
 
-    /* Initialize the screen */
+    /* Initialize the screen and logging */
+    pktgen_init_log();
     pktgen_init_screen();
 
     wr_print_copyright(PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
@@ -381,7 +388,7 @@ main(int argc, char **argv)
     pktgen.prompt			= "pktgen> ";
 
     if ( (pktgen.l2p = wr_l2p_create()) == NULL )
-    	rte_panic("Unable to create l2p\n");
+		pktgen_log_panic("Unable to create l2p");
 
     /* initialize EAL */
     ret = rte_eal_init(argc, argv);
@@ -401,30 +408,31 @@ main(int argc, char **argv)
 
     /* init drivers */
     if ((ret = rte_pmd_init_all()) < 0)
-    	rte_panic("Cannot init devices\n");
+		pktgen_log_panic("Cannot init devices");
 
     pktgen.portdesc_cnt = wr_get_portdesc(pktgen.portlist, pktgen.portdesc, RTE_MAX_ETHPORTS, 0);
 
     pktgen.blacklist_cnt = wr_create_blacklist(pktgen.enabled_port_mask, pktgen.portlist,
     		pktgen.portdesc_cnt, pktgen.portdesc);
-    scrn_fprintf(0,0, stdout, ">>> Blacklisted port count %d\n", pktgen.blacklist_cnt);
+    pktgen_log_info(">>> Blacklisted port count %d", pktgen.blacklist_cnt);
 
     if ((ret = rte_eal_pci_probe()) < 0)
-        rte_panic("Cannot probe PCI, %s\n", rte_strerror(-ret));
+        pktgen_log_panic("Cannot probe PCI, %s", rte_strerror(-ret));
 
     // Open the Lua script handler.
     if ( (pktgen.L = lua_create_instance()) == NULL ) {
-		scrn_fprintf(0,0, stdout, "*** Failed to open Lua pktgen support library\n");
+		pktgen_log_error("Failed to open Lua pktgen support library");
     	return -1;
 	}
 
-    scrn_fprintf(0, 0, stdout, "\n>>> Packet Burst %d, RX Desc %d, TX Desc %d, mbufs/port %d, mbuf cache %d\n",
+    pktgen_log_info(">>> Packet Burst %d, RX Desc %d, TX Desc %d, mbufs/port %d, mbuf cache %d",
     		DEFAULT_PKT_BURST, DEFAULT_RX_DESC,	DEFAULT_TX_DESC, MAX_MBUFS_PER_PORT, MBUF_CACHE_SIZE);
 
     // Configure and initialize the ports
     pktgen_config_ports();
 
-    printf_info("\n=== Display processing on lcore %d\n", rte_lcore_id());
+    pktgen_log_info("");
+    pktgen_log_info("=== Display processing on lcore %d", rte_lcore_id());
 
     /* launch per-lcore init on every lcore except master and master + 1 lcores */
     for (i = 0; i < RTE_MAX_LCORE; i++ ) {
@@ -432,11 +440,13 @@ main(int argc, char **argv)
     		continue;
         ret = rte_eal_remote_launch(pktgen_launch_one_lcore, NULL, i);
         if ( ret != 0 )
-            scrn_fprintf(0,0, stdout, "Failed to start lcore %d, return %d\n", i, ret);
+            pktgen_log_error("Failed to start lcore %d, return %d", i, ret);
     }
-    rte_delay_ms(500);				// Wait for the lcores to start up.
+    rte_delay_ms(5000);				// Wait for the lcores to start up.
 
-	// Erase the screen and start updating the screen again.
+	// Disable printing log messages of level info and below to screen,
+    // erase the screen and start updating the screen again.
+    pktgen_log_set_screen_level(LOG_LEVEL_WARNING);
 	scrn_erase();
 
 	wr_logo(3, 16, PKTGEN_APP_NAME);

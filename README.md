@@ -6,6 +6,7 @@ Pktgen version 2.6.4 using DPDK-1.6.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.6.5   - Added support for logging packet information.
  - 2.6.4   - It consists of 3 commits: improvements to the pktgen-random.c unit tests,
              the real CentOS compilation fixes and a small update to tap.{c,h} so they
              are identical to those from zorgnax/libtap on github.

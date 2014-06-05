@@ -74,6 +74,7 @@
 #include <rte_malloc.h>
 
 #include "pktgen-display.h"
+#include "pktgen-log.h"
 
 #include "xorshift128plus.h"	/* PRNG function */
 
@@ -383,13 +384,13 @@ static void pktgen_init_default_rnd(void)
 	FILE *dev_random;
 
 	if ((dev_random = fopen("/dev/urandom", "r")) == NULL) {
-		printf_info("ERROR: could not open /dev/urandom for reading\n");
+		pktgen_log_error("Could not open /dev/urandom for reading");
 		return;
 	}
 
 	/* Use contents of /dev/urandom as seed for ISAAC */
 	if (fread(xor_seed, sizeof(xor_seed[0]), 2, dev_random) != 2) {
-		printf_info("ERROR: could not read enough random data for PRNG seed\n");
+		pktgen_log_error("Could not read enough random data for PRNG seed");
 		return;
 	};
 

@@ -72,8 +72,32 @@
 rte_scrn_t *scrn;
 
 
-void pktgen_init_screen(void)
+/* Initialize screen data structures */
+void
+pktgen_init_screen(void)
 {
 	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS);
 }
 
+
+/* Print out the top line on the screen */
+void
+display_topline(const char * msg)
+{
+		scrn_center(1, "%s  %s, %s", msg, wr_copyright_msg(), wr_powered_by());
+}
+
+
+/* Print out the dashed line on the screen. */
+void
+display_dashline(int last_row)
+{
+	int i;
+
+	scrn_setw(last_row);
+	last_row--;
+	scrn_pos(last_row, 1);
+	for(i=0; i<(scrn->ncols-15); i++)
+		scrn_fprintf(0, 0, stdout, "-");
+	scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
+}

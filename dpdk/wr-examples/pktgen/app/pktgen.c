@@ -79,6 +79,7 @@
 #include "pktgen-cpu.h"
 #include "pktgen-display.h"
 #include "pktgen-random.h"
+#include "pktgen-log.h"
 
 
 // Allocated the pktgen structure for global use
@@ -215,7 +216,7 @@ pktgen_find_matching_ipsrc( port_info_t * info, uint32_t addr )
 */
 
 pkt_seq_t *
-pktgen_find_matching_ipdst( port_info_t * info, uint32_t addr ) 
+pktgen_find_matching_ipdst( port_info_t * info, uint32_t addr )
 {
 	pkt_seq_t * pkt = NULL;
 	int		i;
@@ -277,7 +278,7 @@ pktgen_send_burst(port_info_t * info, uint8_t qid)
 		if ( unlikely(flags & PROCESS_TX_TAP_PKTS) ) {
 			for(i = 0; i < ret; i++) {
 				if ( write(info->tx_tapfd, rte_pktmbuf_mtod(pkts[i], char *), pkts[i]->pkt.pkt_len) < 0 )
-					printf_info("Write failed for tx_tap%d", info->pid);
+					pktgen_log_error("Write failed for tx_tap%d", info->pid);
 			}
 		}
 		pkts += ret;
@@ -375,7 +376,7 @@ pktgen_cleanup(uint8_t lid)
 static __inline__ int pktgen_has_work(void) {
 
 	if ( ! wr_get_map(pktgen.l2p, RTE_MAX_ETHPORTS, rte_lcore_id()) ) {
-        printf_info("*** Nothing to do on lcore %d Exiting\n", rte_lcore_id());
+        pktgen_log_warning("Nothing to do on lcore %d: exiting", rte_lcore_id());
         return 1;
     }
     return 0;
@@ -567,7 +568,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 		arp->tpa._32 = htonl(pkt->ip_dst_addr);
 	}
 	else {
-		fprintf(stderr, "Unknown EtherType 0x%04x\n", pkt->ethType);
+		pktgen_log_error("Unknown EtherType 0x%04x", pkt->ethType);
 	}
 }
 
@@ -651,7 +652,7 @@ pktgen_packet_classify( struct rte_mbuf * m, int pid )
 	if ( unlikely(flags & (PROCESS_INPUT_PKTS | PROCESS_RX_TAP_PKTS)) ) {
 		if ( unlikely(flags & PROCESS_RX_TAP_PKTS) ) {
 			if ( write(info->rx_tapfd, rte_pktmbuf_mtod(m, char *), m->pkt.pkt_len) < 0 )
-				printf_info("Write failed for rx_tap%d", pid);
+				pktgen_log_error("Write failed for rx_tap%d", pid);
 		}
 
 		switch((int)pType) {
@@ -1024,20 +1025,22 @@ pktgen_main_rxtx_loop(uint8_t lid)
     uint8_t			idx, pid, txcnt, rxcnt;
     uint64_t		 curr_tsc;
 	uint64_t		tx_next_cycle;		/**< Next cycle to send a burst of traffic */
+	char			msg[256];
 
     txcnt	= wr_get_lcore_txcnt(pktgen.l2p, lid);
 	rxcnt	= wr_get_lcore_rxcnt(pktgen.l2p, lid);
-    printf_info("=== RX/TX processing on lcore %2d, rxcnt %d, txcnt %d, port/qid, ",
-    		lid, rxcnt, txcnt);
+	snprintf(msg, sizeof(msg),
+			"=== RX/TX processing on lcore %2d, rxcnt %d, txcnt %d, port/qid,",
+			lid, rxcnt, txcnt);
 
 	for( idx = 0; idx < wr_get_lcore_txcnt(pktgen.l2p, lid); idx++ ) {
 		pid = wr_get_rx_pid(pktgen.l2p, lid, idx);
     	if ( (infos[idx] = wr_get_port_private(pktgen.l2p, pid)) == NULL )
     		continue;
     	qids[idx] = wr_get_txque(pktgen.l2p, lid , pid);
-    	printf_info("%d/%d ", infos[idx]->pid, qids[idx]);
+		strncatf(msg, " %d/%d", infos[idx]->pid, qids[idx]);
 	}
-	printf_info("\n");
+	pktgen_log_info("%s", msg);
 
     tx_next_cycle	= 0;
 
@@ -1068,7 +1071,7 @@ pktgen_main_rxtx_loop(uint8_t lid)
 		// Exit loop when flag is set.
     } while ( wr_lcore_is_running(pktgen.l2p, lid) );
 
-    dbgPrintf("%s: Exit %d\n", __FUNCTION__, lid);
+    pktgen_log_debug("Exit %d", lid);
 	pktgen_cleanup(lid);
 }
 
@@ -1092,18 +1095,21 @@ pktgen_main_tx_loop(uint8_t lid)
     uint8_t       qids[RTE_MAX_ETHPORTS];
     uint64_t	  curr_tsc;
 	uint64_t	  tx_next_cycle;		/**< Next cycle to send a burst of traffic */
+	char			msg[256];
 
     txcnt = wr_get_lcore_txcnt(pktgen.l2p, lid);
-    printf_info("=== TX processing on lcore %2d, txcnt %d, port/qid, ", lid, txcnt);
+	snprintf(msg, sizeof(msg),
+			"=== TX processing on lcore %2d, txcnt %d, port/qid,",
+			lid, txcnt);
 
 	for( idx = 0; idx < txcnt; idx++ ) {
 		pid = wr_get_tx_pid(pktgen.l2p, lid, idx);
     	if ( (infos[idx] = wr_get_port_private(pktgen.l2p, pid)) == NULL )
     		continue;
     	qids[idx] = wr_get_txque(pktgen.l2p, lid, pid);
-    	printf_info("%d/%d ", infos[idx]->pid, qids[idx]);
+		strncatf(msg, " %d/%d", infos[idx]->pid, qids[idx]);
 	}
-	printf_info("\n");
+	pktgen_log_info("%s", msg);
 
 	tx_next_cycle = 0;
 
@@ -1125,7 +1131,7 @@ pktgen_main_tx_loop(uint8_t lid)
 		// Exit loop when flag is set.
     } while( wr_lcore_is_running(pktgen.l2p, lid) );
 
-    dbgPrintf("%s: Exit %d\n", __FUNCTION__, lid);
+    pktgen_log_debug("Exit %d", lid);
 
 	pktgen_cleanup(lid);
 }
@@ -1149,19 +1155,21 @@ pktgen_main_rx_loop(uint8_t lid)
     struct rte_mbuf *pkts_burst[DEFAULT_PKT_BURST];
 	uint8_t			pid, idx, rxcnt;
 	port_info_t	  * infos[RTE_MAX_ETHPORTS];
+	char			msg[256];
 
 	rxcnt = wr_get_lcore_rxcnt(pktgen.l2p, lid);
-    printf_info("=== RX processing on lcore %2d, rxcnt %d, port/qid, ",
-    		lid, rxcnt);
+	snprintf(msg, sizeof(msg),
+			"=== RX processing on lcore %2d, rxcnt %d, port/qid,",
+			lid, rxcnt);
 
     memset(infos, '\0', sizeof(infos));
 	for( idx = 0; idx < rxcnt; idx++ ) {
 		pid = wr_get_rx_pid(pktgen.l2p, lid, idx);
     	if ( (infos[idx] = wr_get_port_private(pktgen.l2p, pid)) == NULL )
     		continue;
-    	printf_info("%d/%d ", infos[idx]->pid, wr_get_rxque(pktgen.l2p, lid, pid));
+		strncatf(msg, " %d/%d", infos[idx]->pid, wr_get_rxque(pktgen.l2p, lid, pid));
 	}
-	printf_info("\n");
+	pktgen_log_info("%s", msg);
 
 	wr_start_lcore(pktgen.l2p, lid);
     do {
@@ -1172,7 +1180,7 @@ pktgen_main_rx_loop(uint8_t lid)
 		// Exit loop when flag is set.
     } while( wr_lcore_is_running(pktgen.l2p, lid) );
 
-    dbgPrintf("%s: Exit %d\n", __FUNCTION__, lid);
+    pktgen_log_debug("Exit %d", lid);
     pktgen_cleanup(lid);
 }
 
@@ -1264,6 +1272,8 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
         pktgen_page_seq(pktgen.portNum);
 	else if ( pktgen.flags & RND_BITFIELD_PAGE_FLAG )
 		pktgen_page_random_bitfields(pktgen.flags & PRINT_LABELS_FLAG, pktgen.portNum, pktgen.info[pktgen.portNum].rnd_bitfields);
+	else if ( pktgen.flags & LOG_PAGE_FLAG )
+		pktgen_page_log(pktgen.flags & PRINT_LABELS_FLAG);
     else
         pktgen_page_stats();
 

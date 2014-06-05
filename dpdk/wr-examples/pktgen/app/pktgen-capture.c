@@ -72,6 +72,7 @@
 #include <rte_string_fns.h>
 
 #include "pktgen-cmds.h"
+#include "pktgen-log.h"
 
 
 /**************************************************************************//**
@@ -134,7 +135,7 @@ pktgen_set_capture(port_info_t * info, uint32_t onOff)
 			return;
 
 		if (wr_get_port_rxcnt(pktgen.l2p, info->pid) == 0) {
-			printf("Port %d has no RX queue: capture is not possible\n", info->pid);
+			pktgen_log_warning("Port %d has no RX queue: capture is not possible", info->pid);
 			return;
 		}
 
@@ -150,19 +151,19 @@ pktgen_set_capture(port_info_t * info, uint32_t onOff)
 
 found_rx_lid:
 		if (lid == RTE_MAX_LCORE) {
-			printf("Port %d has no rx lcore: capture is not possible\n", info->pid);
+			pktgen_log_warning("Port %d has no rx lcore: capture is not possible", info->pid);
 			return;
 		}
 
 		// Get socket of the selected lcore and check if capturing is possible
 		uint8_t sid = pktgen.core_info[lid].s.socket_id;
 		if (pktgen.capture[sid].mz == NULL) {
-			printf("No memory allocated for capturing on socket %d, are hugepages allocated on this socket?\n", sid);
+			pktgen_log_warning("No memory allocated for capturing on socket %d, are hugepages allocated on this socket?", sid);
 			return;
 		}
 
 		if (pktgen.capture[sid].lcore != RTE_MAX_LCORE) {
-			printf("Lcore %d is already capturing on socket %d and only 1 lcore can capture on a socket. Disable capturing on the port associated with this lcore first.", pktgen.capture[sid].lcore, sid);
+			pktgen_log_warning("Lcore %d is already capturing on socket %d and only 1 lcore can capture on a socket. Disable capturing on the port associated with this lcore first.", pktgen.capture[sid].lcore, sid);
 			return;
 		}
 
@@ -177,7 +178,7 @@ found_rx_lid:
 
 		pktgen_set_port_flags(info, CAPTURE_PKTS);
 
-		printf("Capturing on port %d, lcore %d, socket %d; buffer size: %.2f MB (~%.2f seconds for 64 byte packets at line rate)\n",
+		pktgen_log_info("Capturing on port %d, lcore %d, socket %d; buffer size: %.2f MB (~%.2f seconds for 64 byte packets at line rate)",
 				info->pid, lid, sid,
 				(double)pktgen.capture[sid].mz->len / (1024 * 1024),
 				(double)pktgen.capture[sid].mz->len /
@@ -193,7 +194,7 @@ found_rx_lid:
 		// This should never happen: capture cannot have been enabled when
 		// this condition is true.
 		if (wr_get_port_rxcnt(pktgen.l2p, info->pid) == 0) {
-			printf("Port %d has no RX queue: capture is not possible\n", info->pid);
+			pktgen_log_warning("Port %d has no RX queue: capture is not possible", info->pid);
 			return;
 		}
 
@@ -204,7 +205,7 @@ found_rx_lid:
 
 		// This should never happen.
 		if (sid == RTE_MAX_NUMA_NODES) {
-			printf("Could not find socket for port %d\n", info->pid);
+			pktgen_log_error("Could not find socket for port %d", info->pid);
 			return;
 		}
 
@@ -220,9 +221,10 @@ found_rx_lid:
 			size_t mem_dumped = 0;
 			unsigned int pct = 0;
 
-			printf("Dumping ~%.2fMB of captured data to disk: 0%%",
+			char status[256];
+			sprintf(status, "\r    Dumping ~%.2fMB of captured data to disk: 0%%",
 					(double)pktgen.capture[sid].mem_used / (1024 * 1024));
-			fflush(stdout);
+			printf_status("%s", status);
 
 			pcap = pcap_open_dead(DLT_EN10MB, 65535);
 			// TODO: make filename unique (timestamp in filename?)
@@ -237,10 +239,8 @@ found_rx_lid:
 				pkt += sizeof(uint16_t);
 
 				/* Check for end-of-data sentinel */
-				if (pkt_len == 0) {
-					printf("End-of-data sentinel found\n");
+				if (pkt_len == 0)
 					break;
-				}
 
 				//pcap_hdr.ts     = xxx;	// FIXME use real timestamp
 				pcap_hdr.len    = pkt_len;
@@ -257,13 +257,14 @@ found_rx_lid:
 					pct = mem_dumped * 100 / pktgen.capture[sid].mem_used;
 
 					if (pct % 10 == 0)
-						printf("%d%%", pct);
+						strncatf(status, "%d%%", pct);
 					else if (pct % 2 == 0)
-						printf(".");
-					fflush(stdout);
+						strncatf(status, ".");
+
+					printf_status("%s", status);
 				}
 			}
-			printf("\n");
+			printf_status("\r");
 
 			pcap_dump_close(pcap_dumper);
 			pcap_close(pcap);

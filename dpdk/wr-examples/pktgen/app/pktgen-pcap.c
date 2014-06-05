@@ -66,6 +66,7 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen-display.h"
+#include "pktgen-log.h"
 
 #include "pktgen.h"
 
@@ -264,7 +265,7 @@ pktgen_pcap_mbuf_ctor(struct rte_mempool *mp, void *opaque_arg, void *_m, unsign
 
     for(;;) {
         if ( (i & 0x3ff) == 0 ) {
-        	printf_info("%c\b", "-\\|/"[(i >> 10) & 3]);
+			printf_status("%c\b", "-\\|/"[(i >> 10) & 3]);
         	i++;
         }
 
@@ -316,7 +317,7 @@ pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
     wr_pcap_rewind(pcap);
 
 	snprintf(name, sizeof(name), "%-12s%d:%d", "PCAP TX", info->pid, 0);
-    printf_info("    Process: %-*s ", 18, name);
+    printf_status("    Process: %-*s ", 18, name);
 
     pkt_sizes = elt_count = i = 0;
 
@@ -334,7 +335,7 @@ pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
         elt_count++;
 
         if ( (elt_count & 0x3ff) == 0 )
-        	printf_info("%c\b", "-\\|/"[i++ & 3]);
+			printf_status("%c\b", "-\\|/"[i++ & 3]);
 
         pkt_sizes += len;
     }
@@ -353,18 +354,18 @@ pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
         	elt_count = MAX_MBUFS_PER_PORT;
         elt_count = rte_align32pow2(elt_count);
 
-        printf_info("\r    Create: %-*s   \b", 16, name);
+        printf_status("\r    Create: %-*s   \b", 16, name);
     	info->q[qid].pcap_mp = rte_mempool_create(name, elt_count, MBUF_SIZE, 0,
                    sizeof(struct rte_pktmbuf_pool_private),
                    rte_pktmbuf_pool_init, (void *)((uint64_t)MBUF_SIZE),
                    pktgen_pcap_mbuf_ctor, (void *)pcap,
                    rte_lcore_to_socket_id(0), MEMPOOL_F_DMA);
-        printf_info("\r");
+        printf_status("\r");
         if ( info->q[qid].pcap_mp == NULL )
-            rte_panic("***** Cannot init port %d for PCAP packets\n", info->pid);
+            pktgen_log_panic("Cannot init port %d for PCAP packets", info->pid);
 
         data_size = (info->pcap->pkt_count * MBUF_SIZE);
-        printf_info("    Create: %-*s - Number of MBUFs %6u for %5d packets                 = %6u KB\n",
+        printf_status("    Create: %-*s - Number of MBUFs %6u for %5d packets                 = %6u KB\n",
                 16, name, elt_count, info->pcap->pkt_count, (data_size + 1023)/1024);
         pktgen.mem_used			+= data_size;
         pktgen.total_mem_used	+= data_size;
