@@ -86,8 +86,6 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
-#include <rte_hash.h>
-#include <rte_hash_crc.h>
 #include <rte_lpm.h>
 #include <rte_string_fns.h>
 #include <rte_scrn.h>

@@ -1,4 +1,4 @@
-Pktgen version 2.6.4 using DPDK-1.6.0
+Pktgen version 2.6.6 using DPDK-1.6.0
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,8 @@ Pktgen version 2.6.4 using DPDK-1.6.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.6.6   - Fix compile problem when not SSE4.2 instructions are not supported. Allowing QEMU and other
+             systems to build and run. Also added a patch to take into account huge reserved pages.
  - 2.6.5   - Added support for logging packet information.
  - 2.6.4   - It consists of 3 commits: improvements to the pktgen-random.c unit tests,
              the real CentOS compilation fixes and a small update to tap.{c,h} so they
@@ -230,7 +232,7 @@ Dst  IP Address  :       192.168.1.1       192.168.0.1       192.168.3.1       1
 Src  IP Address  :    192.168.0.1/24    192.168.1.1/24    192.168.2.1/24    192.168.3.1/24
 Dst MAC Address  :    001b:218e:b1e9    001b:218e:b1e8    001b:218e:b761    001b:218e:b760
 Src MAC Address  :    001b:218e:b1e8    001b:218e:b1e9    001b:218e:b760    001b:218e:b761
-- Pktgen Ver:2.6.3(DPDK-1.6.0) --------------------------------------------------------------------------------------
+- Pktgen Ver:2.6.6(DPDK-1.6.0) --------------------------------------------------------------------------------------
 
 
 

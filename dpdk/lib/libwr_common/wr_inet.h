@@ -71,7 +71,11 @@
 #define IPv4_VERSION    4
 #define IPv6_VERSION	6
 
+#ifdef RTE_MACHINE_CPUFLAG_SSE4_2
 #include <nmmintrin.h>
+#else
+#include <rte_jash.h>
+#endif
 #include <stdio.h>
 #include <stdint.h>
 
@@ -565,10 +569,14 @@ typedef struct l3_6route_s {
 static inline uint32_t
 rte_hash6_crc(const void *data, __attribute__ ((unused)) uint32_t data_len, uint32_t init_val)
 {
+#ifdef RTE_MACHINE_CPUFLAG_SSE4_2
 	const uint32_t *p32 = (const uint32_t *)data;
 	const uint16_t	val = *(const uint16_t *)p32;
 
 	return _mm_crc32_u32(val, _mm_crc32_u32(*p32++, init_val));
+#else
+    return rte_jhash(data, data_len, init_val);
+#endif
 }
 
 /* ethAddrCopy( u16_t * to, u16_t * from ) - Swap two Ethernet addresses */
