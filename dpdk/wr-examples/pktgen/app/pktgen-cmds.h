@@ -171,6 +171,7 @@ extern void pktgen_set_qinq(port_info_t * info, uint32_t onOff);
 extern void pktgen_set_qinqids(port_info_t * info, uint16_t outerid, uint16_t innerid);
 
 extern void pktgen_set_gre(port_info_t * info, uint32_t onOff);
+extern void pktgen_set_gre_eth(port_info_t * info, uint32_t onOff);
 extern void pktgen_set_gre_key(port_info_t * info, uint32_t gre_key);
 
 extern void pktgen_garp_enable_disable(port_info_t * info, char * str);

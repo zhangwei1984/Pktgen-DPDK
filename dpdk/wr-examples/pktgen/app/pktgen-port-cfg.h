@@ -123,8 +123,9 @@ enum {		// Per port flag bits
 	CAPTURE_PKTS			= 0x00002000,		/**< Capture received packets */
 	SEND_MPLS_LABEL			= 0x00004000,		/**< Send MPLS label */
 	SEND_Q_IN_Q_IDS			= 0x00008000,		/**< Send packets with Q-in-Q */
-	SEND_GRE_HEADER			= 0x00010000,		/**< Send GRE header */
-	SEND_RANDOM_PKTS		= 0x00020000		/**< Send random bitfields in packets */
+	SEND_GRE_IPv4_HEADER	= 0x00010000,		/**< Encapsulate IPv4 in GRE */
+	SEND_RANDOM_PKTS		= 0x00020000,		/**< Send random bitfields in packets */
+	SEND_GRE_ETHER_HEADER	= 0x00040000,		/**< Encapsulate Ethernet frame in GRE */
 };
 
 typedef struct port_info_s {

@@ -3,7 +3,7 @@
  * STUB: pktgen-cmds.h pktgen-main.h pktgen-capture.h lpktgenlib.h
  * STUB: pktgen-random.h rte_debug.h rte_cycles.h rte_timer.h cmdline.h
  * STUB: wr_copyright_info.h rte_pci.h wr_pcap.h cmdline_socket.h rte_scrn.h
- * STUB: cmdline_rdline.h
+ * STUB: cmdline_rdline.h pktgen-log.h
  *
  * LIBS: libwr_lua
  * SYSLIBS: m pthread

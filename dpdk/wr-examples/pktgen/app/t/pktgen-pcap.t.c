@@ -1,7 +1,7 @@
 /*
  * SOURCE: pktgen-pcap.c
  * STUB: pktgen.h rte_lcore.h wr_copyright_info.h rte_scrn.h wr_pcap.h
- * STUB: rte_mbuf.h rte_mempool.h rte_debug.h
+ * STUB: rte_mbuf.h rte_mempool.h rte_debug.h pktgen-display.h pktgen-log.h
  */
 
 

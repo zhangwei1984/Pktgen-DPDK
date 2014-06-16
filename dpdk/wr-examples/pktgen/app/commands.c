@@ -223,7 +223,8 @@ const char * help_info[] = {
 		"mpls_entry <portlist> <entry>      - Set the MPLS entry for the portlist (must be specified in hex)",
 		"qinq <portlist> <state>            - Enable/disable sending Q-in-Q header in packets",
 		"qinqids <portlist> <id1> <id2>     - Set the Q-in-Q ID's for the portlist",
-		"gre <portlist> <state>             - Enable/disable GRE encapsulation",
+		"gre <portlist> <state>             - Enable/disable GRE with IPv4 payload",
+		"gre_eth <portlist> <state>         - Enable/disable GRE with Ethernet frame payload",
 		"gre_key <portlist> <state>         - Set the GRE key",
 		"pcap <portlist> <state>            - Enable or Disable sending pcap packets on a portlist",
 		"pcap.show                          - Show the PCAP information",
@@ -326,7 +327,8 @@ const char * help_info[] = {
 		"                         M     - Send MPLS header",
 		"                         Q     - Send Q-in-Q tags",
 		"                          g    - Process GARP packets",
-		"                           G   - Perform GRE encapsulation",
+		"                           g   - Perform GRE with IPv4 payload",
+		"                           G   - Perform GRE with Ethernet payload",
 		"                            C  - Capture received packets",
 		"                             R - Random bitfield(s) are applied",
 		"",
@@ -3023,10 +3025,10 @@ struct cmd_gre_result {
 
 /**************************************************************************//**
 *
-* cmd_gre_parsed - Enable or Disable GRE encapsulation on each packet
+* cmd_gre_parsed - Enable or Disable GRE with IPv4 payload
 *
 * DESCRIPTION
-* Enable or Disable GRE encapsulation on each packet
+* Enable or Disable GRE with IPv4 payload
 *
 * RETURNS: N/A
 *
@@ -3060,6 +3062,57 @@ cmdline_parse_inst_t cmd_gre = {
 		(void *)&cmd_set_gre,
 		(void *)&cmd_set_gre_portlist,
 		(void *)&cmd_set_gre_onoff,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_gre_eth_result {
+	cmdline_fixed_string_t gre_eth;
+	cmdline_portlist_t portlist;
+	cmdline_fixed_string_t onOff;
+};
+
+/**************************************************************************//**
+*
+* cmd_gre_eth_parsed - Enable or Disable GRE with Ethernet payload
+*
+* DESCRIPTION
+* Enable or Disable GRE with Ethernet payload
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_gre_eth_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_gre_eth_result *res = parsed_result;
+
+	foreach_port(res->portlist.map,
+			pktgen_set_gre_eth(info, parseState(res->onOff)) );
+
+	pktgen_update_display();
+}
+
+cmdline_parse_token_string_t cmd_set_gre_eth =
+	TOKEN_STRING_INITIALIZER(struct cmd_gre_eth_result, gre_eth, "gre_eth");
+cmdline_parse_token_portlist_t cmd_set_gre_eth_portlist =
+	TOKEN_PORTLIST_INITIALIZER(struct cmd_gre_eth_result, portlist);
+cmdline_parse_token_string_t cmd_set_gre_eth_onoff =
+	TOKEN_STRING_INITIALIZER(struct cmd_gre_eth_result, onOff, "on#off#enable#disable");
+
+cmdline_parse_inst_t cmd_gre_eth = {
+	.f = cmd_gre_eth_parsed,
+	.data = NULL,
+	.help_str = "gre_eth <portlist> <state>",
+	.tokens = {
+		(void *)&cmd_set_gre_eth,
+		(void *)&cmd_set_gre_eth_portlist,
+		(void *)&cmd_set_gre_eth_onoff,
 		NULL,
 	},
 };
@@ -3840,6 +3893,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 		(cmdline_parse_inst_t *)&cmd_qinq,
 		(cmdline_parse_inst_t *)&cmd_qinqids,
 		(cmdline_parse_inst_t *)&cmd_gre,
+		(cmdline_parse_inst_t *)&cmd_gre_eth,
 		(cmdline_parse_inst_t *)&cmd_gre_key,
 	    (cmdline_parse_inst_t *)&cmd_clr,
 	    (cmdline_parse_inst_t *)&cmd_on,

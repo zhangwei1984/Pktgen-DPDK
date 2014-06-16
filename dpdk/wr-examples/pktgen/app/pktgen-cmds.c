@@ -191,7 +191,8 @@ pktgen_save(char * path)
 		fprintf(fd, "qinq %d %sable\n", i, (flags & SEND_Q_IN_Q_IDS) ? "en" : "dis");
 		fprintf(fd, "qinqids %d %d %d\n", i, pkt->qinq_outerid, pkt->qinq_innerid);
 
-		fprintf(fd, "gre %d %sable\n", i, (flags & SEND_GRE_HEADER) ? "en" : "dis");
+		fprintf(fd, "gre %d %sable\n", i, (flags & SEND_GRE_IPv4_HEADER) ? "en" : "dis");
+		fprintf(fd, "gre_eth %d %sable\n", i, (flags & SEND_GRE_ETHER_HEADER) ? "en" : "dis");
 		fprintf(fd, "gre_key %d %d\n", i, pkt->gre_key);
 
 		fprintf(fd, "#\n# Port flag values:\n");
@@ -454,7 +455,8 @@ pktgen_flags_string( port_info_t * info )
 				(flags & SEND_MPLS_LABEL)? 'M' :
 				(flags & SEND_Q_IN_Q_IDS)? 'Q' : '-',
             (flags & PROCESS_GARP_PKTS)? 'g' : '-',
-			(flags & SEND_GRE_HEADER)? 'G' : '-',
+			(flags & SEND_GRE_IPv4_HEADER)? 'g' :
+				(flags & SEND_GRE_ETHER_HEADER)? 'G' : '-',
 			(flags & CAPTURE_PKTS)? 'C' : '-',
 			(flags & SEND_RANDOM_PKTS) ? 'R' : '-');
 
@@ -1184,10 +1186,10 @@ pktgen_set_qinqids(port_info_t * info, uint16_t outerid, uint16_t innerid)
 
 /**************************************************************************//**
 *
-* pktgen_set_gre - Set the port to send a GRE header
+* pktgen_set_gre - Set the port to send GRE with IPv4 payload
 *
 * DESCRIPTION
-* Set the given port list to send GRE header.
+* Set the given port list to send GRE with IPv4 payload
 *
 * RETURNS: N/A
 *
@@ -1197,10 +1199,36 @@ pktgen_set_qinqids(port_info_t * info, uint16_t outerid, uint16_t innerid)
 void
 pktgen_set_gre(port_info_t * info, uint32_t onOff)
 {
-	if ( onOff == ENABLE_STATE )
-		pktgen_set_port_flags(info, SEND_GRE_HEADER);
+	if ( onOff == ENABLE_STATE ) {
+		pktgen_clr_port_flags(info, SEND_GRE_ETHER_HEADER);
+		pktgen_set_port_flags(info, SEND_GRE_IPv4_HEADER);
+	}
 	else
-		pktgen_clr_port_flags(info, SEND_GRE_HEADER);
+		pktgen_clr_port_flags(info, SEND_GRE_IPv4_HEADER);
+	pktgen_packet_ctor(info, SINGLE_PKT, -1);
+}
+
+/**************************************************************************//**
+*
+* pktgen_set_gre_eth - Set the port to send GRE with Ethernet payload
+*
+* DESCRIPTION
+* Set the given port list to send GRE with Ethernet payload
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_set_gre_eth(port_info_t * info, uint32_t onOff)
+{
+	if ( onOff == ENABLE_STATE ) {
+		pktgen_clr_port_flags(info, SEND_GRE_IPv4_HEADER);
+		pktgen_set_port_flags(info, SEND_GRE_ETHER_HEADER);
+	}
+	else
+		pktgen_clr_port_flags(info, SEND_GRE_ETHER_HEADER);
 	pktgen_packet_ctor(info, SINGLE_PKT, -1);
 }
 

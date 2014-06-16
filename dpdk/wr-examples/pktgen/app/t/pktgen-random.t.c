@@ -1,6 +1,7 @@
 /*
  * SOURCE: pktgen-random.c
- * STUB: rte_malloc.h wr_copyright_info.h rte_scrn.h
+ * STUB: rte_malloc.h wr_copyright_info.h rte_scrn.h pktgen-log.h
+ * STUB: pktgen-display.h
  *
  * LIBS:
  * SYSLIBS:

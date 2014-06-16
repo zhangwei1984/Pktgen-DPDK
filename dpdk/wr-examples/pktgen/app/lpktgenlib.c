@@ -1579,10 +1579,10 @@ static int pktgen_gre_key (lua_State *L) {
 
 /**************************************************************************//**
 *
-* pktgen_gre - Enable or Disable GRE
+* pktgen_gre - Enable or Disable GRE with IPv4 payload
 *
 * DESCRIPTION
-* Enable or disable insertion of GRE header.
+* Enable or disable GRE with IPv4 payload.
 *
 * RETURNS: N/A
 *
@@ -1600,6 +1600,34 @@ static int pktgen_gre (lua_State *L) {
 
 	foreach_port( portlist,
 		pktgen_set_gre(info, parseState(luaL_checkstring(L, 2))) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
+* pktgen_gre_eth - Enable or Disable GRE with Ethernet payload
+*
+* DESCRIPTION
+* Enable or disable GRE with Ethernet payload
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_gre_eth (lua_State *L) {
+	uint32_t	portlist;
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "gre_eth, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+
+	foreach_port( portlist,
+		pktgen_set_gre_eth(info, parseState(luaL_checkstring(L, 2))) );
 
 	pktgen_update_display();
 	return 0;
@@ -2387,7 +2415,8 @@ static char * lua_help_info[] = {
 	"vlan           - Enable or disable VLAN header\n",
 	"mpls           - Enable or disable MPLS header\n",
     "qinq           - Enable or disable Q-in-Q header\n",
-	"gre            - Enable or disable GRE header\n",
+	"gre            - Enable or disable GRE with IPv4 payload\n",
+	"gre_eth        - Enable or disable GRE with Ethernet payload\n",
 	"\n",
 	"Range commands\n",
 	"dst_mac        - Set the destination MAC address for a port\n",
@@ -2531,7 +2560,8 @@ static const luaL_Reg pktgenlib[] = {
 
   {"mpls",			pktgen_mpls},			// Enable or disable MPLS header
   {"qinq",			pktgen_qinq},			// Enable or disable Q-in-Q header
-  {"gre",           pktgen_gre},			// Enable or disable GRE header
+  {"gre",           pktgen_gre},			// Enable or disable GRE with IPv4 payload
+  {"gre_eth",		pktgen_gre_eth},		// Enable or disable GRE with Ethernet payload
 
   // Range commands
   {"dst_mac",		pktgen_dst_mac},		// Set the destination MAC address for a port

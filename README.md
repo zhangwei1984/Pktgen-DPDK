@@ -1,4 +1,4 @@
-Pktgen version 2.6.6 using DPDK-1.6.0
+Pktgen version 2.6.7 using DPDK-1.6.0
 =====================================
 
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
@@ -6,6 +6,7 @@ Pktgen version 2.6.6 using DPDK-1.6.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.6.7   - Add more support for GRE packets, log support and more testing code.
  - 2.6.6   - Fix compile problem when not SSE4.2 instructions are not supported. Allowing QEMU and other
              systems to build and run. Also added a patch to take into account huge reserved pages.
  - 2.6.5   - Added support for logging packet information.

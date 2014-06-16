@@ -1,7 +1,7 @@
 /*
  * SOURCE: pktgen-cmds.c
  * STUB: pktgen.h pktgen-range.h pktgen-seq.h rte_eal.h wr_copyright_info.h
- * STUB: rte_mempool.h rte_malloc.h cmdline.h
+ * STUB: rte_mempool.h rte_malloc.h cmdline.h pktgen-log.h
  *
  * SYSLIBS: pcap
  */

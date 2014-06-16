@@ -149,7 +149,7 @@
 
 
 /* Initialize log data structures */
-void pktgen_init_log(void);
+extern void pktgen_init_log(void);
 
 
 /**************************************************************************//**

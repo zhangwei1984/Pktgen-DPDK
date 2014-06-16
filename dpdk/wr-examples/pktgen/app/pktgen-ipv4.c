@@ -65,15 +65,12 @@
  */
 /* Created 2010 by Keith Wiles @ windriver.com */
 
-#include "pktgen.h"
+#include "pktgen-ipv4.h"
+
+#include <arpa/inet.h>
+
 #include "pktgen-log.h"
-
-
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
-extern pkt_seq_t * pktgen_find_matching_ipsrc( port_info_t * info, uint32_t addr );
-extern void pktgen_send_mbuf(struct rte_mbuf *m, uint8_t pid, uint8_t qid);
+#include "pktgen.h"
 
 
 /**************************************************************************//**

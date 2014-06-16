@@ -1,6 +1,6 @@
 /*
  * SOURCE: pktgen-dump.c
- * STUB: rte_malloc.h
+ * STUB: rte_malloc.h pktgen-log.h
  */
 
 #include "pktgen.h"

@@ -1,6 +1,6 @@
 /*
  * SOURCE: pktgen-ipv4.c
- * STUB: pktgen.h
+ * STUB: pktgen.h pktgen-log.h
  *
  * LIBS: libwr_common libwr_scrn
  */

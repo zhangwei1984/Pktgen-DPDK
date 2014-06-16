@@ -467,6 +467,13 @@ typedef struct greIp_s {
 	greHdr_t	gre;	/* GRE header for protocol */
 } __attribute__ ((__packed__)) greIp_t;
 
+/* the GRE/Ethernet header */
+typedef struct greEther_s {
+	ipHdr_t				ip;				/* Outer IPv4 header */
+	greHdr_t			gre;			/* GRE header */
+	struct ether_hdr	ether;			/* Inner Ethernet header */
+} __attribute__ ((__packed__)) greEther_t;
+
 
 /* Common defines for Ethernet */
 #define ETH_HW_TYPE					1		/* Ethernet hardware type */
@@ -485,6 +492,7 @@ typedef struct greIp_s {
 #define ETHER_TYPE_MPLS_MULTICAST	0x8848
 
 #define ETHER_TYPE_Q_IN_Q			0x88A8
+#define ETHER_TYPE_TRANSP_ETH_BR	0x6558	/* Transparent Ethernet Bridge */
 
 
 /* RARP and ARP opcodes */

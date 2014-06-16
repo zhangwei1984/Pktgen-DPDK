@@ -406,8 +406,11 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 	char *ether_hdr = pktgen_ether_hdr_ctor(info, pkt, eth);
 
 	/* Add GRE header and adjust ether_hdr pointer if requested */
-	if (rte_atomic32_read(&info->port_flags) & SEND_GRE_HEADER) {
+	if (rte_atomic32_read(&info->port_flags) & SEND_GRE_IPv4_HEADER) {
 		ether_hdr = pktgen_gre_hdr_ctor(info, pkt, (greIp_t *)ether_hdr);
+	}
+	else if (rte_atomic32_read(&info->port_flags) & SEND_GRE_ETHER_HEADER) {
+		ether_hdr = pktgen_gre_ether_hdr_ctor(info, pkt, (greEther_t *)ether_hdr);
 	}
 
     if ( likely(pkt->ethType == ETHER_TYPE_IPv4) ) {

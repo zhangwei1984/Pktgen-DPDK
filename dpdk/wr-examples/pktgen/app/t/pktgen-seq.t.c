@@ -1,6 +1,6 @@
 /*
  * SOURCE: pktgen-seq.c
- * STUB: wr_copyright_info.h rte_scrn.h
+ * STUB: wr_copyright_info.h rte_scrn.h pktgen-display.h
  */
 
 #include "pktgen.h"

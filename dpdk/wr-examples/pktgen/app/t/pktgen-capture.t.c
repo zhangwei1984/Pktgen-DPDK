@@ -1,5 +1,6 @@
 /*
  * SOURCE: pktgen-capture.c
+ * STUB: pktgen-log.h rte_scrn.h
  * LIBS:
  * SYSLIBS: pcap
  */

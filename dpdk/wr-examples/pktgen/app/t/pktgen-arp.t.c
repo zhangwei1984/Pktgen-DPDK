@@ -1,6 +1,6 @@
 /*
  * SOURCE: pktgen-arp.c
- * STUB: pktgen.h pktgen-cmds.h
+ * STUB: pktgen.h pktgen-cmds.h pktgen-log.h
  * LIBS: libwr_scrn
  */
 

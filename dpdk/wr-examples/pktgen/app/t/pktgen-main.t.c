@@ -3,7 +3,7 @@
  * STUB: pktgen.h rte_cycles.h rte_debug.h rte_eal.h rte_timer.h cmdline.h
  * STUB: rte_scrn.h wr_l2p.h wr_pcap.h pktgen-display.h wr_copyright_info.h
  * STUB: wr_port_config.h rte_pci.h lua-socket.h pktgen-port-cfg.h
- * STUB: rte_launch.h pktgen-cmds.h commands.h
+ * STUB: rte_launch.h pktgen-cmds.h commands.h pktgen-log.h
  */
 
 #include "pktgen.h"

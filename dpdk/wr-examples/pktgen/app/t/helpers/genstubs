@@ -7,7 +7,18 @@
 
 use feature "switch";
 
+# Set to 1 to print stub generation debugging info
+my $DEBUG = 0;
 
+
+sub debug {
+    return unless $DEBUG;
+
+    print STDERR "DEBUG: @_\n";
+}
+
+
+### Main program
 die "Usage: $0 <sourcefile> <stubfile>\n" .
     "\tRead C <sourcefile>, get all files referred in a STUB: directive " .
     "and generate weakly linked 'empty' functions.\n"
@@ -114,11 +125,20 @@ for my $header (@headers) {
     die "Could not find $header in include path (STUB directive in $src_fn)\n" unless $full_header_fn;
 
     print $out_fh "/*** Stubs for $header ($full_header_fn) ***/\n";
+    debug "==== Header: $header";
 
     my $line = '';
     until (eof $in_fh) {
         $_ = <$in_fh>;
         chomp;
+
+        # Handle preprocessor line continuations
+        while (/\\$/ && !eof($in_fh)) {
+            debug "Line continuation: [$_]";
+            s/\\$//;            # Remove trailing backspace
+            $_ .= <$in_fh>;     # ... and append next line
+            chomp;
+        }
 
         next if /^\s*#/;        # Skip preprocessor directives
 
@@ -181,6 +201,10 @@ for my $header (@headers) {
             next if $ret_type =~ /^\s*$/;           # function-like preprocessor macro's
 
             print $out_fh "${ret_type} ${func_name} ${func_params} __attribute__ ((weak, alias(\"_stub_${func_name}\"))); ";
+
+            # Remove __attribute__((...)) specifiers from the original function
+            # declaration
+            $func_params =~ s/__attribute__\(\(.*\)\)//;
 
             print $out_fh "${ret_type} _stub_${func_name} ${func_params} { ";
             print $out_fh "note(\"STUB called: $header: ${func_name}()\"); ";
