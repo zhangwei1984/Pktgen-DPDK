@@ -321,24 +321,29 @@ enum {	// Queue flags
 };
 
 enum {		// Pktgen flags bits
-	PRINT_LABELS_FLAG		= 0x00000001,		/**< Print constant labels on stats display */
-	MAC_FROM_ARP_FLAG		= 0x00000002,		/**< Configure the SRC MAC from a ARP request */
-	PROMISCUOUS_ON_FLAG		= 0x00000004,		/**< Enable promiscuous mode */
-	NUMA_SUPPORT_FLAG		= 0x00000008,		/**< Enable NUMA support */
-	CONFIG_PAGE_FLAG		= 0x00000010,		/**< Display the configure page */
-	SEQUENCE_PAGE_FLAG		= 0x00000020,		/**< Display the Packet sequence page */
-	FAKE_PORTS_FLAG			= 0x00000040,		/**< Fake ports enabled */
-	BLINK_PORTS_FLAG		= 0x00000080,		/**< Blink the port leds */
-	RANGE_PAGE_FLAG			= 0x00000100,		/**< Display the range page */
-	PCAP_PAGE_FLAG			= 0x00000200,		/**< Display the PCAP page */
-	CPU_PAGE_FLAG			= 0x00000400,		/**< Display the PCAP page */
-	IS_SERVER_FLAG			= 0x00000800,		/**< Pktgen is a Server */
-	ENABLE_GUI_FLAG			= 0x00001000,		/**< GUI support is enabled */
-	LUA_SHELL_FLAG			= 0x00002000,		/**< Enable Lua Shell */
-	TX_DEBUG_FLAG			= 0x00004000,		/**< TX Debug output */
-	RND_BITFIELD_PAGE_FLAG	= 0x00008000,		/**< Display the random bitfield page */
-	LOG_PAGE_FLAG			= 0x00010000		/**< Display the message log page */
+	PRINT_LABELS_FLAG		= (1 << 0),			/**< Print constant labels on stats display */
+	MAC_FROM_ARP_FLAG		= (1 << 1),			/**< Configure the SRC MAC from a ARP request */
+	PROMISCUOUS_ON_FLAG		= (1 << 2),			/**< Enable promiscuous mode */
+	NUMA_SUPPORT_FLAG		= (1 << 3),			/**< Enable NUMA support */
+	IS_SERVER_FLAG			= (1 << 4),			/**< Pktgen is a Server */
+	ENABLE_GUI_FLAG			= (1 << 5),			/**< GUI support is enabled */
+	LUA_SHELL_FLAG			= (1 << 6),			/**< Enable Lua Shell */
+	TX_DEBUG_FLAG			= (1 << 7),			/**< TX Debug output */
+	FAKE_PORTS_FLAG			= (1 << 9),			/**< Fake ports enabled */
+	BLINK_PORTS_FLAG		= (1 << 10),		/**< Blink the port leds */
+
+	CONFIG_PAGE_FLAG		= (1 << 16),		/**< Display the configure page */
+	SEQUENCE_PAGE_FLAG		= (1 << 17),		/**< Display the Packet sequence page */
+	RANGE_PAGE_FLAG			= (1 << 18),		/**< Display the range page */
+	PCAP_PAGE_FLAG			= (1 << 19),		/**< Display the PCAP page */
+	CPU_PAGE_FLAG			= (1 << 20),		/**< Display the PCAP page */
+	RND_BITFIELD_PAGE_FLAG	= (1 << 21),		/**< Display the random bitfield page */
+	LOG_PAGE_FLAG			= (1 << 22)			/**< Display the message log page */
 };
+
+#define	PAGE_MASK_BITS		(CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | \
+							 PCAP_PAGE_FLAG | CPU_PAGE_FLAG | RND_BITFIELD_PAGE_FLAG | \
+							 LOG_PAGE_FLAG)
 
 struct cmdline_etheraddr {
 	uint8_t	mac[6];
