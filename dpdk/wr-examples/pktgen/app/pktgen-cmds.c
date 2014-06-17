@@ -2010,62 +2010,27 @@ void pktgen_set_page( char * str )
 		}
 		pktgen.flags |= PRINT_LABELS_FLAG;
 	} else if ( (str[0] == 'c') && (str[1] == 'p') ) {
-		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
-		pktgen.flags &= ~CONFIG_PAGE_FLAG;
-		pktgen.flags &= ~RANGE_PAGE_FLAG;
-		pktgen.flags &= ~PCAP_PAGE_FLAG;
-		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
-		pktgen.flags &= ~LOG_PAGE_FLAG;
+		pktgen.flags &= ~PAGE_MASK_BITS;
 		pktgen.flags |= CPU_PAGE_FLAG;
 	} else if ( str[0] == 'p' ) {
-		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
-		pktgen.flags &= ~CONFIG_PAGE_FLAG;
-		pktgen.flags &= ~RANGE_PAGE_FLAG;
-		pktgen.flags &= ~CPU_PAGE_FLAG;
-		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
-		pktgen.flags &= ~LOG_PAGE_FLAG;
+		pktgen.flags &= ~PAGE_MASK_BITS;
 		pktgen.flags |= PCAP_PAGE_FLAG;
 		if ( pktgen.info[pktgen.portNum].pcap )
 			pktgen.info[pktgen.portNum].pcap->pkt_idx = 0;
 	} else if ( ( str[0] == 'r' ) && (str[1] == 'a') ) {
-		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
-		pktgen.flags &= ~CONFIG_PAGE_FLAG;
-		pktgen.flags &= ~PCAP_PAGE_FLAG;
-		pktgen.flags &= ~CPU_PAGE_FLAG;
-		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
-		pktgen.flags &= ~LOG_PAGE_FLAG;
+		pktgen.flags &= ~PAGE_MASK_BITS;
 		pktgen.flags |= RANGE_PAGE_FLAG;
 	} else if ( str[0] == 'c' ) {
-		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
-		pktgen.flags &= ~RANGE_PAGE_FLAG;
-		pktgen.flags &= ~PCAP_PAGE_FLAG;
-		pktgen.flags &= ~CPU_PAGE_FLAG;
-		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
-		pktgen.flags &= ~LOG_PAGE_FLAG;
+		pktgen.flags &= ~PAGE_MASK_BITS;
 		pktgen.flags |= CONFIG_PAGE_FLAG;
 	} else if ( str[0] == 's' ) {
-		pktgen.flags &= ~CONFIG_PAGE_FLAG;
-		pktgen.flags &= ~RANGE_PAGE_FLAG;
-		pktgen.flags &= ~PCAP_PAGE_FLAG;
-		pktgen.flags &= ~CPU_PAGE_FLAG;
-		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
-		pktgen.flags &= ~LOG_PAGE_FLAG;
+		pktgen.flags &= ~PAGE_MASK_BITS;
 		pktgen.flags |= SEQUENCE_PAGE_FLAG;
 	} else if ( str[0] == 'r') {
-		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
-		pktgen.flags &= ~RANGE_PAGE_FLAG;
-		pktgen.flags &= ~PCAP_PAGE_FLAG;
-		pktgen.flags &= ~CPU_PAGE_FLAG;
-		pktgen.flags &= ~CONFIG_PAGE_FLAG;
-		pktgen.flags &= ~LOG_PAGE_FLAG;
+		pktgen.flags &= ~PAGE_MASK_BITS;
 		pktgen.flags |= RND_BITFIELD_PAGE_FLAG;
 	} else if ( str[0] == 'l') {
-		pktgen.flags &= ~SEQUENCE_PAGE_FLAG;
-		pktgen.flags &= ~RANGE_PAGE_FLAG;
-		pktgen.flags &= ~PCAP_PAGE_FLAG;
-		pktgen.flags &= ~CPU_PAGE_FLAG;
-		pktgen.flags &= ~CONFIG_PAGE_FLAG;
-		pktgen.flags &= ~RND_BITFIELD_PAGE_FLAG;
+		pktgen.flags &= ~PAGE_MASK_BITS;
 		pktgen.flags |= LOG_PAGE_FLAG;
 	} else {
 		uint16_t start_port = (page * pktgen.nb_ports_per_page);
@@ -2075,8 +2040,8 @@ void pktgen_set_page( char * str )
 			if ( pktgen.ending_port > (pktgen.starting_port + pktgen.nb_ports) )
 				pktgen.ending_port = (pktgen.starting_port + pktgen.nb_ports);
 		}
-		if ( pktgen.flags & (CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | PCAP_PAGE_FLAG | CPU_PAGE_FLAG | RND_BITFIELD_PAGE_FLAG) ) {
-			pktgen.flags &= ~(CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | PCAP_PAGE_FLAG | CPU_PAGE_FLAG | RND_BITFIELD_PAGE_FLAG);
+		if ( pktgen.flags & PAGE_MASK_BITS ) {
+			pktgen.flags &= ~PAGE_MASK_BITS;
 			pktgen.flags |= PRINT_LABELS_FLAG;
 		}
 	}

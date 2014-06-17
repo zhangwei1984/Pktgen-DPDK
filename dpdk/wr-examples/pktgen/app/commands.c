@@ -226,6 +226,7 @@ const char * help_info[] = {
 		"gre <portlist> <state>             - Enable/disable GRE with IPv4 payload",
 		"gre_eth <portlist> <state>         - Enable/disable GRE with Ethernet frame payload",
 		"gre_key <portlist> <state>         - Set the GRE key",
+		"<<PageBreak>>",
 		"pcap <portlist> <state>            - Enable or Disable sending pcap packets on a portlist",
 		"pcap.show                          - Show the PCAP information",
 		"pcap.index                         - Move the PCAP file index to the given packet number,  0 - rewind, -1 - end of file",
@@ -235,7 +236,6 @@ const char * help_info[] = {
 #ifdef INCLUDE_PING6
 		"ping6 <portlist>                   - Send a IPv6 ICMP echo request on the given portlist",
 #endif
-		"<<PageBreak>>",
 		"page [0-7]|range|config|seq|pcap|next|cpu|rnd- Show the port pages or configuration or sequence page",
 		"     [0-7]                         - Page of different ports",
 		"     range                         - Display the range packet page",
