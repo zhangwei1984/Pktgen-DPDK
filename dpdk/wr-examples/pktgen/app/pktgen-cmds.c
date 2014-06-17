@@ -300,7 +300,7 @@ pktgen_save(char * path)
 int
 pktgen_port_transmitting(int port)
 {
-    return pktgen.info[port].transmitting;
+    return (rte_atomic32_read(&pktgen.info[port].port_flags) & SENDING_PACKETS);
 }
 
  /**************************************************************************//**
@@ -828,11 +828,11 @@ pktgen_start_transmitting(port_info_t * info)
 {
 	uint8_t		q;
 
-	if ( info->transmitting == 0 ) {
+	if ( !(rte_atomic32_read(&info->port_flags) & SENDING_PACKETS) ) {
 		for(q = 0; q < wr_get_port_txcnt(pktgen.l2p, info->pid); q++ )
 			pktgen_set_q_flags(info, q, CLEAR_FAST_ALLOC_FLAG);
 		info->current_tx_count	= info->transmit_count;
-		info->transmitting = 1;
+		pktgen_set_port_flags(info, SENDING_PACKETS);
 	}
 }
 
@@ -853,8 +853,8 @@ pktgen_stop_transmitting(port_info_t * info)
 {
 	uint8_t		q;
 
-	if ( info->transmitting == 1 ) {
-		info->transmitting = 0;
+	if ( rte_atomic32_read(&info->port_flags) & SENDING_PACKETS ) {
+		pktgen_clr_port_flags(info, SENDING_PACKETS);
 		for(q = 0; q < wr_get_port_txcnt(pktgen.l2p, info->pid); q++ )
 			pktgen_set_q_flags(info, q, DO_TX_CLEANUP);
 	}
@@ -879,7 +879,7 @@ pktgen_prime_ports(port_info_t * info)
 	uint8_t		q;
 
 	info->current_tx_count = info->prime_cnt;
-	info->transmitting = 1;
+	pktgen_set_port_flags(info, SENDING_PACKETS);
 	for(q = 0; q < wr_get_port_txcnt(pktgen.l2p, info->pid); q++ )
 		pktgen_set_q_flags(info, q, DO_TX_FLUSH);
 }

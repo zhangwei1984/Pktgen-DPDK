@@ -126,12 +126,13 @@ enum {		// Per port flag bits
 	SEND_GRE_IPv4_HEADER	= 0x00010000,		/**< Encapsulate IPv4 in GRE */
 	SEND_RANDOM_PKTS		= 0x00020000,		/**< Send random bitfields in packets */
 	SEND_GRE_ETHER_HEADER	= 0x00040000,		/**< Encapsulate Ethernet frame in GRE */
+	SENDING_PACKETS			= 0x80000000		/**< sending packets on this port */
 };
 
 typedef struct port_info_s {
 	uint16_t				pid;				/**< Port ID value */
 	uint16_t				tx_burst;			/**< Number of TX burst packets */
-	uint8_t					transmitting;		/**< Is port transmitting */
+	uint8_t					pad0;
 	uint8_t					tx_rate;			/**< Percentage rate for tx packets */
 	rte_atomic32_t			port_flags;			/**< Special send flags for ARP and other */
 
@@ -156,7 +157,7 @@ typedef struct port_info_s {
 	uint32_t				gre_key;			/**< GRE key if used */
 
 	uint16_t				nb_mbufs;			/**< Number of mbufs in the system */
-	uint16_t				pad0;
+	uint16_t				pad1;
 
 	pkt_stats_t				stats;				/**< Statistics for a number of stats */
 	port_sizes_t			sizes;				/**< Stats for the different packets sizes */

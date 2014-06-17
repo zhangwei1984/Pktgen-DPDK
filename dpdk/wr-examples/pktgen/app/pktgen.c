@@ -262,19 +262,21 @@ static __inline__ void
 pktgen_send_burst(port_info_t * info, uint8_t qid)
 {
 	struct mbuf_table	* mtab = &info->q[qid].tx_mbufs;
-	struct rte_mbuf **pkts = mtab->m_table;
+	struct rte_mbuf **pkts;
     uint32_t ret, cnt, i, flags;
 
-    if ( (cnt = mtab->len) == 0 )
+    if ( unlikely((cnt = mtab->len) == 0) )
     	return;
-
-	flags = rte_atomic32_read(&info->port_flags);
     mtab->len = 0;
+
+	pkts	= mtab->m_table;
+	flags	= rte_atomic32_read(&info->port_flags);
 	do {
-		if ( unlikely(flags & SEND_RANDOM_PKTS) ) {
+		if ( unlikely(flags & SEND_RANDOM_PKTS) )
 			pktgen_rnd_bits_apply(pkts, cnt, info->rnd_bitfields);
-		}
+
     	ret = rte_eth_tx_burst(info->pid, qid, pkts, cnt);
+
 		if ( unlikely(flags & PROCESS_TX_TAP_PKTS) ) {
 			for(i = 0; i < ret; i++) {
 				if ( write(info->tx_tapfd, rte_pktmbuf_mtod(pkts[i], char *), pkts[i]->pkt.pkt_len) < 0 )
@@ -302,8 +304,7 @@ static __inline__ void
 pktgen_tx_flush(port_info_t * info, uint8_t qid)
 {
 	// Flush any queued pkts to the driver.
-	if ( unlikely(info->q[qid].tx_mbufs.len) )
-		pktgen_send_burst(info, qid);
+	pktgen_send_burst(info, qid);
 
 	pktgen_clr_q_flags(info, qid, DO_TX_FLUSH);
 }
@@ -324,14 +325,18 @@ static __inline__ void
 pktgen_tx_cleanup(port_info_t * info, uint8_t qid)
 {
 	// Flush any done transmit buffers and descriptors.
-	pktgen_tx_flush(info, qid);
+	pktgen_send_burst(info, qid);
 
-	rte_delay_ms(25);
+	rte_delay_ms(500);
 
 	// Stop and start the device to flush TX and RX buffers from the device rings.
 	rte_eth_dev_stop(info->pid);
 
+	rte_delay_ms(250);
+
 	rte_eth_dev_start(info->pid);
+
+	rte_delay_ms(250);
 
 	pktgen_clr_q_flags(info, qid, DO_TX_CLEANUP);
 }
@@ -352,12 +357,15 @@ static __inline__ void
 pktgen_cleanup(uint8_t lid)
 {
 	port_info_t	* info;
-	uint8_t		idx, pid;
+	uint8_t		idx, pid, qid;
 
 	for( idx = 0; idx < wr_get_lcore_txcnt(pktgen.l2p, lid); idx++ ) {
 		pid = wr_get_tx_pid(pktgen.l2p, lid, idx);
-		if ( (info = (port_info_t *)wr_get_port_private(pktgen.l2p, pid)) != NULL )
-			pktgen_tx_cleanup(info, wr_get_txque(pktgen.l2p, lid, pid));
+		if ( (info = (port_info_t *)wr_get_port_private(pktgen.l2p, pid)) != NULL ) {
+			qid = wr_get_txque(pktgen.l2p, lid, pid);
+			pktgen_set_q_flags(info, qid, DO_TX_CLEANUP);
+			pktgen_tx_cleanup(info, qid);
+		}
 	}
 }
 
@@ -598,7 +606,7 @@ pktgen_send_mbuf(struct rte_mbuf *m, uint8_t pid, uint8_t qid)
     mtab->m_table[mtab->len++] = m;
 
     /* Fill our tx burst requirement */
-    if (unlikely(mtab->len == info->tx_burst))
+    if (unlikely(mtab->len >= info->tx_burst))
         pktgen_send_burst(info, qid);
 }
 
@@ -895,13 +903,13 @@ pktgen_send_pkts(port_info_t * info, uint8_t qid, struct rte_mempool * mp)
 		txCnt = info->tx_burst;
 
 	info->q[qid].tx_mbufs.len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, txCnt);
-	if ( likely(info->q[qid].tx_mbufs.len) )
-		pktgen_send_burst(info, qid);
+
+	pktgen_send_burst(info, qid);
 
 	if ( unlikely(info->current_tx_count) ) {
 		info->current_tx_count -= txCnt;
         if ( unlikely(info->current_tx_count == 0) ) {
-            info->transmitting = 0;
+			pktgen_clr_port_flags(info, SENDING_PACKETS);
             pktgen_set_q_flags(info, qid, DO_TX_CLEANUP);
         }
 	}
@@ -933,8 +941,8 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 		pktgen_send_special(info);
 
 	// When not transmitting on this port then continue.
-	if ( unlikely(info->transmitting == 0) )
-		info->current_tx_count 	= 0;
+	if ( unlikely((rte_atomic32_read(&info->port_flags) & SENDING_PACKETS) == 0) )
+		info->current_tx_count = 0;
 	else {
 		struct rte_mempool * mp	= info->q[qid].tx_mp;
 

@@ -154,7 +154,7 @@
 #include "pktgen-log.h"
 
 
-#define PKTGEN_VERSION			"2.6.7"
+#define PKTGEN_VERSION			"2.6.8"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -317,7 +317,7 @@ typedef struct pktgen_s {
 enum {	// Queue flags
 	DO_TX_CLEANUP			= 0x00000001,		/**< Do a TX cleanup */
 	CLEAR_FAST_ALLOC_FLAG	= 0x00000002,		/**< Clear the TX fast alloc flag */
-	DO_TX_FLUSH				= 0x00008004		/**< Do a TX Flush by sending all of the pkts in the queue */
+	DO_TX_FLUSH				= 0x00000004		/**< Do a TX Flush by sending all of the pkts in the queue */
 };
 
 enum {		// Pktgen flags bits
