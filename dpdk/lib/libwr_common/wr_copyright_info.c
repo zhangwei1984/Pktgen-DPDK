@@ -159,7 +159,7 @@ static const char * wr_copyright[] = {
 * wr_print_copyright - Print out the copyright notices.
 *
 * DESCRIPTION
-* Output the copyright notices for kSwitch and DPDK.
+* Output the copyright notices.
 *
 * RETURNS: N/A
 *
@@ -180,7 +180,9 @@ wr_print_copyright(char * appname, char * created_by)
 	for(i=0; wr_copyright[i] != NULL; i++)
 		printf_info("  %s\n", wr_copyright[i]);
 
+	scrn_fgcolor(YELLOW, OFF);
 	printf_info("  %s created by: %s -- >>> %s <<<\n", appname, created_by, POWERED_BY_DPDK);
+	scrn_fgcolor(WHITE, OFF);
 	printf_info("-----------------------\n");
 }
 
@@ -216,11 +218,15 @@ wr_logo(int row, int col, char * appname)
 	};
 
 	scrn_cls();
+	scrn_fgcolor(WHITE, BOLD);
 	for(i=0, row++; logo[i] != NULL; i++)
 		scrn_printf(row++, 7, "%s", logo[i]);
 
+	scrn_fgcolor(YELLOW, OFF);
 	scrn_printf(++row, col, "%s", COPYRIGHT_MSG);
+	scrn_fgcolor(BLUE, BOLD);
 	scrn_printf(++row, col+6, ">>> %s is %s <<<", appname, POWERED_BY_DPDK);
+	scrn_fgcolor(WHITE, OFF);
 	scrn_pos(++row, 1);
 
 	rte_delay_ms(1500);
@@ -235,10 +241,14 @@ wr_splash_screen(int row, int col, char * appname, char * created_by)
 	int		i;
 
 	row = 3;
+	scrn_fgcolor(YELLOW, OFF);
 	scrn_printf(row++, col, "%s", COPYRIGHT_MSG);
+	scrn_fgcolor(WHITE, BOLD);
 	for(i=0, row++; wr_copyright[i] != NULL; i++)
 		scrn_printf(row++, 7, "%s", wr_copyright[i]);
+	scrn_fgcolor(BLUE, BOLD);
 	scrn_printf(row++, col, "%s created by %s -- >>> %s <<<", appname, created_by, POWERED_BY_DPDK);
+	scrn_fgcolor(WHITE, OFF);
 	scrn_pos(++row, 1);
 
 	rte_delay_ms(1500);

@@ -76,6 +76,7 @@ rte_scrn_t *scrn;
 void
 pktgen_init_screen(void)
 {
+	scrn_fgcolor(WHITE, OFF);
 	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS);
 }
 
@@ -84,7 +85,12 @@ pktgen_init_screen(void)
 void
 display_topline(const char * msg)
 {
-		scrn_center(1, "%s  %s, %s", msg, wr_copyright_msg(), wr_powered_by());
+		scrn_printf(1, 20, "%s", msg);
+		scrn_fgcolor(YELLOW, OFF);
+		scrn_puts("  %s", wr_copyright_msg());
+		scrn_fgcolor(BLUE, BOLD);
+		scrn_puts(" %s", wr_powered_by());
+		scrn_fgcolor(WHITE, OFF);
 }
 
 
@@ -97,7 +103,9 @@ display_dashline(int last_row)
 	scrn_setw(last_row);
 	last_row--;
 	scrn_pos(last_row, 1);
+	scrn_fgcolor(BLUE, OFF);
 	for(i=0; i<(scrn->ncols-15); i++)
 		scrn_fprintf(0, 0, stdout, "-");
+	scrn_fgcolor(WHITE, OFF);
 	scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
 }

@@ -94,11 +94,14 @@ pktgen_print_static_data(void)
 
     display_topline("** Main Page **");
 
+	scrn_fgcolor(GREEN, BOLD);
     scrn_printf(1, 3, "Ports %d-%d of %d", pktgen.starting_port, (pktgen.ending_port - 1), pktgen.nb_ports);
 
     row = PORT_STATE_ROW;
+	scrn_fgcolor(BLUE, BOLD);
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  Flags:Port");
 
+	scrn_fgcolor(YELLOW, OFF);
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Link State");
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Pkts/s  Rx");
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "        Tx");
@@ -125,6 +128,7 @@ pktgen_print_static_data(void)
 		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Cycles per Tx");
 	}
 
+	scrn_fgcolor(MAGENTA, OFF);
     ip_row = ++row;
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Tx Count/% Rate");
     scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "PktSize/Tx Burst");
@@ -139,10 +143,12 @@ pktgen_print_static_data(void)
     pktgen.last_row = ++row;
     display_dashline(pktgen.last_row);
 
+	scrn_fgcolor(BLUE, BOLD);
     // Display the colon after the row label.
     for(row = PORT_STATE_ROW; row < ((ip_row + IP_ADDR_ROWS) - 2); row++)
         scrn_printf(row, COLUMN_WIDTH_0-1, ":");
 
+	scrn_fgcolor(WHITE, BOLD);
     sp = pktgen.starting_port;
     for (pid = 0; pid < pktgen.nb_ports_per_page; pid++) {
         if ( wr_get_map(pktgen.l2p, pid+sp, RTE_MAX_LCORE) == 0 )
@@ -179,7 +185,9 @@ pktgen_print_static_data(void)
 
     // Display the string for total pkts/s rate of all ports
     col = (COLUMN_WIDTH_1 * pktgen.nb_ports_per_page) + COLUMN_WIDTH_0;
+	scrn_fgcolor(RED, BOLD);
     scrn_printf(LINK_STATE_ROW, col, "%*s", COLUMN_WIDTH_1, "---TotalRate---"); scrn_eol();
+	scrn_fgcolor(WHITE, OFF);
 
     pktgen.flags &= ~PRINT_LABELS_FLAG;
 }
@@ -253,7 +261,9 @@ pktgen_page_stats(void)
 
         // Display the port number for the column
         snprintf(buff, sizeof(buff), "%s:%d", pktgen_flags_string(info), pid+sp);
+		scrn_fgcolor(BLUE, BOLD);
         scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
+		scrn_fgcolor(WHITE, OFF);
 
         row = LINK_STATE_ROW;
 
