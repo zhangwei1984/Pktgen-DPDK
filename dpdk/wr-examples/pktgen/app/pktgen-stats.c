@@ -72,6 +72,7 @@
 
 // Allocated the pktgen structure for global use
 extern    pktgen_t        pktgen;
+
 /**************************************************************************//**
 *
 * pktgen_print_static_data - Display the static data on the screen.
@@ -271,7 +272,9 @@ pktgen_page_stats(void)
         pktgen_get_link_status(info, pid, 0);
 
         pktgen_link_state(pid, buff, sizeof(buff));
+		scrn_fgcolor(YELLOW, BOLD);
         scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
+		scrn_fgcolor(WHITE, OFF);
 
         // Rx/Tx pkts/s rate
         row = LINK_STATE_ROW + 1;

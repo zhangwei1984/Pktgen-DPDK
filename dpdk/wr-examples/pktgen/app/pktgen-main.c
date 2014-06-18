@@ -385,7 +385,7 @@ main(int argc, char **argv)
     pktgen.nb_rxd           = DEFAULT_RX_DESC;
     pktgen.nb_txd           = DEFAULT_TX_DESC;
     pktgen.nb_ports_per_page= DEFAULT_PORTS_PER_PAGE;
-    pktgen.prompt			= "pktgen> ";
+    pktgen.prompt			= "\033[0;32mpktgen>\033[0;37m ";
 
     if ( (pktgen.l2p = wr_l2p_create()) == NULL )
 		pktgen_log_panic("Unable to create l2p");
