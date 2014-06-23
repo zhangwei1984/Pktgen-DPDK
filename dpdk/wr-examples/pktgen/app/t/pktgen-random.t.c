@@ -1,6 +1,6 @@
 /*
  * SOURCE: pktgen-random.c
- * STUB: rte_malloc.h wr_copyright_info.h rte_scrn.h pktgen-log.h
+ * STUB: rte_malloc.h wr_copyright_info.h pktgen-log.h
  * STUB: pktgen-display.h
  *
  * LIBS:
@@ -8,6 +8,11 @@
  */
 
 #include <arpa/inet.h>
+
+
+/* rte_scrn.h function stub */
+void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+void scrn_center(int16_t r, const char * fmt, ...) { return; }
 
 
 /* Test fixtures */
@@ -55,10 +60,6 @@ void _free_mbuf(struct rte_mbuf * m)
 	free(m->pkt.data);
 	free(m);
 }
-
-
-#include <rte_scrn.h>
-rte_scrn_t *scrn;
 
 
 /* Test function forward declarations */

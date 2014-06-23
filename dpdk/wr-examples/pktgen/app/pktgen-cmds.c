@@ -67,6 +67,7 @@
 
 #include "pktgen-cmds.h"
 
+#include "pktgen-display.h"
 #include "pktgen.h"
 
 /**************************************************************************//**
@@ -138,7 +139,9 @@ pktgen_save(char * path)
 	fprintf(fd, "\n#######################################################################\n");
 
 	fprintf(fd, "# Global configuration:\n");
-	fprintf(fd, "geometry %dx%d\n", scrn->ncols, scrn->nrows);
+	uint16_t rows, cols;
+	pktgen_display_get_geometry(&rows, &cols);
+	fprintf(fd, "geometry %dx%d\n", cols, rows);
 	fprintf(fd, "mac_from_arp %s\n\n", (pktgen.flags & MAC_FROM_ARP_FLAG)? "enable" : "disable");
 
 	for(i=0; i < RTE_MAX_ETHPORTS; i++) {
@@ -549,16 +552,19 @@ pktgen_set_page_size(uint32_t page_size)
 void
 pktgen_screen(const char * onOff)
 {
+	uint16_t rows;
+	pktgen_display_get_geometry(&rows, NULL);
+
 	if ( parseState(onOff) == DISABLE_STATE ) {
 		if ( !scrn_is_paused() ) {
 			scrn_pause();
 			scrn_cls();
 			scrn_setw(1);
-			scrn_pos(scrn->nrows, 1);
+			scrn_pos(rows, 1);
 		}
 	} else {
 		scrn_cls();
-		scrn_pos(scrn->nrows,1);
+		scrn_pos(rows,1);
 		scrn_setw(pktgen.last_row+1);
 		scrn_resume();
 		pktgen_redisplay(1);

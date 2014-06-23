@@ -81,12 +81,15 @@ typedef struct rte_scrn_s {
 	rte_atomic32_t	state;		//!< Screen state on or off
 	uint16_t		nrows;		//!< Max number of rows.
 	uint16_t		ncols;		//!< Max number of columns.
+	uint16_t		theme;		//!< Current theme state on or off
+	uint16_t		pad0;
 } rte_scrn_t;
 
 enum { SCRN_ON = 0, SCRN_OFF = 1 };
+enum { THEME_OFF = 0, THEME_ON = 1 };
 
-typedef enum { BLACK = 0, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE } color_e;
-typedef enum { OFF = 0, BOLD = 1, UNDERSCORE = 4, BLINK = 5, REVERSE = 7, CONCEALED = 8 } attr_e;
+typedef enum { BLACK = 0, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, DEFAULT = 9, DEFAULT_FG = 10, DEFAULT_BG = 11, UNKNOWN_COLOR=99 } color_e;
+typedef enum { OFF = 0, BOLD = 1, UNDERSCORE = 4, BLINK = 5, REVERSE = 7, CONCEALED = 8, UNKNOWN_ATTR = 99 } attr_e;
 
 extern rte_scrn_t * scrn;
 
@@ -205,13 +208,15 @@ static __inline__ void scrn_bgcolor( color_e color, attr_e attr ) {
     scrn_puts("\033[%d;%dm", attr, color + 40);
 }
 
+static __inline__ void scrn_color(color_e fg, color_e bg, attr_e attr) {
+	scrn_puts("\033[%d;%d;%dm", attr, fg + 30, bg + 40);
+}
+
 extern void scrn_center(int16_t r, const char * fmt, ...);
 extern void scrn_printf(int16_t r, int16_t c, const char * fmt, ...);
 extern void scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...);
 extern void scrn_snprintf(char * buff, int16_t len, const char * fmt, ...);
-extern rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols);
-extern void scrn_fgcolor(color_e color, attr_e attr);
-extern void scrn_bgcolor(color_e color, attr_e attr);
+extern rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols, int theme);
 
 #define printf_status(...)	scrn_fprintf(0, 0, stdout, __VA_ARGS__)
 #define printf_info(...)	scrn_fprintf(0, 0, stdout, __VA_ARGS__)

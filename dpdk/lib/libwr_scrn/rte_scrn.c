@@ -124,7 +124,7 @@ void scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...) {
 	fflush(f);
 }
 
-rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols)
+rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols, int theme)
 {
 	scrn = malloc(sizeof(rte_scrn_t));
 	if ( scrn == NULL )
@@ -135,6 +135,7 @@ rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols)
 
 	scrn->nrows		= nrows;
 	scrn->ncols		= ncols;
+	scrn->theme		= theme;
 
 	scrn_erase();
 

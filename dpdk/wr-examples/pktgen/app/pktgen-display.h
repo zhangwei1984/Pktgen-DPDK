@@ -68,15 +68,12 @@
 #ifndef _PKTGEN_DISPLAY_H_
 #define _PKTGEN_DISPLAY_H_
 
+/* TODO create pktgen_display_*() abstractions and remove this #include */
 #include <rte_scrn.h>
 
 #include <wr_copyright_info.h>
 
 #include "pktgen.h"
-
-
-/* Screen structure pointer */
-extern rte_scrn_t *scrn;
 
 
 /* Initialize screen data structures */
@@ -111,4 +108,101 @@ extern void display_topline(const char * msg);
 extern void display_dashline(int last_row);
 
 
+/**************************************************************************//**
+*
+* pktgen_display_set_geometry - Set the display geometry
+*
+* DESCRIPTION
+* Set the display geometry.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern void pktgen_display_set_geometry(uint16_t rows, uint16_t cols);
+
+
+/**************************************************************************//**
+*
+* pktgen_display_get_geometry - Get the display geometry
+*
+* DESCRIPTION
+* Get the display geometry.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern void pktgen_display_get_geometry(uint16_t *rows, uint16_t *cols);
+
+
+/**************************************************************************//**
+*
+* pktgen_display_set_color - Changes the color to the color of the specified element.
+*
+* DESCRIPTION
+* Changes the color to the color of the specified element.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern void pktgen_display_set_color(const char *elem);
+
+
+/**************************************************************************//**
+*
+* pktgen_get_prompt - Returns the string to use as a prompt. This string
+* includes ANSI color codes to style the prompt according to the color theme.
+*
+* DESCRIPTION
+* Returns string to use as prompt.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern const char *pktgen_get_prompt(void);
+
+/**************************************************************************//**
+*
+* pktgen_show_theme - Display the current color theme information
+*
+* DESCRIPTION
+* Display the current color theme information with color
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern void pktgen_show_theme(void);
+
+/**************************************************************************//**
+*
+* pktgen_set_theme_item - Set the given item name with the colors and attribute
+*
+* DESCRIPTION
+* Set the given theme item with the colors and attributes.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern void pktgen_set_theme_item( char * item, char * fg_color, char * bg_color, char * attr);
+
+/**************************************************************************//**
+*
+* pktgen_theme_save - Save the theme to a file.
+*
+* DESCRIPTION
+* Save a set of commands to set the theme colors and attributes.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern void pktgen_theme_save(char * filename);
+
 #endif	// _PKTGEN_DISPLAY_H_
+
+

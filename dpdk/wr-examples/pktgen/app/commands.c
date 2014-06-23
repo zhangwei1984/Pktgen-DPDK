@@ -104,7 +104,6 @@
 #include <cmdline_parse_string.h>
 #include <cmdline.h>
 #include <rte_atomic.h>
-#include <rte_scrn.h>
 #include <wr_copyright_info.h>
 
 #include "pktgen-cmds.h"
@@ -158,17 +157,17 @@ cmd_port_display(char * buff, uint32_t len, uint64_t portlist) {
 	return buff;
 }
 
- /**************************************************************************//**
- *
- * cmdline_pause - Pause the screen from scrolling and wait for a key.
- *
- * DESCRIPTION
- * Display a message and wait for a response.
- *
- * RETURNS: N/A
- *
- * SEE ALSO:
- */
+/**************************************************************************//**
+*
+* cmdline_pause - Pause the screen from scrolling and wait for a key.
+*
+* DESCRIPTION
+* Display a message and wait for a response.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
 
 void
 cmdline_pause(struct cmdline *cl, const char * msg)
@@ -257,6 +256,10 @@ const char * help_info[] = {
 		"stp                                - Stop all ports from transmitting",
 		"str                                - Start all ports transmitting",
 		"",
+		"theme <state>						- Enable or Disable the theme",
+		"theme <item> <fg> <bg> <attr>      - Set color for item with fg/bg color and attribute value",
+		"theme.show                         - List the item strings, colors and attributes to the items",
+		"theme.save <filename>              - Save the current color theme to a file",
 		"screen stop|start                  - stop/start updating the screen and unlock/lock window",
 		"off                                - screen off shortcut",
 		"on                                 - screen on shortcut",
@@ -396,6 +399,189 @@ cmdline_parse_inst_t cmd_help = {
 	.help_str = "show help",
 	.tokens = {        /* token list, NULL terminated */
 		(void *)&cmd_help_help,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_theme_state_result {
+	cmdline_fixed_string_t theme;
+	cmdline_fixed_string_t onOff;
+};
+
+/**************************************************************************//**
+*
+* cmd_theme_state - Enable or disable the theme
+*
+* DESCRIPTION
+* Enable or disable the theme.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_theme_state_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_theme_state_result *res = parsed_result;
+
+	pktgen_theme_state(res->onOff);
+	pktgen_cls();
+}
+
+cmdline_parse_token_string_t cmd_theme_theme =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_state_result, theme, "theme");
+cmdline_parse_token_string_t cmd_theme_onOff =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_state_result, onOff, "stop#start#off#on#enable#disable");
+
+cmdline_parse_inst_t cmd_theme_state = {
+	.f = cmd_theme_state_parsed,
+	.data = NULL,
+	.help_str = "theme <state>",
+	.tokens = {
+		(void *)&cmd_theme_theme,
+		(void *)&cmd_theme_onOff,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_theme_result {
+	cmdline_fixed_string_t theme;
+	cmdline_fixed_string_t item;
+	cmdline_fixed_string_t fg;
+	cmdline_fixed_string_t bg;
+	cmdline_fixed_string_t attr;
+};
+
+/**************************************************************************//**
+*
+* cmd_theme - Set a color for a given item
+*
+* DESCRIPTION
+* Set the given item to the give color/attr
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_theme_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_theme_result *res = parsed_result;
+
+	pktgen_set_theme_item(res->item, res->fg, res->bg, res->attr);
+}
+
+cmdline_parse_token_string_t cmd_theme_data =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_result, theme, "theme");
+cmdline_parse_token_string_t cmd_theme_item =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_result, item, NULL);
+cmdline_parse_token_string_t cmd_theme_fg =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_result, fg, NULL);
+cmdline_parse_token_string_t cmd_theme_bg =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_result, bg, NULL);
+cmdline_parse_token_string_t cmd_theme_attr =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_result, attr, NULL);
+
+cmdline_parse_inst_t cmd_theme = {
+	.f = cmd_theme_parsed,
+	.data = NULL,
+	.help_str = "theme <item> <fg> <bg> <attr>",
+	.tokens = {
+		(void *)&cmd_theme_data,
+		(void *)&cmd_theme_item,
+		(void *)&cmd_theme_fg,
+		(void *)&cmd_theme_bg,
+		(void *)&cmd_theme_attr,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_theme_show_result {
+	cmdline_fixed_string_t theme_show;
+};
+
+/**************************************************************************//**
+*
+* cmd_theme_show - show the item names and attributes
+*
+* DESCRIPTION
+* show the item names and attributes
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_theme_show_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	pktgen_theme_show();
+}
+
+cmdline_parse_token_string_t cmd_theme_show_data =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_show_result, theme_show, "theme.show");
+
+cmdline_parse_inst_t cmd_theme_show = {
+	.f = cmd_theme_show_parsed,
+	.data = NULL,
+	.help_str = "theme.show",
+	.tokens = {
+		(void *)&cmd_theme_show_data,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
+struct cmd_theme_save_result {
+	cmdline_fixed_string_t theme_save;
+	cmdline_fixed_string_t filename;
+};
+
+/**************************************************************************//**
+*
+* cmd_theme_save - Save a theme to a file
+*
+* DESCRIPTION
+* Save the current theme to a file.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_theme_save_parsed(void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	struct cmd_theme_save_result *res = parsed_result;
+
+	pktgen_theme_save(res->filename);
+}
+
+cmdline_parse_token_string_t cmd_theme_save_data =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_save_result, theme_save, "theme.save");
+cmdline_parse_token_string_t cmd_theme_save_filename =
+	TOKEN_STRING_INITIALIZER(struct cmd_theme_save_result, filename, NULL);
+
+cmdline_parse_inst_t cmd_theme_save = {
+	.f = cmd_theme_save_parsed,
+	.data = NULL,
+	.help_str = "theme.save filename",
+	.tokens = {
+		(void *)&cmd_theme_save_data,
+		(void *)&cmd_theme_save_filename,
 		NULL,
 	},
 };
@@ -743,19 +929,24 @@ static void cmd_set_geometry_parsed(void *parsed_result,
 {
 	struct cmd_set_geometry_result *res = parsed_result;
 
-	pktgen_log_debug("Current Geometry is %dx%d", pktgen.scrn->ncols, pktgen.scrn->nrows);
+	uint16_t rows, cols;
+	pktgen_display_get_geometry(&rows, &cols);
+	pktgen_log_debug("Old geometry is %dx%d", cols, rows);
 	if ( strcmp(res->what, "show") ) {
 		char * p;
+
 		p = strchr(res->what, 'x');
 		if ( p ) {
-			scrn->ncols	= strtol(res->what, NULL, 10);
-			scrn->nrows	= strtol(++p, NULL, 10);
+			rows = strtol(++p, NULL, 10);
+			cols = strtol(res->what, NULL, 10);
+
+			pktgen_display_set_geometry(rows, cols);
 			pktgen_cls();
-			pktgen_log_debug("New Geometry is %dx%d", pktgen.scrn->ncols, pktgen.scrn->nrows);
 		} else {
 			pktgen_log_error("Geometry string is invalid (%s) must be CxR format", res->what);
-			pktgen_log_error("Current Geometry is %dx%d", scrn->ncols, scrn->nrows);
 		}
+		pktgen_display_get_geometry(&rows, &cols);
+		pktgen_log_debug("New geometry is %dx%d", cols, rows);
 	}
 }
 
@@ -3903,6 +4094,10 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_rst,
 	    (cmdline_parse_inst_t *)&cmd_l2p,
 	    (cmdline_parse_inst_t *)&cmd_tx_debug,
+	    (cmdline_parse_inst_t *)&cmd_theme_state,
+	    (cmdline_parse_inst_t *)&cmd_theme_save,
+	    (cmdline_parse_inst_t *)&cmd_theme_show,
+	    (cmdline_parse_inst_t *)&cmd_theme,
 	NULL,
 };
 
@@ -3910,7 +4105,7 @@ void
 pktgen_cmdline_start(void)
 {
 	// Start up the command line, which exits on Control-D
-	pktgen.cl = cmdline_stdin_new(main_ctx, pktgen.prompt);
+	pktgen.cl = cmdline_stdin_new(main_ctx, pktgen_get_prompt());
 
 	if ( pktgen.cl && pktgen.cmd_filename ) {
 		pktgen_log_info("# *** Executing file (%s)", pktgen.cmd_filename);

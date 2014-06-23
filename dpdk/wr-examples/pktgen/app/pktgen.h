@@ -121,7 +121,6 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
-#include <rte_scrn.h>
 
 #include <wr_copyright_info.h>
 #include <wr_l2p.h>
@@ -264,7 +263,6 @@ typedef struct pktgen_s {
 	char				  * cmd_filename;		/**< Command file path and name */
 	void				  * L;					/**< Lua State pointer */
 	char				  * hostname;			/**< GUI hostname */
-	char				  * prompt;				/**< Pktgen command line prompt */
 	uint64_t				coremask;			/**< Coremask of lcores */
 
 	int32_t					socket_port;		/**< GUI port number */

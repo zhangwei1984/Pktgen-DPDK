@@ -1,6 +1,6 @@
 /*
  * SOURCE: pktgen-cpu.c
- * STUB: wr_copyright_info.h rte_scrn.h wr_coremap.h wr_lscpu.h wr_l2p.h
+ * STUB: wr_copyright_info.h wr_coremap.h wr_lscpu.h wr_l2p.h
  * STUB: pktgen-display.h pktgen-log.h
  *
  * xLIBS: libwr_common libwr_scrn librte_eal librte_mempool librte_malloc
@@ -10,8 +10,12 @@
 
 #include "pktgen.h"
 
+
+/* rte_scrn.h function stub */
+void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+
+
 pktgen_t pktgen;
-rte_scrn_t *scrn;
 
 
 // Test driver

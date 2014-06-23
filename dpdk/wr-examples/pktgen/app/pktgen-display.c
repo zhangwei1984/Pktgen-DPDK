@@ -66,18 +66,116 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen-display.h"
+#include "pktgen-cmds.h"
 
 
 /* Screen data structure */
 rte_scrn_t *scrn;
 
 
+/* String to color value mapping */
+typedef struct string_color_map_s {
+	char	  * name;	/**< Color name */
+	color_e		color;	/**< Color value for scrn_{fg,bg}color() */
+} string_color_map_t;
+
+string_color_map_t string_color_map[] = {
+	{ "black",		BLACK		},
+	{ "black",		DEFAULT_BG	},
+	{ "red",		RED			},
+	{ "green",		GREEN		},
+	{ "yellow",		YELLOW		},
+	{ "blue",		BLUE		},
+	{ "magenta",	MAGENTA		},
+	{ "cyan",		CYAN		},
+	{ "white",		WHITE		},
+	{ "white",		DEFAULT_FG	},
+	{ "default",	WHITE		},	/* alias */
+	NULL
+};
+
+/* String to attribute mapping */
+typedef struct string_attr_map_s {
+	char	  * name;	/**< Attribute name */
+	attr_e		attr;	/**< Attribute value for scrn_{fg,bg}color_attr() */
+} string_attr_map_t;
+
+string_attr_map_t string_attr_map[] = {
+	{ "off",		OFF			},
+	{ "default",	OFF			},	/* alias */
+	{ "bold",		BOLD		},
+	{ "bright",		BOLD		},	/* alias */
+	{ "underscore",	UNDERSCORE	},
+	{ "underline",	UNDERSCORE	},	/* alias */
+	{ "blink",		BLINK		},
+	{ "reverse",	REVERSE		},
+	{ "concealed",	CONCEALED	},
+	NULL
+};
+
+/* Element to color mapping */
+typedef struct theme_color_map_s {
+	char		  * name;		/**< Display element name */
+	color_e			fg_color;
+	color_e			bg_color;
+	attr_e			attr;
+} theme_color_map_t;
+
+theme_color_map_t theme_color_map[] = {
+//	{ "element name",		FG_COLOR,	BG_COLOR,	ATTR	}
+	{ "default",			DEFAULT_FG,	DEFAULT_BG,	OFF		},
+
+	/*
+	 * Top line of the screen
+	 */
+	{ "top.spinner",		CYAN,		DEFAULT_BG,	BOLD	},
+	{ "top.ports",			GREEN,		DEFAULT_BG,	BOLD	},
+	{ "top.page",			WHITE,		DEFAULT_BG,	BOLD	},
+	{ "top.copyright",		YELLOW,		DEFAULT_BG,	OFF		},
+	{ "top.poweredby",		BLUE,		DEFAULT_BG,	BOLD	},
+
+	/*
+	 * Separator between displayed values and command history
+	 */
+	{ "sep.dash",			BLUE,		DEFAULT_BG,	OFF		},
+	{ "sep.text",			WHITE,		DEFAULT_BG,	OFF		},
+
+	/*
+	 * Stats screen
+	 */
+	/* Port related */
+	{ "stats.port.label",	BLUE,		DEFAULT_BG,	BOLD	},
+	{ "stats.port.flags",	BLUE,		DEFAULT_BG,	BOLD	},
+	{ "stats.port.status",	YELLOW,		DEFAULT_BG,	BOLD	},
+
+	/* Dynamic elements (updated every second) */
+	{ "stats.dyn.label",	YELLOW,		DEFAULT_BG,	OFF		},
+	{ "stats.dyn.values",	YELLOW,		DEFAULT_BG,	OFF		},
+
+	/* Static elements (only update when explicitly set to different value) */
+	{ "stats.stat.label",	MAGENTA,	DEFAULT_BG,	OFF		},
+	{ "stats.stat.values",	WHITE,		DEFAULT_BG,	BOLD	},
+
+	/* Total statistics */
+	{ "stats.total.label",	RED,		DEFAULT_BG,	BOLD	},
+
+	/* Colon separating labels and values */
+	{ "stats.colon",		BLUE,		DEFAULT_BG,	BOLD	},
+
+	/*
+	 * Misc.
+	 */
+	{ "pktgen.prompt",		GREEN,		DEFAULT_BG,	OFF		},
+	NULL
+};
+
+
 /* Initialize screen data structures */
 void
 pktgen_init_screen(void)
 {
-	scrn_fgcolor(WHITE, OFF);
-	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS);
+	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, THEME_ON);
+	pktgen_display_set_color(NULL);
 }
 
 
@@ -86,11 +184,11 @@ void
 display_topline(const char * msg)
 {
 		scrn_printf(1, 20, "%s", msg);
-		scrn_fgcolor(YELLOW, OFF);
+		pktgen_display_set_color("top.copyright");
 		scrn_puts("  %s", wr_copyright_msg());
-		scrn_fgcolor(BLUE, BOLD);
+		pktgen_display_set_color("top.poweredby");
 		scrn_puts(" %s", wr_powered_by());
-		scrn_fgcolor(WHITE, OFF);
+		pktgen_display_set_color(NULL);
 }
 
 
@@ -103,9 +201,233 @@ display_dashline(int last_row)
 	scrn_setw(last_row);
 	last_row--;
 	scrn_pos(last_row, 1);
-	scrn_fgcolor(BLUE, OFF);
+	pktgen_display_set_color("sep.dash");
 	for(i=0; i<(scrn->ncols-15); i++)
 		scrn_fprintf(0, 0, stdout, "-");
-	scrn_fgcolor(WHITE, OFF);
+	pktgen_display_set_color("sep.text");
 	scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
+	pktgen_display_set_color(NULL);
+}
+
+/* Set the display geometry */
+void
+pktgen_display_set_geometry(uint16_t rows, uint16_t cols)
+{
+	scrn->nrows = rows;
+	scrn->ncols = cols;
+}
+
+/* Get the display geometry */
+void
+pktgen_display_get_geometry(uint16_t *rows, uint16_t *cols)
+{
+	if (rows != NULL)
+		*rows = scrn->nrows;
+
+	if (cols != NULL)
+		*cols = scrn->ncols;
+}
+
+
+/* Look up the named color in the colormap */
+static theme_color_map_t *
+lookup_item(const char *elem)
+{
+	theme_color_map_t *result;
+
+	if (elem == NULL)
+		elem = "default";
+
+	/* Look up colors and attributes for elem */
+	for (result = theme_color_map; result->name != NULL; ++result) {
+		if (strncasecmp(result->name, elem, 64) == 0) {
+			break;
+		}
+	}
+
+	/* Report failure if element is not found */
+	if (result->name == NULL)
+		result = NULL;
+
+	return result;
+}
+
+
+/* Changes the color to the color of the specified element */
+void
+pktgen_display_set_color(const char *elem) {
+	theme_color_map_t *theme_color;
+
+	if ( scrn->theme == THEME_OFF )
+		return;
+
+	theme_color = lookup_item(elem);
+	if (theme_color == NULL) {
+		pktgen_log_error("Unknown color '%s'", elem);
+		return;
+	}
+
+	scrn_color(theme_color->fg_color, theme_color->bg_color, theme_color->attr);
+}
+
+
+/* String to use as prompt, with proper ANSI color codes */
+const char *
+pktgen_get_prompt(void)
+{
+	static char prompt_str[64] = { 0 };
+	theme_color_map_t *def, *prompt;
+
+	if ( scrn->theme == THEME_OFF ) {
+		snprintf(prompt_str, sizeof(prompt_str), "%s> ", PKTGEN_APP_NAME);
+		return prompt_str;
+	}
+
+	def    = lookup_item(NULL);
+	prompt = lookup_item("pktgen.prompt");
+
+	if ((def == NULL) || ( prompt == NULL)) {
+		pktgen_log_error("Prompt or default color undefined");
+		return;
+	}
+
+	snprintf(prompt_str, sizeof(prompt_str), "\033[%d;%d;%dm%s>\033[%d;%d;%dm ",
+			prompt->attr, 30 + prompt->fg_color, 40 + prompt->bg_color,
+			PKTGEN_APP_NAME,
+			def->attr,    30 + def->fg_color,    40 + def->bg_color);
+
+	return prompt_str;
+}
+
+
+static char *
+get_name_by_color(color_e color)
+{
+	int		i;
+
+	for(i = 0; string_color_map[i].name; i++)
+		if ( color == string_color_map[i].color )
+			return string_color_map[i].name;
+	return NULL;
+}
+
+
+static char *
+get_name_by_attr(attr_e attr)
+{
+	int		i;
+
+	for(i = 0; string_attr_map[i].name; i++)
+		if ( attr == string_attr_map[i].attr )
+			return string_attr_map[i].name;
+	return NULL;
+}
+
+
+static color_e
+get_color_by_name(char * name)
+{
+	int		i;
+
+	for(i = 0; string_color_map[i].name; i++)
+		if ( strcmp(name, string_color_map[i].name) == 0 )
+			return string_color_map[i].color;
+	return UNKNOWN_COLOR;
+}
+
+
+static attr_e
+get_attr_by_name(char * name)
+{
+	int		i;
+
+	for(i = 0; string_attr_map[i].name; i++)
+		if ( strcmp(name, string_attr_map[i].name) == 0 )
+			return string_attr_map[i].attr;
+	return UNKNOWN_ATTR;
+}
+
+
+void
+pktgen_theme_show(void)
+{
+	int		i;
+
+	printf("*** Theme Color Map Names (%s) ***\n", scrn->theme ? "Enabled" : "Disabled");
+	printf("   %-30s %-10s %-10s %s\n", "name", "FG Color", "BG Color", "Attribute");
+	for(i=0; theme_color_map[i].name; i++) {
+		printf("   %-32s %-10s %-10s %-6s",
+			theme_color_map[i].name,
+			get_name_by_color(theme_color_map[i].fg_color),
+			get_name_by_color(theme_color_map[i].bg_color),
+			get_name_by_attr(theme_color_map[i].attr));
+		printf("     ");
+		pktgen_display_set_color(theme_color_map[i].name);
+		printf("%-s", theme_color_map[i].name);
+		pktgen_display_set_color("default");
+		printf("\n");
+	}
+}
+
+
+void
+pktgen_theme_state(const char * state)
+{
+	if ( parseState(state) == DISABLE_STATE )
+		scrn->theme = THEME_OFF;
+	else
+		scrn->theme = THEME_ON;
+	cmdline_set_prompt(pktgen.cl, pktgen_get_prompt());
+}
+
+void
+pktgen_set_theme_item( char * item, char * fg_color, char * bg_color, char * attr)
+{
+	theme_color_map_t *	elem;
+	color_e	fg, bg;
+	attr_e	at;
+
+	elem = lookup_item(item);
+
+	if ( elem == NULL ) {
+		pktgen_log_error("Unknown item name (%s)\n", item);
+		return;
+	}
+
+	fg = get_color_by_name(fg_color);
+	bg = get_color_by_name(bg_color);
+	at = get_attr_by_name(attr);
+
+	if ( (fg == UNKNOWN_COLOR) || (bg == UNKNOWN_COLOR) || (at == UNKNOWN_ATTR) ) {
+		pktgen_log_error("Unknown color or attribute (%s, %s, %s)\n", fg_color, bg_color, attr);
+		return;
+	}
+
+	elem->fg_color	= fg;
+	elem->bg_color	= bg;
+	elem->attr		= at;
+}
+
+void
+pktgen_theme_save(char * filename)
+{
+	FILE *	f;
+	int		i;
+
+	f = fopen(filename, "w+");
+	if ( f == NULL ) {
+		pktgen_log_error("Unable to open file %s\n", filename);
+		return;
+	}
+
+	for(i = 0; theme_color_map[i].name; i++) {
+		fprintf(f, "theme %s %s %s %s\n",
+			theme_color_map[i].name,
+			get_name_by_color(theme_color_map[i].fg_color),
+			get_name_by_color(theme_color_map[i].bg_color),
+			get_name_by_attr(theme_color_map[i].attr));
+	}	
+	fprintf(f, "cls\n");
+
+	fclose(f);
 }

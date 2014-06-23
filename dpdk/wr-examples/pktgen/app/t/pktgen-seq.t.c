@@ -1,7 +1,11 @@
 /*
  * SOURCE: pktgen-seq.c
- * STUB: wr_copyright_info.h rte_scrn.h pktgen-display.h
+ * STUB: wr_copyright_info.h pktgen-display.h
  */
+
+/* rte_scrn.h function stub */
+void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+
 
 #include "pktgen.h"
 

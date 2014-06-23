@@ -1,15 +1,17 @@
 /*
  * SOURCE: pktgen-cmds.c
  * STUB: pktgen.h pktgen-range.h pktgen-seq.h rte_eal.h wr_copyright_info.h
- * STUB: rte_mempool.h rte_malloc.h cmdline.h pktgen-log.h
+ * STUB: rte_mempool.h rte_malloc.h cmdline.h pktgen-log.h pktgen-display.h
  *
  * SYSLIBS: pcap
  */
 
 #include "pktgen.h"
 
-pktgen_t pktgen;
+#include <rte_scrn.h>
 rte_scrn_t *scrn;
+
+pktgen_t pktgen;
 
 /* Stubs for rte_ethdev.h. The stub generator doesn't handle #ifdef guarded
  * function declarations like those used in rte_ethdev.h yet. */

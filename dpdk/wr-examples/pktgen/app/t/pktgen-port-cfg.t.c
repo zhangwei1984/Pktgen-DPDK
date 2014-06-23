@@ -1,6 +1,6 @@
 /*
  * SOURCE: pktgen-port-cfg.c
- * STUB: rte_lcore.h rte_eal.h rte_scrn.h rte_mbuf.h rte_mempool.h rte_debug.h
+ * STUB: rte_lcore.h rte_eal.h rte_mbuf.h rte_mempool.h rte_debug.h
  * STUB: wr_l2p.h rte_malloc.h pktgen-pcap.h pktgen-stats.h pktgen-cmds.h
  * STUB: pktgen-range.h pktgen-random.h pktgen-capture.h pktgen-log.h
  */

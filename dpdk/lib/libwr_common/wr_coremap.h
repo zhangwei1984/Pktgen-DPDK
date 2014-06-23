@@ -68,6 +68,9 @@
 #ifndef __INC_COREMAP_H
 #define __INC_COREMAP_H
 
+#include <stdint.h>
+
+
 #define PROC_CPUINFO "/proc/cpuinfo"
 
 typedef union {
