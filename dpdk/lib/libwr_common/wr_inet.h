@@ -74,7 +74,7 @@
 #ifdef RTE_MACHINE_CPUFLAG_SSE4_2
 #include <nmmintrin.h>
 #else
-#include <rte_jash.h>
+#include <rte_jhash.h>
 #endif
 #include <stdio.h>
 #include <stdint.h>
