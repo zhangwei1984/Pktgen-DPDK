@@ -34,7 +34,11 @@
 #ifndef __WR_L2P_H
 #define __WR_L2P_H
 
+#include <string.h>
+
 #include <rte_memory.h>
+#include <rte_atomic.h>
+
 
 #define MAX_MATRIX_ENTRIES      128
 #define MAX_STRING              256

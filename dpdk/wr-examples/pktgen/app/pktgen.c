@@ -907,7 +907,10 @@ pktgen_send_pkts(port_info_t * info, uint8_t qid, struct rte_mempool * mp)
 	pktgen_send_burst(info, qid);
 
 	if ( unlikely(info->current_tx_count) ) {
-		info->current_tx_count -= txCnt;
+		if ( txCnt > info->current_tx_count )
+			info->current_tx_count = 0;
+		else
+			info->current_tx_count -= txCnt;
         if ( unlikely(info->current_tx_count == 0) ) {
 			pktgen_clr_port_flags(info, SENDING_PACKETS);
             pktgen_set_q_flags(info, qid, DO_TX_CLEANUP);
@@ -1269,7 +1272,9 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
 
     scrn_save();
 
+	pktgen_display_set_color("top.spinner");
     scrn_printf(1,1, "%c", "-\\|/"[(counter++ & 3)]);
+	pktgen_display_set_color(NULL);
 
     if ( pktgen.flags & CPU_PAGE_FLAG )
         pktgen_page_cpu();

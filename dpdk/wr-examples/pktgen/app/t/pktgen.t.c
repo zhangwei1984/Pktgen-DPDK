@@ -1,11 +1,18 @@
 /*
  * SOURCE: pktgen.c pktgen-ether.c pktgen-udp.c pktgen-ipv4.c pktgen-gre.c
- * STUB: rte_cycles.h rte_eal.h rte_scrn.h wr_copyright_info.h pktgen-random.h
+ * STUB: rte_cycles.h rte_eal.h wr_copyright_info.h pktgen-random.h
  * STUB: pktgen-ether.h pktgen-gre.h pktgen-tcp.h pktgen-ipv4.h pktgen-udp.h
  * STUB: wr_cksum.h pktgen-ipv6.h pktgen-arp.h pktgen-vlan.h pktgen-range.h
  * STUB: pktgen-dump.h pktgen-capture.h pktgen-cpu.h pktgen-pcap.h pktgen-seq.h
  * STUB: pktgen-stats.h rte_timer.h pktgen-log.h pktgen-display.h
  */
+
+
+/* rte_scrn.h fake functions */
+#include <rte_scrn.h>
+void scrn_center(int16_t r, const char * fmt, ...) { return; }
+void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+rte_scrn_t *scrn = NULL;
 
 
 /*

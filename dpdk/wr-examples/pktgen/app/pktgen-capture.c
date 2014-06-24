@@ -73,6 +73,7 @@
 
 #include "pktgen-cmds.h"
 #include "pktgen-log.h"
+#include "pktgen-display.h"
 
 
 /**************************************************************************//**

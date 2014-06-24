@@ -1,14 +1,19 @@
 /*
  * SOURCE: pktgen-pcap.c
- * STUB: pktgen.h rte_lcore.h wr_copyright_info.h rte_scrn.h wr_pcap.h
+ * STUB: pktgen.h rte_lcore.h wr_copyright_info.h wr_pcap.h
  * STUB: rte_mbuf.h rte_mempool.h rte_debug.h pktgen-display.h pktgen-log.h
  */
 
 
 #include "pktgen.h"
 
+/* rte_scrn.h function stub */
+void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+void scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...) { return; }
+void scrn_center(int16_t r, const char * fmt, ...) { return; }
+
+
 pktgen_t pktgen;
-rte_scrn_t *scrn;
 
 
 // Test driver

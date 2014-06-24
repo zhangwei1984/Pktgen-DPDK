@@ -1,8 +1,12 @@
 /*
  * SOURCE: pktgen-stats.c
- * STUB: rte_cycles.h wr_copyright_info.h rte_scrn.h pktgen-cmds.h
+ * STUB: rte_cycles.h wr_copyright_info.h pktgen-cmds.h
  * STUB: pktgen-display.h
  */
+
+/* rte_scrn.h function stub */
+void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+void scrn_snprintf(char * buff, int16_t len, const char * fmt, ...) { return; }
 
 
 /*
