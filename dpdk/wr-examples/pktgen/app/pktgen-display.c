@@ -81,7 +81,7 @@ typedef struct string_color_map_s {
 
 string_color_map_t string_color_map[] = {
 	{ "black",		BLACK		},
-	{ "black",		DEFAULT_BG	},
+	{ "black",		DEFAULT_FG	},
 	{ "red",		RED			},
 	{ "green",		GREEN		},
 	{ "yellow",		YELLOW		},
@@ -89,7 +89,7 @@ string_color_map_t string_color_map[] = {
 	{ "magenta",	MAGENTA		},
 	{ "cyan",		CYAN		},
 	{ "white",		WHITE		},
-	{ "white",		DEFAULT_FG	},
+	{ "white",		DEFAULT_BG	},
 	{ "default",	WHITE		},	/* alias */
 	NULL
 };
@@ -175,7 +175,7 @@ void
 pktgen_init_screen(void)
 {
 	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, THEME_ON);
-	pktgen_display_set_color(NULL);
+	//pktgen_display_set_color(NULL);
 }
 
 

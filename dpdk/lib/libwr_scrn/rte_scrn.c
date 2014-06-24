@@ -136,6 +136,8 @@ rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols, int theme)
 	scrn->nrows		= nrows;
 	scrn->ncols		= ncols;
 	scrn->theme		= theme;
+	if ( theme )
+		scrn_puts("\033[39;49m");
 
 	scrn_erase();
 

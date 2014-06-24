@@ -88,7 +88,8 @@ typedef struct rte_scrn_s {
 enum { SCRN_ON = 0, SCRN_OFF = 1 };
 enum { THEME_OFF = 0, THEME_ON = 1 };
 
-typedef enum { BLACK = 0, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, DEFAULT = 9, DEFAULT_FG = 10, DEFAULT_BG = 11, UNKNOWN_COLOR=99 } color_e;
+typedef enum { BLACK = 0, RED = 1, GREEN = 2, YELLOW = 3, BLUE = 4, MAGENTA = 5, CYAN = 6, WHITE = 7,
+			   RGB = 8, DEFAULT_FG = 9, DEFAULT_BG = 9, UNKNOWN_COLOR=99 } color_e;
 typedef enum { OFF = 0, BOLD = 1, UNDERSCORE = 4, BLINK = 5, REVERSE = 7, CONCEALED = 8, UNKNOWN_ATTR = 99 } attr_e;
 
 extern rte_scrn_t * scrn;
@@ -210,6 +211,10 @@ static __inline__ void scrn_bgcolor( color_e color, attr_e attr ) {
 
 static __inline__ void scrn_color(color_e fg, color_e bg, attr_e attr) {
 	scrn_puts("\033[%d;%d;%dm", attr, fg + 30, bg + 40);
+}
+
+static __inline__ void scrn_color256(uint8_t fb, uint8_t r, uint8_t g, uint8_t b) {
+	scrn_puts("\033[%d;2;%d;%d;%dm", fb, r, g, b);
 }
 
 extern void scrn_center(int16_t r, const char * fmt, ...);
