@@ -2039,7 +2039,10 @@ void pktgen_set_page( char * str )
 		pktgen.flags &= ~PAGE_MASK_BITS;
 		pktgen.flags |= LOG_PAGE_FLAG;
 	} else {
-		uint16_t start_port = (page * pktgen.nb_ports_per_page);
+		uint16_t start_port;
+		if ( str[0] == 'm' )
+			page = 0;
+		start_port = (page * pktgen.nb_ports_per_page);
 		if ( (pktgen.starting_port != start_port) && (start_port < pktgen.nb_ports) ) {
 			pktgen.starting_port	= start_port;
 			pktgen.ending_port		= start_port + pktgen.nb_ports_per_page;
