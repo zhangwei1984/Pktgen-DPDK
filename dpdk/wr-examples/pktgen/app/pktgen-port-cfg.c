@@ -390,6 +390,6 @@ void pktgen_config_ports(void)
     }
 	pktgen_log_info("");
 
-	for (sid = 0; sid < RTE_MAX_NUMA_NODES; sid++)
+	for (sid = 0; sid < wr_coremap_cnt(pktgen.core_info, pktgen.core_cnt, 0); sid++)
 		pktgen_packet_capture_init(&pktgen.capture[sid], sid);
 }

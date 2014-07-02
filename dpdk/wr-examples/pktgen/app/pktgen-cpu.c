@@ -66,6 +66,7 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen-display.h"
+#include "pktgen-cpu.h"
 #include "pktgen-log.h"
 
 #include "pktgen.h"
@@ -121,15 +122,13 @@ pktgen_page_cpu(void)
 
     row = PORT_STATE_ROW;
 
-    pktgen_get_uname();
-    memset(&pktgen.core_info, 0xff, (sizeof(lc_info_t) * RTE_MAX_LCORE));
-    cnt = wr_coremap("array", pktgen.core_info, RTE_MAX_LCORE, NULL);
-    pktgen.lscpu		= wr_lscpu_info(NULL, NULL);
-    pktgen.core_cnt		= cnt;
+	if ( (pktgen.core_cnt == 0) || (pktgen.lscpu == NULL) )
+		pktgen_cpu_init();
 
-    nb_sockets = wr_coremap_cnt(pktgen.core_info, cnt, 0);
-    nb_cores = wr_coremap_cnt(pktgen.core_info, cnt, 1);
-    nb_threads = wr_coremap_cnt(pktgen.core_info, cnt, 2);
+	cnt			= pktgen.core_cnt;
+    nb_sockets	= wr_coremap_cnt(pktgen.core_info, cnt, 0);
+    nb_cores	= wr_coremap_cnt(pktgen.core_info, cnt, 1);
+    nb_threads	= wr_coremap_cnt(pktgen.core_info, cnt, 2);
 
     if ( (counter++ & 3) != 0 )
     	return;
@@ -176,4 +175,26 @@ pktgen_page_cpu(void)
 		scrn_printf(100, 1, "");        // Put cursor on the last row.
 	}
     pktgen.flags &= ~PRINT_LABELS_FLAG;
+}
+
+
+/**************************************************************************//**
+*
+* pktgen_cpu_init - Init the CPU information
+*
+* DESCRIPTION
+* initialize the CPU information
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+void
+pktgen_cpu_init(void)
+{
+    pktgen_get_uname();
+    memset(&pktgen.core_info, 0xff, (sizeof(lc_info_t) * RTE_MAX_LCORE));
+    pktgen.core_cnt		= wr_coremap("array", pktgen.core_info, RTE_MAX_LCORE, NULL);
+    pktgen.lscpu		= wr_lscpu_info(NULL, NULL);
 }

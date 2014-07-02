@@ -69,6 +69,7 @@
 #define _PKTGEN_CPU_H_
 
 
+extern void pktgen_cpu_init(void);
 extern void pktgen_page_cpu(void);
 
 

@@ -377,6 +377,7 @@ main(int argc, char **argv)
     /* Initialize the screen and logging */
     pktgen_init_log();
     pktgen_init_screen();
+	pktgen_cpu_init();
 
     wr_print_copyright(PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
 
