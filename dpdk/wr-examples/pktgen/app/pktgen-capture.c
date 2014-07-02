@@ -66,6 +66,7 @@
 /* Created 2010 by Keith Wiles @ windriver.com */
 
 #include "pktgen-capture.h"
+#include <time.h>
 
 #include <rte_memcpy.h>
 #include <rte_memzone.h>
@@ -74,7 +75,6 @@
 #include "pktgen-cmds.h"
 #include "pktgen-log.h"
 #include "pktgen-display.h"
-
 
 /**************************************************************************//**
 *
@@ -100,9 +100,9 @@ void pktgen_packet_capture_init(capture_t *capture, int socket_id)
 	if (!capture)
 		return;
 
-	capture->lcore    = RTE_MAX_LCORE;
-	capture->port     = RTE_MAX_ETHPORTS;
-	capture->mem_used = 0;
+	capture->lcore	= RTE_MAX_LCORE;
+	capture->port	= RTE_MAX_ETHPORTS;
+	capture->used	= 0;
 
 	rte_snprintf(memzone_name, sizeof(memzone_name), "Capture_MZ_%d", socket_id);
 	capture->mz = rte_memzone_reserve(memzone_name, 0, socket_id,
@@ -130,6 +130,8 @@ void pktgen_packet_capture_init(capture_t *capture, int socket_id)
 void
 pktgen_set_capture(port_info_t * info, uint32_t onOff)
 {
+	capture_t	* cap;
+
 	if ( onOff == ENABLE_STATE ) {
 		/* Enabling an aleady enabled port is a no-op */
 		if ( rte_atomic32_read(&info->port_flags) & CAPTURE_PKTS )
@@ -163,26 +165,31 @@ found_rx_lid:
 			return;
 		}
 
-		if (pktgen.capture[sid].lcore != RTE_MAX_LCORE) {
-			pktgen_log_warning("Lcore %d is already capturing on socket %d and only 1 lcore can capture on a socket. Disable capturing on the port associated with this lcore first.", pktgen.capture[sid].lcore, sid);
+		cap = &pktgen.capture[sid];
+
+		if (cap->lcore != RTE_MAX_LCORE) {
+			pktgen_log_warning("Lcore %d is already capturing on socket %d and only 1 lcore can capture on a socket.\nDisable capturing on the port associated with this lcore first.", cap->lcore, sid);
 			return;
 		}
 
 		// Everything checks out: enable packet capture
-		pktgen.capture[sid].mem_used = 0;
-		pktgen.capture[sid].lcore = lid;
-		pktgen.capture[sid].port = info->pid;
+		cap->used	= 0;
+		cap->lcore	= lid;
+		cap->port	= info->pid;
+		cap->tail	= (cap_hdr_t *)cap->mz->addr;
+		cap->end	= (cap_hdr_t *)(cap->mz->addr + (cap->mz->len - sizeof(cap_hdr_t)));
 
 		// Write end-of-data sentinel to start of capture memory. This
 		// effectively clears previously captured data.
-		*(unsigned char *)pktgen.capture[sid].mz->addr = 0;
+		memset(cap->tail, 0, sizeof(cap_hdr_t));
+		memset(cap->end, 0, sizeof(cap_hdr_t));
 
 		pktgen_set_port_flags(info, CAPTURE_PKTS);
 
 		pktgen_log_info("Capturing on port %d, lcore %d, socket %d; buffer size: %.2f MB (~%.2f seconds for 64 byte packets at line rate)",
 				info->pid, lid, sid,
-				(double)pktgen.capture[sid].mz->len / (1024 * 1024),
-				(double)pktgen.capture[sid].mz->len /
+				(double)cap->mz->len / (1024 * 1024),
+				(double)cap->mz->len /
 					(66 /* 64 bytes payload + 2 bytes for payload size */
 					* ((double)info->link.link_speed * 1000 * 1000 / 8) /* Xbit -> Xbyte */
 					/ 84) /* 64 bytes payload + 20 byte etherrnet frame overhead: 84 bytes per packet */
@@ -200,9 +207,11 @@ found_rx_lid:
 		}
 
 		int sid;
-		for (sid = 0; sid < RTE_MAX_NUMA_NODES; ++sid)
-			if (pktgen.capture[sid].port == info->pid)
+		for (sid = 0; sid < RTE_MAX_NUMA_NODES; ++sid) {
+			cap = &pktgen.capture[sid];
+			if (cap->mz && (cap->port == info->pid))
 				break;
+		}
 
 		// This should never happen.
 		if (sid == RTE_MAX_NUMA_NODES) {
@@ -210,52 +219,49 @@ found_rx_lid:
 			return;
 		}
 
-		/* If there is previously captured data in the buffer, write it
-		 * to disk. */
-		if (pktgen.capture[sid].mem_used > 0) {
+		/* If there is previously captured data in the buffer, write it to disk. */
+		if (cap->used > 0) {
 			pcap_t *pcap;
 			pcap_dumper_t *pcap_dumper;
 			struct pcap_pkthdr pcap_hdr;
-
-			unsigned char *pkt, *buf_end;
-			uint16_t pkt_len, data_len;
+			cap_hdr_t * hdr;
+			time_t	t;
+			char	filename[64];
+			char	str_time[64];
 			size_t mem_dumped = 0;
 			unsigned int pct = 0;
 
 			char status[256];
 			sprintf(status, "\r    Dumping ~%.2fMB of captured data to disk: 0%%",
-					(double)pktgen.capture[sid].mem_used / (1024 * 1024));
-			printf_status("%s", status);
+					(double)cap->used / (1024 * 1024));
+			printf_status("\n%s", status);
 
 			pcap = pcap_open_dead(DLT_EN10MB, 65535);
-			// TODO: make filename unique (timestamp in filename?)
-			pcap_dumper = pcap_dump_open(pcap, "pktgen.pcap");
 
-			pkt = pktgen.capture[sid].mz->addr;
-			buf_end = (unsigned char *)pktgen.capture[sid].mz->addr + pktgen.capture[sid].mz->len;
-			while (pkt + 2 * sizeof(uint16_t) < buf_end) {
-				pkt_len  = *(uint16_t *)pkt;
-				pkt += sizeof(uint16_t);
-				data_len = *(uint16_t *)pkt;
-				pkt += sizeof(uint16_t);
+			t = time(NULL);
+			strftime(str_time, sizeof(str_time), "%Y%m%d-%H%M%S", localtime(&t));
+			snprintf(filename, sizeof(filename), "pktgen-%s-%d.pcap", str_time, cap->port);
+			pcap_dumper = pcap_dump_open(pcap, filename);
 
-				/* Check for end-of-data sentinel */
-				if (pkt_len == 0)
-					break;
+			hdr = (cap_hdr_t *)cap->mz->addr;
 
-				//pcap_hdr.ts     = xxx;	// FIXME use real timestamp
-				pcap_hdr.len    = pkt_len;
-				pcap_hdr.caplen = data_len;
+			while ( hdr->pkt_len ) {
 
-				pcap_dump((u_char *)pcap_dumper, &pcap_hdr, (const u_char *)pkt);
+				pcap_hdr.ts.tv_sec = 0 ;	// FIXME use real timestamp
+				pcap_hdr.ts.tv_usec = 0 ;	// FIXME use real timestamp
+				pcap_hdr.len    = hdr->pkt_len;
+				pcap_hdr.caplen = hdr->data_len;
 
-				pkt += data_len;
-				mem_dumped = pkt - (unsigned char *)pktgen.capture[sid].mz->addr;
+				pcap_dump((u_char *)pcap_dumper, &pcap_hdr, (const u_char *)hdr->pkt);
+
+				hdr = (cap_hdr_t *)(hdr->pkt + hdr->data_len);
+
+				mem_dumped = hdr->pkt - (unsigned char *)cap->mz->addr;
 
 				// The amount of data to dump to disk, is potentially very large
 				// (a few gigabytes), so print a percentage counter.
-				if (pct < mem_dumped * 100 / pktgen.capture[sid].mem_used) {
-					pct = mem_dumped * 100 / pktgen.capture[sid].mem_used;
+				if ( pct < ((mem_dumped * 100) / cap->used) ) {
+					pct = (mem_dumped * 100) / cap->used;
 
 					if (pct % 10 == 0)
 						strncatf(status, "%d%%", pct);
@@ -266,14 +272,16 @@ found_rx_lid:
 				}
 			}
 			printf_status("\r");
+			printf_status("\n");	// Clean of the screen a bit
 
 			pcap_dump_close(pcap_dumper);
 			pcap_close(pcap);
 		}
 
-		pktgen.capture[sid].mem_used = 0;
-		pktgen.capture[sid].lcore = RTE_MAX_LCORE;
-		pktgen.capture[sid].port = RTE_MAX_ETHPORTS;
+		cap->used	= 0;
+		cap->tail	= (cap_hdr_t *)cap->mz->addr;
+		cap->lcore	= RTE_MAX_LCORE;
+		cap->port	= RTE_MAX_ETHPORTS;
 
 		pktgen_clr_port_flags(info, CAPTURE_PKTS);
 	}
@@ -300,26 +308,24 @@ found_rx_lid:
 */
 
 void
-pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, int nb_dump, capture_t *capture )
+pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, int nb_dump, capture_t * cap )
 {
 	unsigned int plen, i;
 	struct rte_mbuf *pkt;
-	unsigned char *buf_tail, *buf_end;
-
-	buf_tail = (unsigned char *)capture->mz->addr + capture->mem_used;
-	buf_end  = (unsigned char *)capture->mz->addr + capture->mz->len;
 
 	/* Don't capture if buffer is full */
-	if (buf_tail == buf_end)
+	if (cap->tail == cap->end)
 		return;
 
 	for (i = 0; i < nb_dump; i++) {
+
 		pkt = pkts[i];
+
 		/* If the packet is segmented by DPDK, only the contents of the first
 		 * segment are captured. Capturing all segments uses too much CPU
 		 * cycles, which causes packets to be dropped.
 		 * Hence, data_len is used instead of pkt_len. */
-		plen = pkt->pkt.data_len;
+		plen = (pkt->pkt.data_len + 1) & ~1;
 
 		/* If packet to capture is larger than available buffer size, stop
 		 * capturing.
@@ -327,31 +333,19 @@ pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, int nb_dump, capture_t *capt
 		 * the amount of captured data (which can be less than the packet size
 		 * if DPDK has stored the packet contents in segmented mbufs).
 		 */
-		if (buf_tail + 2 * sizeof(uint16_t) + plen > buf_end) {
-			/* If memory is available, write end-of-data sentinel. A packet
-			 * length of 0 signals the end of the captured data to the routine
-			 * that dumps the data to disk. */
-			if (buf_end - buf_tail >= sizeof(uint16_t))
-				*(uint16_t *)buf_tail = 0;
-
-			capture->mem_used = capture->mz->len;
-			return;
-		}
+		if ((cap_hdr_t *)(cap->tail->pkt + plen) > cap->end)
+			break;
 
 		/* Write untruncated data length and size of the actually captured
 		 * data. */
-		*(uint16_t *)buf_tail = pkt->pkt.pkt_len;	/* untruncated length */
-		buf_tail += sizeof(uint16_t);
-		*(uint16_t *)buf_tail = plen;				/* captured data */
-		buf_tail += sizeof(uint16_t);
+		cap->tail->pkt_len	= pkt->pkt.pkt_len;
+		cap->tail->data_len	= plen;
 
-		rte_memcpy(buf_tail, pkt->pkt.data, plen);
-		buf_tail += plen;
+		rte_memcpy(cap->tail->pkt, pkt->pkt.data, pkt->pkt.pkt_len);
+		cap->tail = (cap_hdr_t *)(cap->tail->pkt + plen);
 	}
 
-	/* Write end-of-data sentinel if memory is available. */
-	if (buf_end - buf_tail >= sizeof(uint16_t))
-		*(uint16_t *)buf_tail = 0;
-
-	capture->mem_used = buf_tail - (unsigned char *)capture->mz->addr;
+	/* Write end-of-data sentinel */
+	cap->tail->pkt_len = 0;
+	cap->used = (unsigned char *)cap->tail - (unsigned char *)cap->mz->addr;
 }
