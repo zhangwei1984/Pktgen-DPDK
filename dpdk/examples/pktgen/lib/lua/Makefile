@@ -50,21 +50,16 @@ WERROR_FLAGS += -Wnested-externs
 CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3 -g -fno-stack-protector
 
 # install includes
-SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include := lapi.h lauxlib.h lcode.h lctype.h ldebug.h
-SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += ldo.h lfunc.h lgc.h llex.h llimits.h lmem.h
-SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += lobject.h lopcodes.h lparser.h lstate.h lstring.h
-SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += ltable.h ltm.h luaconf.h lua.h lualib.h lua-socket.h
-SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += lundump.h lvm.h lzio.h lua_shell.h
+SYMLINK-$(CONFIG_WR_PKTGEN)-include := lapi.h lauxlib.h lcode.h lctype.h ldebug.h \
+	ldo.h lfunc.h lgc.h llex.h llimits.h lmem.h lobject.h lopcodes.h lparser.h lstate.h lstring.h \
+	ltable.h ltm.h luaconf.h lua.h lualib.h lua-socket.h lundump.h lvm.h lzio.h lua_shell.h
 
 # all source are stored in SRCS-y
-SRCS-$(CONFIG_RTE_LIBWR_LUA) := lapi.c lauxlib.c lbaselib.c lbitlib.c lcode.c lcorolib.c \
+SRCS-$(CONFIG_WR_PKTGEN) := lapi.c lauxlib.c lbaselib.c lbitlib.c lcode.c lcorolib.c \
             lctype.c ldblib.c ldebug.c ldo.c ldump.c lfunc.c lgc.c \
             linit.c liolib.c llex.c lmathlib.c lmem.c loadlib.c \
             lobject.c lopcodes.c loslib.c lparser.c lstate.c \
             lstring.c lstrlib.c ltable.c ltablib.c ltm.c lua_shell.c \
             lundump.c lvm.c lzio.c lua-socket.c
-
-# this lib needs eal
-DEPDIRS-$(CONFIG_RTE_LIBWR_LUA) +=
 
 include $(RTE_SDK)/mk/rte.extlib.mk

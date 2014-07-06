@@ -71,12 +71,9 @@ LIB = libscrn.a
 CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3
 
 # all source are stored in SRCS-y
-SRCS-$(CONFIG_RTE_LIBWR_SCRN) := rte_scrn.c
+SRCS-$(CONFIG_WR_PKTGEN) := rte_scrn.c
 
 # install includes
-SYMLINK-$(CONFIG_RTE_LIBWR_SCRN)-include := rte_scrn.h
-
-# this lib needs eal
-DEPDIRS-$(CONFIG_RTE_LIBWR_SCRN) +=
+SYMLINK-$(CONFIG_WR_PKTGEN)-include := rte_scrn.h
 
 include $(RTE_SDK)/mk/rte.extlib.mk

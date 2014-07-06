@@ -31,11 +31,7 @@
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
-ifeq ($(CONFIG_RTE_LIBWR),y)
-DIRS-$(CONFIG_RTE_LIBWR_SCRN) += scrn
-DIRS-$(CONFIG_RTE_LIBWR_LUA) += lua
-DIRS-$(CONFIG_RTE_LIBWR_COMMON) += common
-endif
+DIRS-$(CONFIG_WR_PKTGEN) += scrn lua common
 
 include $(RTE_SDK)/mk/rte.extshared.mk
 include $(RTE_SDK)/mk/rte.extsubdir.mk

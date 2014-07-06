@@ -65,5 +65,6 @@ DIRS-y += vhost
 DIRS-$(CONFIG_RTE_LIBRTE_XEN_DOM0) += vhost_xen
 DIRS-y += vmdq
 DIRS-y += vmdq_dcb
+DIRS-$(CONFIG_WR_PKTGEN) += pktgen
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk
