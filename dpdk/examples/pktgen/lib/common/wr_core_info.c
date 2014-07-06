@@ -90,9 +90,8 @@
 #include "wr_coremap.h"
 
 #define COREMASK_STRING_SIZE	256
-#define CORE_MAP_COUNT			32
 
-static lc_info_t	core_map[CORE_MAP_COUNT];
+static lc_info_t	core_map[RTE_MAX_LCORE];
 static uint32_t		num_cores;
 
 uint32_t
@@ -125,7 +124,7 @@ wr_parse_coremask( const char * coremask )
 	uint64_t	cm;
 	uint32_t	lcore, n, i;
 	char      * sct[4];
-	char      * arr[MAX_CORE_MATRIX_ENTRIES], * p;
+	char      * arr[RTE_MAX_LCORE], * p;
 	char		buff[COREMASK_STRING_SIZE], * str;
 
 	memset(arr, 0, sizeof(arr));
@@ -135,11 +134,11 @@ wr_parse_coremask( const char * coremask )
 	strncpy(buff, &coremask[1], sizeof(buff)-1);
 	str = buff;
 
-	num_cores = wr_coremap("array", core_map, CORE_MAP_COUNT, NULL);
+	num_cores = wr_coremap("array", core_map, RTE_MAX_LCORE, NULL);
 	if ( num_cores == 0xFFFF )
 		return 0;
 
-	n = wr_strparse(str, ",", arr, MAX_CORE_MATRIX_ENTRIES);
+	n = wr_strparse(str, ",", arr, RTE_MAX_LCORE);
 
 	for(i = 0, cm = 0; i < n; i++) {
 		if ( (p = arr[i]) == NULL )

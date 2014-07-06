@@ -68,8 +68,6 @@
 #ifndef _WR_CORE_INFO_H
 #define _WR_CORE_INFO_H
 
-#define MAX_CORE_MATRIX_ENTRIES		32
-
 /**************************************************************************//**
 *
 * Return the first and last lcore index values into the char pointers args.

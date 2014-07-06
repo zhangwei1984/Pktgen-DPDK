@@ -222,10 +222,11 @@ const char * help_info[] = {
 		"mpls_entry <portlist> <entry>      - Set the MPLS entry for the portlist (must be specified in hex)",
 		"qinq <portlist> <state>            - Enable/disable sending Q-in-Q header in packets",
 		"qinqids <portlist> <id1> <id2>     - Set the Q-in-Q ID's for the portlist",
+		"",
+		"<<PageBreak>>",
 		"gre <portlist> <state>             - Enable/disable GRE with IPv4 payload",
 		"gre_eth <portlist> <state>         - Enable/disable GRE with Ethernet frame payload",
 		"gre_key <portlist> <state>         - Set the GRE key",
-		"<<PageBreak>>",
 		"pcap <portlist> <state>            - Enable or Disable sending pcap packets on a portlist",
 		"pcap.show                          - Show the PCAP information",
 		"pcap.index                         - Move the PCAP file index to the given packet number,  0 - rewind, -1 - end of file",
@@ -235,8 +236,9 @@ const char * help_info[] = {
 #ifdef INCLUDE_PING6
 		"ping6 <portlist>                   - Send a IPv6 ICMP echo request on the given portlist",
 #endif
-		"page [0-7]|range|config|seq|pcap|next|cpu|rnd- Show the port pages or configuration or sequence page",
+		"page [0-7]|main|range|config|seq|pcap|next|cpu|rnd- Show the port pages or configuration or sequence page",
 		"     [0-7]                         - Page of different ports",
+		"     main                          - Display page zero",
 		"     range                         - Display the range packet page",
 		"     config                        - Display the configuration page (not used)",
 		"     pcap                          - Display the pcap page",
@@ -251,15 +253,24 @@ const char * help_info[] = {
 		"process <portlist> <state>         - Enable or Disable processing of ARP/ICMP/IPv4/IPv6 packets",
 		"garp <portlist> <state>            - Enable or Disable GARP packet processing and update MAC address",
 		"blink <portlist> <state>           - Blink the link led on the given port list",
+		"",
+		"<<PageBreak>>",
+		"rnd <portlist> <idx> <off> <mask>  - Set random mask for all transmitted packets from portlist",
+		"                                     idx: random mask slot",
+		"                                     off: offset in packets, where to apply mask",
+		"                                     mask: up to 32 bit long mask specification (empty to disable):",
+		"                                       0: bit will be 0",
+		"                                       1: bit will be 1",
+		"                                       .: bit will be ignored (original value is retained)",
+		"                                       X: bit will get random value",
+		"theme <state>                      - Enable or Disable the theme",
+		"theme <item> <fg> <bg> <attr>      - Set color for item with fg/bg color and attribute value",
+		"theme.show                         - List the item strings, colors and attributes to the items",
+		"theme.save <filename>              - Save the current color theme to a file",
 		"start <portlist>                   - Start transmitting packets",
 		"stop <portlist>                    - Stop transmitting packets",
 		"stp                                - Stop all ports from transmitting",
 		"str                                - Start all ports transmitting",
-		"",
-		"theme <state>						- Enable or Disable the theme",
-		"theme <item> <fg> <bg> <attr>      - Set color for item with fg/bg color and attribute value",
-		"theme.show                         - List the item strings, colors and attributes to the items",
-		"theme.save <filename>              - Save the current color theme to a file",
 		"screen stop|start                  - stop/start updating the screen and unlock/lock window",
 		"off                                - screen off shortcut",
 		"on                                 - screen on shortcut",
@@ -305,17 +316,8 @@ const char * help_info[] = {
 		"pkt.size max <portlist> value      - Set vlan id maximum address",
 		"pkt.size inc <portlist> value      - Set vlan id increment address",
 		"range <portlist> <state>           - Enable or Disable the given portlist for sending a range of packets",
-		"rnd <portlist> <idx> <off> <mask>  - Set random mask for all transmitted packets from portlist",
-		"                                     idx: random mask slot",
-		"                                     off: offset in packets, where to apply mask",
-		"                                     mask: up to 32 bit long mask specification (empty to disable):",
-		"                                       0: bit will be 0",
-		"                                       1: bit will be 1",
-		"                                       .: bit will be ignored (original value is retained)",
-		"                                       X: bit will get random value",
 		"",
 		"<<PageBreak>>",
-		"Notes: <state> - Use enable|disable or on|off to set the state.",
 		"       Flags: P--------------- - Promiscuous mode enabled",
 		"               E               - ICMP Echo enabled",
 		"                A              - Send ARP Request flag",
@@ -335,8 +337,11 @@ const char * help_info[] = {
 		"                           G   - Perform GRE with Ethernet payload",
 		"                            C  - Capture received packets",
 		"                             R - Random bitfield(s) are applied",
+		"Notes: <state>       - Use enable|disable or on|off to set the state.",
+		"       <portlist>    - a list of ports (no spaces) as 2,4,6-9,12 or 3-5,8 or 5 or the word 'all'",
+        "       Color best seen on a black background for now",
+		"       To see a set of example Lua commands see the files in wr-examples/pktgen/test",
 		"",
-		"*** To see a set of example Lua commands see the files in wr-examples/pktgen/test",
 		NULL
 };
 
@@ -371,12 +376,14 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 
 	scrn_pos(0,0);
 	cmdline_printf(cl, help_info[1], wr_copyright_msg());
+	scrn_pos(3,0);
 	for(i=2; help_info[i] != NULL; i++ ) {
 		if ( strcmp(help_info[i], "<<PageBreak>>") == 0 ) {
 			cmdline_pause(cl, "   <More Help: Press Return to Continue>");
 			scrn_cls();
 			scrn_pos(0,0);
 			cmdline_printf(cl, help_info[1], wr_copyright_msg());
+			scrn_pos(3,0);
 			continue;
 		}
 		cmdline_printf(cl, "%s\n", help_info[i]);
@@ -2411,12 +2418,12 @@ static void cmd_set_page_parsed(void *parsed_result,
 cmdline_parse_token_string_t cmd_set_page =
 	TOKEN_STRING_INITIALIZER(struct cmd_page_result, page, "page");
 cmdline_parse_token_string_t cmd_set_pageType =
-	TOKEN_STRING_INITIALIZER(struct cmd_page_result, pageType, "0#1#2#3#4#5#6#7#range#config#sequence#seq#pcap#next#cpu#rnd#log");
+	TOKEN_STRING_INITIALIZER(struct cmd_page_result, pageType, "0#1#2#3#4#5#6#7#main#range#config#sequence#seq#pcap#next#cpu#rnd#log");
 
 cmdline_parse_inst_t cmd_page = {
 	.f = cmd_set_page_parsed,
 	.data = NULL,
-	.help_str = "page [0-7]|range|config|sequence|seq|pcap|next|cpu|rnd|log",
+	.help_str = "page [0-7]|main|range|config|sequence|seq|pcap|next|cpu|rnd|log",
 	.tokens = {
 		(void *)&cmd_set_page,
 		(void *)&cmd_set_pageType,

@@ -77,8 +77,6 @@ typedef struct action_s {
 
 #define ONLY_ONCE_FLAG	0x0001
 
-#define MAX_NUMA_NODES	4
-#define MAX_CPUS		32
 #define MAX_LINE_SIZE	1024
 
 typedef struct {
@@ -91,7 +89,7 @@ typedef struct {
 	char	  * cpu_flags;
 	char	  * cache_size;
 	//char	  * dummy;
-	short		numa_cpus[MAX_NUMA_NODES][MAX_CPUS];
+	short		numa_cpus[RTE_MAX_NUMA_NODES][RTE_MAX_LCORE];
 } lscpu_t;
 
 #define LSCPU_PATH		"/usr/bin/lscpu"
