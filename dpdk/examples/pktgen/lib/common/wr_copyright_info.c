@@ -182,7 +182,7 @@ wr_print_copyright(char * appname, char * created_by)
 
 	scrn_color(YELLOW, NO_COLOR, OFF);
 	printf_info("  %s created by: %s -- >>> %s <<<\n", appname, created_by, POWERED_BY_DPDK);
-	scrn_color(WHITE, NO_COLOR, OFF);
+	scrn_color(BLUE, NO_COLOR, OFF);
 	printf_info("-----------------------\n");
 }
 
@@ -248,7 +248,7 @@ wr_splash_screen(int row, int col, char * appname, char * created_by)
 		scrn_printf(row++, 7, "%s", wr_copyright[i]);
 	scrn_color(BLUE, NO_COLOR, BOLD);
 	scrn_printf(row++, col, "%s created by %s -- >>> %s <<<", appname, created_by, POWERED_BY_DPDK);
-	scrn_color(WHITE, NO_COLOR, OFF);
+	scrn_color(CYAN, NO_COLOR, OFF);
 	scrn_pos(++row, 1);
 
 	rte_delay_ms(1500);
