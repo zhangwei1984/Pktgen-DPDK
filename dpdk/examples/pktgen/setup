@@ -51,7 +51,7 @@ name=`uname -n`
 if [ $name == "keithw-W2600CR" ]; then
 $sdk/tools/dpdk_nic_bind.py -b igb_uio 03:00.0 03:00.1 83:00.0 83:00.1 85:00.0 85:00.1 88:00.0 88:00.1
 fi
-if [ $name == "keithw-S5520HC"]; then
+if [ $name == "keithw-S5520HC" ]; then
 $sdk/tools/dpdk_nic_bind.py -b igb_uio 04:00.0 04:00.1 07:00.0 07:00.1
 fi
 $sdk/tools/dpdk_nic_bind.py --status
