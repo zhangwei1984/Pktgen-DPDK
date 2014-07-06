@@ -66,7 +66,7 @@
 include $(RTE_SDK)/mk/rte.extvars.mk
 
 # library name
-LIB = libwr_scrn.a
+LIB = libscrn.a
 
 CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3
 

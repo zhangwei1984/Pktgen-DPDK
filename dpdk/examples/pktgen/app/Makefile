@@ -80,7 +80,7 @@ SRCS-y := commands.c lpktgenlib.c pktgen-cmds.c pktgen.c \
 	pktgen-gre.c pktgen-ether.c pktgen-tcp.c pktgen-udp.c pktgen-vlan.c \
 	pktgen-random.c pktgen-display.c pktgen-log.c
 
-CFLAGS += -O3 -g -fno-stack-protector -I../lib/libwr_common -I../lib/libwr_scrn -I../lib/libwr_lua
-LDFLAGS += -g -lpcap -L../lib/libwr_common/ -L../lib/libwr_lua -L../lib/libwr_scrn -lwr_lua -lwr_scrn -lwr_common
+CFLAGS += -O3 -g -fno-stack-protector -I../lib/common -I../lib/scrn -I../lib/lua
+LDFLAGS += -g -lpcap -L../lib/common/ -L../lib/lua -L../lib/scrn -llua -lscrn -lcommon
 
 include $(RTE_SDK)/mk/rte.extapp.mk

@@ -32,9 +32,9 @@
 include $(RTE_SDK)/mk/rte.vars.mk
 
 ifeq ($(CONFIG_RTE_LIBWR),y)
-DIRS-$(CONFIG_RTE_LIBWR_SCRN) += libwr_scrn
-DIRS-$(CONFIG_RTE_LIBWR_LUA) += libwr_lua
-DIRS-$(CONFIG_RTE_LIBWR_COMMON) += libwr_common
+DIRS-$(CONFIG_RTE_LIBWR_SCRN) += scrn
+DIRS-$(CONFIG_RTE_LIBWR_LUA) += lua
+DIRS-$(CONFIG_RTE_LIBWR_COMMON) += common
 endif
 
 include $(RTE_SDK)/mk/rte.extshared.mk
