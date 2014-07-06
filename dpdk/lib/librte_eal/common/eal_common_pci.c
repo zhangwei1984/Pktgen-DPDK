@@ -205,27 +205,6 @@ rte_eal_pci_dump(FILE *f)
 	}
 }
 
-/* dump known PCI devices */
-void
-rte_eal_known_devices_dump(FILE *f)
-{
-	struct rte_pci_device *dev = NULL;
-
-	TAILQ_FOREACH(dev, &pci_device_list, next) {
-		if ( dev->driver ) {
-			fprintf(f, "" PCI_PRI_FMT "|%s",
-					dev->addr.domain, dev->addr.bus,
-					dev->addr.devid, dev->addr.function,
-					dev->driver->name);
-			if ( dev->devargs ) {
-				const char * t[] = { "++", "--", "==" };
-				fprintf(f, "|%s|%s", t[dev->devargs->type], dev->devargs->args);
-			}
-			fprintf(f, "\n");
-		}
-	}
-}
-
 /* register a driver */
 void
 rte_eal_pci_register(struct rte_pci_driver *driver)

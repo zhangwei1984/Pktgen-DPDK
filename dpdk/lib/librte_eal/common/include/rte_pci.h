@@ -281,11 +281,6 @@ int rte_eal_pci_probe(void);
 void rte_eal_pci_dump(FILE *f);
 
 /**
- * Dump the known content of the PCI bus.
- */
-void rte_eal_known_devices_dump(FILE *f);
-
-/**
  * Register a PCI driver.
  *
  * @param driver

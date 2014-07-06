@@ -126,27 +126,27 @@ rte_eal_devargs_dump(FILE *f)
 {
 	struct rte_devargs *devargs;
 
-	fprintf(f, "Device list:\n");
+	fprintf(f, "User device white list:\n");
 	TAILQ_FOREACH(devargs, &devargs_list, next) {
 		if (devargs->type == RTE_DEVTYPE_WHITELISTED_PCI)
-			fprintf(f, "++  PCI Whitelist " PCI_PRI_FMT " %s\n",
+			fprintf(f, "  PCI whitelist " PCI_PRI_FMT " %s\n",
 			       devargs->pci.addr.domain,
 			       devargs->pci.addr.bus,
 			       devargs->pci.addr.devid,
 			       devargs->pci.addr.function,
 			       devargs->args);
 		else if (devargs->type == RTE_DEVTYPE_BLACKLISTED_PCI)
-			fprintf(f, "--  PCI Blacklist " PCI_PRI_FMT " %s\n",
+			fprintf(f, "  PCI blacklist " PCI_PRI_FMT " %s\n",
 			       devargs->pci.addr.domain,
 			       devargs->pci.addr.bus,
 			       devargs->pci.addr.devid,
 			       devargs->pci.addr.function,
 			       devargs->args);
 		else if (devargs->type == RTE_DEVTYPE_VIRTUAL)
-			fprintf(f, "==  VIRTUAL %s %s\n",
+			fprintf(f, "  VIRTUAL %s %s\n",
 			       devargs->virtual.drv_name,
 			       devargs->args);
 		else
-			fprintf(f, "**  UNKNOWN %s\n", devargs->args);
+			fprintf(f, "  UNKNOWN %s\n", devargs->args);
 	}
 }

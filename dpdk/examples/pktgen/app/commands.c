@@ -996,7 +996,7 @@ static void cmd_dev_parsed(__attribute__((unused)) void *parsed_result,
 			   __attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
-	rte_eal_known_devices_dump(stdout);
+	rte_eal_devargs_dump(stdout);
 }
 
 cmdline_parse_token_string_t cmd_dev_cmds =
