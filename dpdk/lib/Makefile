@@ -69,13 +69,5 @@ DIRS-$(CONFIG_RTE_LIBRTE_KNI) += librte_kni
 DIRS-$(CONFIG_RTE_LIBRTE_IVSHMEM) += librte_ivshmem
 endif
 
-ifeq ($(CONFIG_RTE_LIBWR),y)
-DIRS-$(CONFIG_RTE_LIBWR_SCRN) += libwr_scrn
-DIRS-$(CONFIG_RTE_LIBWR_MCOS) += libwr_mcos
-DIRS-$(CONFIG_RTE_LIBWR_LUA) += libwr_lua
-DIRS-$(CONFIG_RTE_LIBWR_MSG) += libwr_msg
-DIRS-$(CONFIG_RTE_LIBWR_COMMON) += libwr_common
-endif
-
 include $(RTE_SDK)/mk/rte.sharelib.mk
 include $(RTE_SDK)/mk/rte.subdir.mk

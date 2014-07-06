@@ -149,26 +149,6 @@ ifeq ($(CONFIG_RTE_LIBRTE_RING),y)
 LDLIBS += -lrte_ring
 endif
 
-ifeq ($(CONFIG_RTE_LIBWR_COMMON),y)
-LDLIBS += -lwr_common
-endif
-
-ifeq ($(CONFIG_RTE_LIBWR_SCRN),y)
-LDLIBS += -lwr_scrn
-endif
-
-ifeq ($(CONFIG_RTE_LIBWR_MCOS),y)
-LDLIBS += -lwr_mcos
-endif
-
-ifeq ($(CONFIG_RTE_LIBWR_LUA),y)
-LDLIBS += -lwr_lua -ldl
-endif
-
-ifeq ($(CONFIG_RTE_LIBWR_MSG),y)
-LDLIBS += -lwr_msg
-endif
-
 ifeq ($(CONFIG_RTE_LIBC),y)
 LDLIBS += -lc
 LDLIBS += -lm
