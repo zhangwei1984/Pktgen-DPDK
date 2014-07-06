@@ -23,7 +23,7 @@ Pktgen version 2.7.0 using DPDK-1.7.0
              the real CentOS compilation fixes and a small update to tap.{c,h} so they
              are identical to those from zorgnax/libtap on github.
  - 2.6.3   - Add a delay when traffic stops to make sure all packets are sent.
-             Remove the rte_hash_crc.h include in wr_pcap.c file.
+             Remove the `rte_hash_crc.h` include in wr_pcap.c file.
  - 2.6.2   - Fixup GRE and ARP problems
  - 2.6.1   - Add random bits support and more cleanup
  - 2.6.0   - Split up the code for testing to be added later
@@ -50,7 +50,7 @@ Pktgen version 2.7.0 using DPDK-1.7.0
  - 2.2.7   - Updated the code to handle multiple TX queues per port.
  - 2.2.6   - Fixed a crash if the port is not up with link status
  - 2.2.5   - Remove the flow control code as some systems it does not work.
- - 2.2.4   - Fix the inet_h64tom and inet_mtoh64 functions to account for endianness
+ - 2.2.4   - Fix the `inet_h64tom and inet_mtoh64` functions to account for endianness
  - 2.2.3   - range packet fixes for packet size and source/destination mac
  - 2.2.2   - Minor performance changes for receive packet performance.
  - 2.2.1   - Change MAC address from XXXX:XXXX:XXXX to XX:XX:XX:XX:XX:XX format
@@ -174,14 +174,15 @@ make sure hyper-threading is enabled.
   ports from pktgen and everything will be fine.
 
 Get the DPDK and pktgen source code from the WR internal git repo via:
+```
 # cd <InstallDir>
 # git clone git://github.com/Pktgen/Pktgen-DPDK.git
-
+```
 Will create a directory called Pktgen-DPDK in the current directory location. Using
 this clone command you will get DPDK and pktgen source files.
 
 Make sure you have HUGE TLB support in the kernel with the following commands:
-
+```
 # grep -i huge /boot/config-2.6.35-24-generic 
 CONFIG_HUGETLBFS=y
 CONFIG_HUGETLB_PAGE=y
@@ -192,28 +193,28 @@ HugePages_Free:       128
 HugePages_Rsvd:        0
 HugePages_Surp:        0
 Hugepagesize:       2048 kB
-
+```
 NOTE: The values in Total and Free maybe different until you reboot the machine.
 
 Two files in /etc must be setup to support huge TLBs. If you do not have
 hugeTLB support then you most likely need a newer kernel.
-
+```
 # vi /etc/sysctl.conf
 Add to the bottom of the file:
 vm.nr_hugepages=256
-
+```
 If you need more or less hugeTLB pages then you can change the value to a
 number you need it to be. In some cases pktgen needs a fair number of pages
 and making it too small will effect performance or pktgen will terminate on
 startup looking for more pages.
-
+```
 # vi /etc/fstab
 Add to the bottom of the file:
 huge /mnt/huge hugetlbfs defaults 0 0
 
 # mkdir /mnt/huge
 # chmod 777 /mnt/huge
-
+```
 Reboot your machine as the huge pages must be setup just after boot to make
 sure you have contiguous memory for the 2Meg pages.
 
@@ -241,7 +242,7 @@ command is to display the huge TLB setup.
 
 Edit your .bashrc or .profile or .cshrc to add the environment variables.
 I am using bash:
-# vi ~/.bashrc
+`# vi ~/.bashrc`
 Add the following lines: Change the $RTE_SDK to the location of the DPDK version
 directory. Your SDK directory maybe named differently, but should point to the DPDK
 SDK directory.
@@ -249,33 +250,35 @@ SDK directory.
 Make sure you have the Linux kernel headers installed as DPDK requires them to build
 the kernel modules. On Ubuntu I run the following:
 
-# sudo apt-get install linux-headers-3.5.0-32-generic
+`# sudo apt-get install linux-headers-3.5.0-32-generic`
 
 You will need to adjust the version number to match your current kernel version.
 If you upgrade your system or kernel version you will need to install the correct
 headers and rebuild the RTE_TARGET directory.
 
-# sudo apt-get install libpcap-dev
+`# sudo apt-get install libpcap-dev`
 
 export RTE_SDK=<installDir>/Pktgen-DPDK/dpdk
 export RTE_TARGET=x86_64-pktgen-linuxapp-gcc
 
 Create the DPDK build tree:
+```
 # cd $RTE_SDK
 # make install T=x86_64-pktgen-linuxapp-gcc
-
+```
 This above command will create the x86_64-pktgen-linuxapp-gcc directory in the
 top level of the current-dkdp directory. The above command will build the basic
 DPDK libraries and build tree.
 
 Next we build pktgen:
+```
 # cd examples/pktgen
 # make
-
+```
 You should now have pktgen built and to run pktgen type 'sudo ./doit', which is a script
 to help with the command line options of pktgen. You may need to modify this script for
 your system and configuration.
-
+```
 # cat doit
 #!/bin/bash
 
@@ -290,7 +293,7 @@ fi
 if [ $name == "keithw-S5520HC" ]; then
 ./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 256,256 --file-prefix pg -b 0000:01:00.0 -b 0000:01:00.1 -- -p 0x03 -P -m "[1:3].0, [2:4].1" 
 fi
-
+```
 ** Note: The '-m NNN' in the DPDK arguments is to have DPDK allocate 512 megs of memory.
    The '--socket-mem 256,156' DPDK command will allocate 256M from each CPU (two in this
    case). Do not use the '-m NNN' and '--socket-mem NN,NN' commands on the same command
@@ -323,7 +326,8 @@ single physical core will be trying to do both Rx/Tx functions.
 
 The '-n 2' is a required argument for DPDK and denotes the number of memory channels.
 
-Usage: ./app/pktgen -c COREMASK -n NUM [-m NB] [-r NUM] [-b <domain:bus:devid.func>][--proc-type primary|secondary|auto]            
+```
+Usage: ./app/pktgen -c COREMASK -n NUM [-m NB] [-r NUM] [-b <domain:bus:devid.func>][--proc-type primary|secondary|auto]
 
 EAL options:                                                                                                                        
   -c COREMASK  : A hexadecimal bitmask of cores to run on                                                                           
@@ -341,14 +345,14 @@ EAL options:
   --file-prefix: prefix for hugepage filenames                                                                                      
   --pci-blacklist, -b: add a PCI device in black list.                                                                              
                Prevent EAL from using this PCI device. The argument                                                                 
-               format is <domain:bus:devid.func>.                                                                                   
+               format is `<domain:bus:devid.func>`.                                                                                   
   --pci-whitelist, -w: add a PCI device in white list.                                                                              
                Only use the specified PCI devices. The argument format                                                              
                is <[domain:]bus:devid.func>. This option can be present                                                             
                several times (once per device).                                                                                     
                [NOTE: PCI whitelist cannot be used with -b option]                                                                  
   --vdev: add a virtual device.                                                                                                     
-               The argument format is <driver><id>[,key=val,...]                                                                    
+               The argument format is `<driver><id>[,key=val,...]`                                                                    
                (ex: --vdev=eth_pcap0,iface=eth2).                                                                                   
   --vmware-tsc-map: use VMware TSC map instead of native RDTSC                                                                      
   --base-virtaddr: specify base virtual address                                                                                     
@@ -406,7 +410,7 @@ Usage: ./app/pktgen [EAL options] -- -p PORTMASK [-h] [-P] [-G] [-f cmd_file] [-
                                       core 3 handles port 1 rx & core 4 handles port 0-7 tx
       BTW: you can use "{}" instead of "[]" as it does not matter to the syntax.
   -h           Display the help information
-
+```
 ** Note: To determine the Ethernet ports in your system use 'lspci | grep Ethernet' to 
    get a list of all ports in the system. Some ports may not be useable by DPDK/Pktgen.
    The first port listed is bit 0 or least signification bit in the '-c' mask.
@@ -417,6 +421,7 @@ A new feature for pktgen and DPDK is to run multiple instances of pktgen. This
 allows the developer to share ports on the same machine.
 
 ------------- doit script ----------------
+```
 #!/bin/bash
 
 # Normal setup
@@ -430,6 +435,7 @@ fi
 if [ $name == "keithw-S5520HC" ]; then
 ./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 256,256 --file-prefix pg -b 0000:01:00.0 -b 0000:01:00.1 -- -p 0x03 -P -m "[1:3].0, [2:4].1" 
 fi
+```
 ------------- doit script ----------------
 
 If you have run pktgen before then remove the files in /mnt/huge/* before
@@ -438,7 +444,7 @@ running the new version.
 Running the doit script produces output as follows, but maybe different on your
 system configuration.
 
-[22:20][keithw@keithw-S5520HC:pktgen(master)]$ sudo ./doit
+`[22:20][keithw@keithw-S5520HC:pktgen(master)]$ sudo ./doit`
 ------------------------------------------------------------------------
 -----------------------
   
@@ -506,7 +512,8 @@ system configuration.
   
   Pktgen created by: Keith Wiles -- >>> Powered by IntelÂ® DPDK <<<
 -----------------------
-EAL: Detected lcore 0 as core 0 on socket 0                                                                                         
+```
+EAL: Detected lcore 0 as core 0 on socket 0
 EAL: Detected lcore 1 as core 1 on socket 0                                                                                         
 EAL: Detected lcore 2 as core 2 on socket 0                                                                                         
 EAL: Detected lcore 3 as core 3 on socket 0                                                                                         
@@ -612,7 +619,7 @@ EAL: Ask a virtual area of 0x200000 bytes
 EAL: Virtual area found at 0x7fa383200000 (size = 0x200000)                                                                         
 EAL: Ask a virtual area of 0x200000 bytes                                                                                           
 EAL: Virtual area found at 0x7fa382e00000 (size = 0x200000)                                                                         
-EAL: Ask a virtual area of 0x200000 bytes                                                                                           
+EAL: Ask a virtual area of 0x200000 bytes                                                                               
 EAL: Virtual area found at 0x7fa382a00000 (size = 0x200000)                                                                         
 EAL: Ask a virtual area of 0x200000 bytes                                                                                           
 EAL: Virtual area found at 0x7fa382600000 (size = 0x200000)                                                                         
@@ -779,7 +786,7 @@ Port  1: Link Up - speed 10000 Mbps - full-duplex <Enable promiscuous mode>
 === RX processing on lcore  1, rxcnt 1, port/qid, 0/0                                                                               
 === RX processing on lcore  2, rxcnt 1, port/qid, 1/0                                                                               
 === TX processing on lcore  3, txcnt 1, port/qid, 0/0                                                                               
-=== TX processing on lcore  4, txcnt 1, port/qid, 1/0                                                                               
+=== TX processing on lcore  4, txcnt 1, port/qid, 1/0
 
       #     #
       #  #  #     #    #    #  #####
@@ -843,6 +850,8 @@ Port  1: Link Up - speed 10000 Mbps - full-duplex <Enable promiscuous mode>
                Pktgen created by Keith Wiles -- >>> Powered by IntelÂ® DPDK <<<
 
 ------------------
+```
+```
 - Ports 0-3 of 6   ** Main Page **  Copyright (c) <2010-2014>, Wind River Systems, Inc. Powered by IntelÂ® DPDK
   Flags:Port    :   P-------------:0   P-------------:1
 Link State      :      <UP-10000-FD>      <UP-10000-FD>                                          ---TotalRate---
@@ -891,8 +900,9 @@ Src MAC Address :  90:e2:ba:5a:f7:90  90:e2:ba:5a:f7:91
 
 Pktgen> quit
 $
+```
 ------------------------------------------------------------------------
-
+```
    *** Help Information for Pktgen ***         Copyright (c) <2010-2014>, Wind River Systems, Inc.
 
 set <portlist> <xxx> value         - Set a few port values
@@ -1039,9 +1049,9 @@ Notes: <state>       - Use enable|disable or on|off to set the state.
        Color best seen on a black background for now
        To see a set of example Lua commands see the files in wr-examples/pktgen/test
 
-
+```
 ---------------------------------------------------------------------------
-
+```
 \  Port 0 of 4    ** PCAP Page **   Copyright (c) <2010-2014>, Wind River Systems, Inc., Powered by Intel® DPDK
 Port: 0, PCAP Count: 0 of 9716, skipped 0
   Seq            Dst MAC           Src MAC            Dst IP              Src IP    Port S/D  Protocol:VLAN Size-FCS
@@ -1083,26 +1093,29 @@ Port: 0, PCAP Count: 0 of 9716, skipped 0
 
 
 pktgen> quit
-
+```
 ------------------------------------------------------------------------------------------
 -- Example command lines.
+```
 ./app/pktgen -c 1ff -n 3 --proc-type auto --socket-mem 256,256 -- -p 0x3c -P -m "[1:3].0, [2:4].1, [5:7].2, [6:8].3" -s 0:pcap/large.pcap
 ./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 128,128 --file-prefix pg -- -p 0x3c -P -m "[1:3].0, [2:4].1, [5:7].2, [6:8].3" -s 0:pcap/test1.pcap -s 1:pcap/large.pcap
 ./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 128,128 --file-prefix pg -- -p 0x3c -P -m "[1:3].0, [2:4].1, [5:7].2, [6:8].3" -s 0:pcap/test1.pcap -s 1:pcap/large.pcap
 ./app/pktgen -c e -n 3 --proc-type auto --socket-mem 128,128 --file-prefix pg -- -p 0x14 -P -m "2.0, 3.1"
 ./app/pktgen -c 1ff -n 3 --proc-type auto --socket-mem 256,256 -- -p 0x3c -P -m "[1:3].0, [2:4].1, [5:7].2, [6:8].3"
+```
 
 A command line passing in a pktgen/test/set_seq.pkt file to help initialize pktgen with some
 default values and configurations. You can also replace the filename using the '-f' command
 with a Lua script file ending in .lua instead of .pkt. BTW, if the filename ends in anything
 other then .lua it is treated as a .pkt file.
  
-./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 128,128 -- -p 0x30 -P -m "[1:3].0, [2:4].1" -f test/set_seq.pkt
+`./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 128,128 -- -p 0x30 -P -m "[1:3].0, [2:4].1" -f test/set_seq.pkt`
 
 -- test/set_seq.pkt
+```
 seq 0 all 0000:4455:6677 0000:1234:5678 10.11.0.1 10.10.0.1/16 5 6 ipv4 udp 1 128
 set all seqCnt 1
-
+```
 The set_seq.pkt command file can also be one of the files in pktgen/test directory,
 which are Lua based scripts instead of command line scripts as in set_seq.pkt file.
 
@@ -1111,8 +1124,9 @@ which are Lua based scripts instead of command line scripts as in set_seq.pkt fi
 The Lua version is easier to remember the layout of the agruments if you want to
 use that one instead of set_seq.pkt file.
 
-./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 128,128 -- -p 0x30 -P -m "[1:3].0, [2:4].1" -f test/set_seq.lua
+`./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 128,128 -- -p 0x30 -P -m "[1:3].0, [2:4].1" -f test/set_seq.lua`
 
+```
 -- The '--' is a comment in Lua
 local seq_table = {			-- entries can be in any order
     ["eth_dst_addr"] = "0011:4455:6677",
@@ -1129,7 +1143,7 @@ local seq_table = {			-- entries can be in any order
 -- seqTable( seq#, portlist, table );
 pktgen.seqTable(0, "all", seq_table );
 pktgen.set("all", "seqCnt", 1);
-
+```
 ------------------------------------------------------------------------------------------
 -- Socket Support for Pktgen.
 
@@ -1146,7 +1160,7 @@ use 'socat' program on a Linux machine. The socat program is very powerfull appl
 and can do a lot of things. I used socat to debug Pktgen using the following
 command, which gives me a readline inteface to Pktgen's socket interface.
 
-# socat -d -d READLINE TCP4:localhost:22022
+`# socat -d -d READLINE TCP4:localhost:22022`
 'You will see socat create the connection and then wait for Lua command scripts for you'
 To exit this command type Control-D to exit and close the connection.
 
@@ -1185,7 +1199,7 @@ f,e = loadfile("test/hello-world.lua")
 f()
 Lua Version      : Lua 5.2
 Pktgen Version   : 2.0.0
-Pktgen Copyright : Copyright (c) <2010-2014>, Wind River Systems, Inc.
+Pktgen Copyright : Copyright (c) `<2010-2014>`, Wind River Systems, Inc.
 Pktgen Authors   : Keith Wiles @ Wind River Systems
 
 Hello World!!!!
@@ -1198,12 +1212,10 @@ You can also just send it commands via echo.
 $ echo "f,e = loadfile('test/hello-world.lua'); f();"| socat - TCP4:172.25.40.163:22022
 Lua Version      : Lua 5.2
 Pktgen Version   : 2.0.0
-Pktgen Copyright : Copyright (c) <2010-2014>, Wind River Systems, Inc.
+Pktgen Copyright : Copyright (c) `<2010-2014>`, Wind River Systems, Inc.
 Pktgen Authors   : Keith Wiles @ Wind River Systems
 
 Hello World!!!!
 ----------------------
 
 Keith Wiles @ Wind River Systems
-
-
