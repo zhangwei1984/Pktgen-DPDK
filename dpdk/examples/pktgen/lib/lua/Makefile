@@ -62,4 +62,4 @@ SRCS-$(CONFIG_WR_PKTGEN) := lapi.c lauxlib.c lbaselib.c lbitlib.c lcode.c lcorol
             lstring.c lstrlib.c ltable.c ltablib.c ltm.c lua_shell.c \
             lundump.c lvm.c lzio.c lua-socket.c
 
-include $(RTE_SDK)/mk/rte.extlib.mk
+include $(RTE_SDK)/mk/rte.lib.mk

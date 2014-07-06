@@ -91,6 +91,10 @@ string_color_map_t string_color_map[] = {
 	{ "white",		WHITE		},
 	{ "white",		DEFAULT_BG	},
 	{ "default",	WHITE		},	/* alias */
+
+	{ "none",		NO_COLOR	},
+	{ "default_fg",	NO_COLOR	},
+	{ "default_bg",	NO_COLOR	},
 	NULL
 };
 
@@ -128,44 +132,44 @@ theme_color_map_t theme_color_map[] = {
 	/*
 	 * Top line of the screen
 	 */
-	{ "top.spinner",		CYAN,		DEFAULT_BG,	BOLD	},
-	{ "top.ports",			GREEN,		DEFAULT_BG,	BOLD	},
-	{ "top.page",			WHITE,		DEFAULT_BG,	BOLD	},
-	{ "top.copyright",		YELLOW,		DEFAULT_BG,	OFF		},
-	{ "top.poweredby",		BLUE,		DEFAULT_BG,	BOLD	},
+	{ "top.spinner",		CYAN,		NO_COLOR,	BOLD	},
+	{ "top.ports",			GREEN,		NO_COLOR,	BOLD	},
+	{ "top.page",			WHITE,		NO_COLOR,	BOLD	},
+	{ "top.copyright",		YELLOW,		NO_COLOR,	OFF		},
+	{ "top.poweredby",		BLUE,		NO_COLOR,	BOLD	},
 
 	/*
 	 * Separator between displayed values and command history
 	 */
-	{ "sep.dash",			BLUE,		DEFAULT_BG,	OFF		},
-	{ "sep.text",			WHITE,		DEFAULT_BG,	OFF		},
+	{ "sep.dash",			BLUE,		NO_COLOR,	OFF		},
+	{ "sep.text",			WHITE,		NO_COLOR,	OFF		},
 
 	/*
 	 * Stats screen
 	 */
 	/* Port related */
-	{ "stats.port.label",	BLUE,		DEFAULT_BG,	BOLD	},
-	{ "stats.port.flags",	BLUE,		DEFAULT_BG,	BOLD	},
-	{ "stats.port.status",	YELLOW,		DEFAULT_BG,	BOLD	},
+	{ "stats.port.label",	BLUE,		NO_COLOR,	BOLD	},
+	{ "stats.port.flags",	BLUE,		NO_COLOR,	BOLD	},
+	{ "stats.port.status",	YELLOW,		NO_COLOR,	BOLD	},
 
 	/* Dynamic elements (updated every second) */
-	{ "stats.dyn.label",	YELLOW,		DEFAULT_BG,	OFF		},
-	{ "stats.dyn.values",	YELLOW,		DEFAULT_BG,	OFF		},
+	{ "stats.dyn.label",	YELLOW,		NO_COLOR,	OFF		},
+	{ "stats.dyn.values",	YELLOW,		NO_COLOR,	OFF		},
 
 	/* Static elements (only update when explicitly set to different value) */
-	{ "stats.stat.label",	MAGENTA,	DEFAULT_BG,	OFF		},
-	{ "stats.stat.values",	WHITE,		DEFAULT_BG,	BOLD	},
+	{ "stats.stat.label",	MAGENTA,	NO_COLOR,	OFF		},
+	{ "stats.stat.values",	WHITE,		NO_COLOR,	BOLD	},
 
 	/* Total statistics */
-	{ "stats.total.label",	RED,		DEFAULT_BG,	BOLD	},
+	{ "stats.total.label",	RED,		NO_COLOR,	BOLD	},
 
 	/* Colon separating labels and values */
-	{ "stats.colon",		BLUE,		DEFAULT_BG,	BOLD	},
+	{ "stats.colon",		BLUE,		NO_COLOR,	BOLD	},
 
 	/*
 	 * Misc.
 	 */
-	{ "pktgen.prompt",		GREEN,		DEFAULT_BG,	OFF		},
+	{ "pktgen.prompt",		GREEN,		NO_COLOR,	OFF		},
 	NULL
 };
 
@@ -175,7 +179,6 @@ void
 pktgen_init_screen(void)
 {
 	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, THEME_ON);
-	//pktgen_display_set_color(NULL);
 }
 
 

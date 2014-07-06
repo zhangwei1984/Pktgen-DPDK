@@ -29,9 +29,8 @@
 #   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include $(RTE_SDK)/mk/rte.vars.mk
+include $(RTE_SDK)/mk/rte.extvars.mk
 
 DIRS-$(CONFIG_WR_PKTGEN) += scrn lua common
 
-include $(RTE_SDK)/mk/rte.extshared.mk
 include $(RTE_SDK)/mk/rte.extsubdir.mk

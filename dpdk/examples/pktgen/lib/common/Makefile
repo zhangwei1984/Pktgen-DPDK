@@ -30,7 +30,7 @@
 #   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
 
-include $(RTE_SDK)/mk/rte.extvars.mk
+include $(RTE_SDK)/mk/rte.vars.mk
 
 # library name
 LIB = libcommon.a
@@ -46,4 +46,4 @@ SYMLINK-$(CONFIG_WR_PKTGEN)-include := wr_copyright_info.h wr_port_config.h \
 SRCS-$(CONFIG_WR_PKTGEN) := wr_copyright_info.c wr_port_config.c wr_core_info.c \
 	wr_lscpu.c wr_utils.c wr_coremap.c wr_mempool.c wr_pcap.c wr_cksum.c wr_l2p.c
 
-include $(RTE_SDK)/mk/rte.extlib.mk
+include $(RTE_SDK)/mk/rte.lib.mk

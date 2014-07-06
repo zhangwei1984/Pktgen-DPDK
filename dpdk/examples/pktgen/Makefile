@@ -37,7 +37,7 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-include $(RTE_SDK)/mk/rte.extvars.mk
+include $(RTE_SDK)/mk/rte.vars.mk
 unexport RTE_SRCDIR RTE_OUTPUT RTE_EXTMK
 
 DIRS-$(CONFIG_RTE_EXEC_ENV_LINUXAPP) += lib app
@@ -49,4 +49,4 @@ clean all: $(DIRS-y)
 $(DIRS-y):
 	$(MAKE) -C $@ $(MAKECMDGOALS)
 
-include $(RTE_SDK)/mk/rte.extapp.mk
+include $(RTE_SDK)/mk/rte.app.mk

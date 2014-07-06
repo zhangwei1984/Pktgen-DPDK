@@ -63,7 +63,7 @@
 #
 
 
-include $(RTE_SDK)/mk/rte.extvars.mk
+include $(RTE_SDK)/mk/rte.vars.mk
 
 # library name
 LIB = libscrn.a
@@ -76,4 +76,4 @@ SRCS-$(CONFIG_WR_PKTGEN) := rte_scrn.c
 # install includes
 SYMLINK-$(CONFIG_WR_PKTGEN)-include := rte_scrn.h
 
-include $(RTE_SDK)/mk/rte.extlib.mk
+include $(RTE_SDK)/mk/rte.lib.mk
