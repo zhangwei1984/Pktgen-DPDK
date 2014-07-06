@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -172,10 +172,10 @@ rte_hash_create(const struct rte_hash_parameters *params)
 	struct rte_hash_list *hash_list;
 
 	/* check that we have an initialised tail queue */
-	if ((hash_list = 
+	if ((hash_list =
 	     RTE_TAILQ_LOOKUP_BY_IDX(RTE_TAILQ_HASH, rte_hash_list)) == NULL) {
 		rte_errno = E_RTE_NO_TAILQ;
-		return NULL;	
+		return NULL;
 	}
 
 	/* Check for valid parameters */
@@ -192,7 +192,7 @@ rte_hash_create(const struct rte_hash_parameters *params)
 		return NULL;
 	}
 
-	rte_snprintf(hash_name, sizeof(hash_name), "HT_%s", params->name);
+	snprintf(hash_name, sizeof(hash_name), "HT_%s", params->name);
 
 	/* Calculate hash dimensions */
 	num_buckets = params->entries / params->bucket_entries;
@@ -205,7 +205,7 @@ rte_hash_create(const struct rte_hash_parameters *params)
 				  CACHE_LINE_SIZE);
 	key_tbl_size = align_size(num_buckets * key_size *
 				  params->bucket_entries, CACHE_LINE_SIZE);
-	
+
 	/* Total memory required for hash context */
 	mem_size = hash_tbl_size + sig_tbl_size + key_tbl_size;
 
@@ -227,7 +227,7 @@ rte_hash_create(const struct rte_hash_parameters *params)
 	}
 
 	/* Setup hash context */
-	rte_snprintf(h->name, sizeof(h->name), "%s", params->name);
+	snprintf(h->name, sizeof(h->name), "%s", params->name);
 	h->entries = params->entries;
 	h->bucket_entries = params->bucket_entries;
 	h->key_len = params->key_len;
@@ -261,7 +261,7 @@ rte_hash_free(struct rte_hash *h)
 }
 
 static inline int32_t
-__rte_hash_add_key_with_hash(const struct rte_hash *h, 
+__rte_hash_add_key_with_hash(const struct rte_hash *h,
 				const void *key, hash_sig_t sig)
 {
 	hash_sig_t *sig_bucket;
@@ -297,7 +297,7 @@ __rte_hash_add_key_with_hash(const struct rte_hash *h,
 }
 
 int32_t
-rte_hash_add_key_with_hash(const struct rte_hash *h, 
+rte_hash_add_key_with_hash(const struct rte_hash *h,
 				const void *key, hash_sig_t sig)
 {
 	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
@@ -312,7 +312,7 @@ rte_hash_add_key(const struct rte_hash *h, const void *key)
 }
 
 static inline int32_t
-__rte_hash_del_key_with_hash(const struct rte_hash *h, 
+__rte_hash_del_key_with_hash(const struct rte_hash *h,
 				const void *key, hash_sig_t sig)
 {
 	hash_sig_t *sig_bucket;
@@ -339,7 +339,7 @@ __rte_hash_del_key_with_hash(const struct rte_hash *h,
 }
 
 int32_t
-rte_hash_del_key_with_hash(const struct rte_hash *h, 
+rte_hash_del_key_with_hash(const struct rte_hash *h,
 				const void *key, hash_sig_t sig)
 {
 	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);
@@ -354,7 +354,7 @@ rte_hash_del_key(const struct rte_hash *h, const void *key)
 }
 
 static inline int32_t
-__rte_hash_lookup_with_hash(const struct rte_hash *h, 
+__rte_hash_lookup_with_hash(const struct rte_hash *h,
 			const void *key, hash_sig_t sig)
 {
 	hash_sig_t *sig_bucket;
@@ -380,7 +380,7 @@ __rte_hash_lookup_with_hash(const struct rte_hash *h,
 }
 
 int32_t
-rte_hash_lookup_with_hash(const struct rte_hash *h, 
+rte_hash_lookup_with_hash(const struct rte_hash *h,
 			const void *key, hash_sig_t sig)
 {
 	RETURN_IF_TRUE(((h == NULL) || (key == NULL)), -EINVAL);

@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -40,6 +40,7 @@
 /* Backend value set by guest. */
 #define VIRTIO_DEV_STOPPED -1
 
+#define PAGE_SIZE   4096
 
 /* Enum for virtqueue management. */
 enum {VIRTIO_RXQ, VIRTIO_TXQ, VIRTIO_QNUM};
@@ -100,6 +101,21 @@ struct virtio_memory_regions {
 };
 
 /*
+ * Information relating to memory regions including offsets to
+ * addresses in host physical space.
+ */
+struct virtio_memory_regions_hpa {
+	/* Base guest physical address of region. */
+	uint64_t	guest_phys_address;
+	/* End guest physical address of region. */
+	uint64_t	guest_phys_address_end;
+	/* Size of region. */
+	uint64_t	memory_size;
+	/* Offset of region for gpa to hpa translation. */
+	uint64_t	host_phys_addr_offset;
+};
+
+/*
  * Memory structure includes region and mapping information.
  */
 struct virtio_memory {
@@ -107,7 +123,12 @@ struct virtio_memory {
 	uint64_t			mapped_address;			/* Mapped address of memory file base in our applications memory space. */
 	uint64_t			mapped_size;			/* Total size of memory file. */
 	uint32_t			nregions;				/* Number of memory regions. */
-	struct virtio_memory_regions 	regions[0];	/* Memory region information. */
+	 /* Number of memory regions for gpa to hpa translation. */
+	uint32_t			nregions_hpa;
+	/* Memory region information for gpa to hpa translation. */
+	struct virtio_memory_regions_hpa  *regions_hpa;
+	/* Memory region information. */
+	struct virtio_memory_regions      regions[0];
 };
 
 /*

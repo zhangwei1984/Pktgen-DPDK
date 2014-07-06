@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -50,7 +50,6 @@
 #include <rte_eal.h>
 #include <rte_ip.h>
 #include <rte_string_fns.h>
-#include <cmdline_parse.h>
 
 #include "test.h"
 
@@ -539,7 +538,7 @@ run_tbl_perf_test(struct tbl_perf_test_params *params)
 	char name[RTE_HASH_NAMESIZE];
 	char hashname[RTE_HASH_NAMESIZE];
 
-	rte_snprintf(name, 32, "test%u", calledCount++);
+	snprintf(name, 32, "test%u", calledCount++);
 	hash_params.name = name;
 
 	handle = rte_hash_create(&hash_params);
@@ -590,7 +589,7 @@ run_tbl_perf_test(struct tbl_perf_test_params *params)
 	default: return -1;
 	}
 
-	rte_snprintf(hashname, RTE_HASH_NAMESIZE, "%s", get_hash_name(params->hash_func));
+	snprintf(hashname, RTE_HASH_NAMESIZE, "%s", get_hash_name(params->hash_func));
 
 	printf("%-12s, %-15s, %-16u, %-7u, %-18u, %-8u, %-19.2f, %.2f\n",
 		hashname,

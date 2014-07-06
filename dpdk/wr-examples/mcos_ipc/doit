@@ -1,1 +1,0 @@
-./build/mcos_ipc -c f8 -n3 --proc-type auto --socket-mem 256,256 

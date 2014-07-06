@@ -1,0 +1,13 @@
+#include "defconfig_x86_64-native-linuxapp-gcc"
+
+CONFIG_RTE_LIBWR=y
+CONFIG_RTE_LIBWR_COMMON=y
+CONFIG_RTE_LIBWR_SCRN=y
+CONFIG_RTE_LIBWR_LUA=y
+
+##
+# Pktgen support configuration
+##
+# Not working yet
+CONFIG_INCLUDE_PING6=n
+

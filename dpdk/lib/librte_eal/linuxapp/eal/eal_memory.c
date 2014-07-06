@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -61,6 +61,7 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define _FILE_OFFSET_BITS 64
 #include <errno.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -113,13 +114,27 @@ static uint64_t baseaddr_offset;
 
 #define RANDOMIZE_VA_SPACE_FILE "/proc/sys/kernel/randomize_va_space"
 
-static uint64_t
-get_physaddr(void * virtaddr)
+/* Lock page in physical memory and prevent from swapping. */
+int
+rte_mem_lock_page(const void *virt)
+{
+	unsigned long virtual = (unsigned long)virt;
+	int page_size = getpagesize();
+	unsigned long aligned = (virtual & ~ (page_size - 1));
+	return mlock((void*)aligned, page_size);
+}
+
+/*
+ * Get physical address of any mapped virtual address in the current process.
+ */
+phys_addr_t
+rte_mem_virt2phy(const void *virtaddr)
 {
 	int fd;
 	uint64_t page, physaddr;
 	unsigned long virt_pfn;
 	int page_size;
+	off_t offset;
 
 	/* standard page size */
 	page_size = getpagesize();
@@ -128,30 +143,30 @@ get_physaddr(void * virtaddr)
 	if (fd < 0) {
 		RTE_LOG(ERR, EAL, "%s(): cannot open /proc/self/pagemap: %s\n",
 			__func__, strerror(errno));
-		return (uint64_t) -1;
+		return RTE_BAD_PHYS_ADDR;
 	}
 
-	off_t offset;
 	virt_pfn = (unsigned long)virtaddr / page_size;
 	offset = sizeof(uint64_t) * virt_pfn;
 	if (lseek(fd, offset, SEEK_SET) == (off_t) -1) {
 		RTE_LOG(ERR, EAL, "%s(): seek error in /proc/self/pagemap: %s\n",
 				__func__, strerror(errno));
 		close(fd);
-		return (uint64_t) -1;
+		return RTE_BAD_PHYS_ADDR;
 	}
 	if (read(fd, &page, sizeof(uint64_t)) < 0) {
 		RTE_LOG(ERR, EAL, "%s(): cannot read /proc/self/pagemap: %s\n",
 				__func__, strerror(errno));
 		close(fd);
-		return (uint64_t) -1;
+		return RTE_BAD_PHYS_ADDR;
 	}
 
 	/*
 	 * the pfn (page frame number) are bits 0-54 (see
 	 * pagemap.txt in linux Documentation)
 	 */
-	physaddr = ((page & 0x7fffffffffffffULL) * page_size);
+	physaddr = ((page & 0x7fffffffffffffULL) * page_size)
+		+ ((unsigned long)virtaddr % page_size);
 	close(fd);
 	return physaddr;
 }
@@ -167,8 +182,8 @@ find_physaddrs(struct hugepage_file *hugepg_tbl, struct hugepage_info *hpi)
 	phys_addr_t addr;
 
 	for (i = 0; i < hpi->num_pages[0]; i++) {
-		addr = get_physaddr(hugepg_tbl[i].orig_va);
-		if (addr == (phys_addr_t) -1)
+		addr = rte_mem_virt2phy(hugepg_tbl[i].orig_va);
+		if (addr == RTE_BAD_PHYS_ADDR)
 			return -1;
 		hugepg_tbl[i].physaddr = addr;
 	}
@@ -206,7 +221,7 @@ aslr_enabled(void)
 }
 
 /*
- * Try to mmap *size bytes in /dev/zero. If it is succesful, return the
+ * Try to mmap *size bytes in /dev/zero. If it is successful, return the
  * pointer to the mmap'd area and keep *size unmodified. Else, retry
  * with a smaller zone: decrease *size by hugepage_sz until it reaches
  * 0. In this case, return NULL. Note: this function returns an address
@@ -490,12 +505,12 @@ remap_all_hugepages(struct hugepage_file *hugepg_tbl, struct hugepage_info *hpi)
 			return -1;
 		}
 
-		rte_snprintf(hugepg_tbl[page_idx].filepath, MAX_HUGEPAGE_PATH, "%s",
+		snprintf(hugepg_tbl[page_idx].filepath, MAX_HUGEPAGE_PATH, "%s",
 				filepath);
 
-		physaddr = get_physaddr(vma_addr);
+		physaddr = rte_mem_virt2phy(vma_addr);
 
-		if (physaddr == (phys_addr_t) -1)
+		if (physaddr == RTE_BAD_PHYS_ADDR)
 			return -1;
 
 		hugepg_tbl[page_idx].final_va = vma_addr;
@@ -516,7 +531,7 @@ remap_all_hugepages(struct hugepage_file *hugepg_tbl, struct hugepage_info *hpi)
 
 			expected_physaddr = hugepg_tbl[page_idx].physaddr + offset;
 			page_addr = RTE_PTR_ADD(vma_addr, offset);
-			physaddr = get_physaddr(page_addr);
+			physaddr = rte_mem_virt2phy(page_addr);
 
 			if (physaddr != expected_physaddr) {
 				RTE_LOG(ERR, EAL, "Segment sanity check failed: wrong physaddr "
@@ -576,7 +591,7 @@ find_numasocket(struct hugepage_file *hugepg_tbl, struct hugepage_info *hpi)
 		return 0;
 	}
 
-	rte_snprintf(hugedir_str, sizeof(hugedir_str),
+	snprintf(hugedir_str, sizeof(hugedir_str),
 			"%s/", hpi->hugedir);
 
 	/* parse numa map */
@@ -866,13 +881,53 @@ calc_num_pages_per_socket(uint64_t * memory,
 	if (num_hp_info == 0)
 		return -1;
 
-	for (socket = 0; socket < RTE_MAX_NUMA_NODES && total_mem != 0; socket++) {
-		/* if specific memory amounts per socket weren't requested */
-		if (internal_config.force_sockets == 0) {
-			/* take whatever is available */
-			memory[socket] = RTE_MIN(get_socket_mem_size(socket),
-					total_mem);
+	/* if specific memory amounts per socket weren't requested */
+	if (internal_config.force_sockets == 0) {
+		int cpu_per_socket[RTE_MAX_NUMA_NODES];
+		size_t default_size, total_size;
+		unsigned lcore_id;
+
+		/* Compute number of cores per socket */
+		memset(cpu_per_socket, 0, sizeof(cpu_per_socket));
+		RTE_LCORE_FOREACH(lcore_id) {
+			cpu_per_socket[rte_lcore_to_socket_id(lcore_id)]++;
 		}
+
+		/*
+		 * Automatically spread requested memory amongst detected sockets according
+		 * to number of cores from cpu mask present on each socket
+		 */
+		total_size = internal_config.memory;
+		for (socket = 0; socket < RTE_MAX_NUMA_NODES && total_size != 0; socket++) {
+
+			/* Set memory amount per socket */
+			default_size = (internal_config.memory * cpu_per_socket[socket])
+			                / rte_lcore_count();
+
+			/* Limit to maximum available memory on socket */
+			default_size = RTE_MIN(default_size, get_socket_mem_size(socket));
+
+			/* Update sizes */
+			memory[socket] = default_size;
+			total_size -= default_size;
+		}
+
+		/*
+		 * If some memory is remaining, try to allocate it by getting all
+		 * available memory from sockets, one after the other
+		 */
+		for (socket = 0; socket < RTE_MAX_NUMA_NODES && total_size != 0; socket++) {
+			/* take whatever is available */
+			default_size = RTE_MIN(get_socket_mem_size(socket) - memory[socket],
+			                       total_size);
+
+			/* Update sizes */
+			memory[socket] += default_size;
+			total_size -= default_size;
+		}
+	}
+
+	for (socket = 0; socket < RTE_MAX_NUMA_NODES && total_mem != 0; socket++) {
 		/* skips if the memory on specific socket wasn't requested */
 		for (i = 0; i < num_hp_info && memory[socket] != 0; i++){
 			hp_used[i].hugedir = hp_info[i].hugedir;
@@ -974,13 +1029,19 @@ rte_eal_hugepage_init(void)
 	/* get pointer to global configuration */
 	mcfg = rte_eal_get_configuration()->mem_config;
 
-	/* for debug purposes, hugetlbfs can be disabled */
+	/* hugetlbfs can be disabled */
 	if (internal_config.no_hugetlbfs) {
-		addr = malloc(internal_config.memory);
+		addr = mmap(NULL, internal_config.memory, PROT_READ | PROT_WRITE,
+				MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+		if (addr == MAP_FAILED) {
+			RTE_LOG(ERR, EAL, "%s: mmap() failed: %s\n", __func__,
+					strerror(errno));
+			return -1;
+		}
 		mcfg->memseg[0].phys_addr = (phys_addr_t)(uintptr_t)addr;
 		mcfg->memseg[0].addr = addr;
 		mcfg->memseg[0].len = internal_config.memory;
-		mcfg->memseg[0].socket_id = 0;
+		mcfg->memseg[0].socket_id = SOCKET_ID_ANY;
 		return 0;
 	}
 

@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -41,10 +41,13 @@
 #include <ctype.h>
 #include <sys/queue.h>
 
+#ifdef RTE_LIBRTE_CMDLINE
 #include <cmdline_rdline.h>
 #include <cmdline_parse.h>
 #include <cmdline_socket.h>
 #include <cmdline.h>
+extern cmdline_parse_ctx_t main_ctx[];
+#endif
 
 #include <rte_memory.h>
 #include <rte_memzone.h>
@@ -83,6 +86,7 @@ do_recursive_call(void)
 			{ "test_no_hpet_flag", no_action },
 			{ "test_whitelist_flag", no_action },
 			{ "test_invalid_b_flag", no_action },
+			{ "test_invalid_vdev_flag", no_action },
 			{ "test_invalid_r_flag", no_action },
 #ifdef RTE_LIBRTE_XEN_DOM0
 			{ "test_dom0_misc_flags", no_action },
@@ -109,7 +113,9 @@ do_recursive_call(void)
 int
 main(int argc, char **argv)
 {
+#ifdef RTE_LIBRTE_CMDLINE
 	struct cmdline *cl;
+#endif
 	int ret;
 
 	ret = rte_eal_init(argc, argv);
@@ -136,13 +142,14 @@ main(int argc, char **argv)
 				"HPET is not enabled, using TSC as default timer\n");
 
 
-
+#ifdef RTE_LIBRTE_CMDLINE
 	cl = cmdline_stdin_new(main_ctx, "RTE>>");
 	if (cl == NULL) {
 		return -1;
 	}
 	cmdline_interact(cl);
 	cmdline_stdin_exit(cl);
+#endif
 
 	return 0;
 }

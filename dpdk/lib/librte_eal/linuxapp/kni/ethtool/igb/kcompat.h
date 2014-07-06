@@ -2837,6 +2837,12 @@ static inline bool pci_is_pcie(struct pci_dev *dev)
 #define HAVE_ETHTOOL_GET_TS_INFO
 #endif /* RHEL >= 6.4 && RHEL < 7.0 */
 
+#if (RHEL_RELEASE_CODE && \
+     (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,5)) && \
+     (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(7,0)))
+#define HAVE_RHEL6_NETDEV_OPS_EXT_FDB
+#endif /* RHEL >= 6.5 && RHEL < 7.0 */
+
 #else /* < 2.6.33 */
 #if defined(CONFIG_FCOE) || defined(CONFIG_FCOE_MODULE)
 #ifndef HAVE_NETDEV_OPS_FCOE_GETWWN
@@ -3463,7 +3469,7 @@ static inline void __kc_skb_frag_unref(skb_frag_t *frag)
 #endif
 /*****************************************************************************/
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0) )
-typedef u32 netdev_features_t;
+typedef u32 kni_netdev_features_t;
 #undef PCI_EXP_TYPE_RC_EC
 #define  PCI_EXP_TYPE_RC_EC	0xa	/* Root Complex Event Collector */
 #ifndef CONFIG_BQL
@@ -3475,6 +3481,7 @@ typedef u32 netdev_features_t;
 #define netdev_reset_queue(_n) do {} while (0)
 #endif
 #else /* ! < 3.3.0 */
+typedef netdev_features_t kni_netdev_features_t;
 #define HAVE_INT_NDO_VLAN_RX_ADD_VID
 #ifdef ETHTOOL_SRXNTUPLE
 #undef ETHTOOL_SRXNTUPLE
@@ -3527,12 +3534,18 @@ extern void _kc_skb_add_rx_frag(struct sk_buff *, int, struct page *,
 /*****************************************************************************/
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) )
 #define skb_tx_timestamp(skb) do {} while (0)
+static inline bool __kc_ether_addr_equal(const u8 *addr1, const u8 *addr2)
+{
+	return !compare_ether_addr(addr1, addr2);
+}
+#define ether_addr_equal(_addr1, _addr2) __kc_ether_addr_equal((_addr1),(_addr2))
 #else
 #define HAVE_FDB_OPS
 #define HAVE_ETHTOOL_GET_TS_INFO
 #endif /* < 3.5.0 */
 
 /*****************************************************************************/
+#include <linux/mdio.h>
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0) )
 #define PCI_EXP_LNKCAP2		44	/* Link Capability 2 */
 
@@ -3554,8 +3567,6 @@ extern void _kc_skb_add_rx_frag(struct sk_buff *, int, struct page *,
 #ifndef MDIO_EEE_10GKR
 #define MDIO_EEE_10GKR		0x0040	/* 10G KR EEE cap */
 #endif
-#else /* < 3.6.0 */
-#include <linux/mdio.h>
 #endif /* < 3.6.0 */
 
 /******************************************************************************/
@@ -3573,6 +3584,7 @@ extern void _kc_skb_add_rx_frag(struct sk_buff *, int, struct page *,
 #define ADVERTISED_40000baseSR4_Full	(1 << 25)
 #define ADVERTISED_40000baseLR4_Full	(1 << 26)
 #endif
+
 /**
  * mmd_eee_cap_to_ethtool_sup_t
  * @eee_cap: value of the MMD EEE Capability register
@@ -3580,7 +3592,7 @@ extern void _kc_skb_add_rx_frag(struct sk_buff *, int, struct page *,
  * A small helper function that translates MMD EEE Capability (3.20) bits
  * to ethtool supported settings.
  */
-static inline u32 mmd_eee_cap_to_ethtool_sup_t(u16 eee_cap)
+static inline u32 __kc_mmd_eee_cap_to_ethtool_sup_t(u16 eee_cap)
 {
 	u32 supported = 0;
 
@@ -3599,16 +3611,18 @@ static inline u32 mmd_eee_cap_to_ethtool_sup_t(u16 eee_cap)
 
 	return supported;
 }
+#define mmd_eee_cap_to_ethtool_sup_t(eee_cap) \
+	__kc_mmd_eee_cap_to_ethtool_sup_t(eee_cap)
 
 /**
  * mmd_eee_adv_to_ethtool_adv_t
  * @eee_adv: value of the MMD EEE Advertisement/Link Partner Ability registers
  *
- * A small helper function that translates the MMD EEE Advertisment (7.60)
+ * A small helper function that translates the MMD EEE Advertisement (7.60)
  * and MMD EEE Link Partner Ability (7.61) bits to ethtool advertisement
  * settings.
  */
-static inline u32 mmd_eee_adv_to_ethtool_adv_t(u16 eee_adv)
+static inline u32 __kc_mmd_eee_adv_to_ethtool_adv_t(u16 eee_adv)
 {
 	u32 adv = 0;
 
@@ -3627,6 +3641,8 @@ static inline u32 mmd_eee_adv_to_ethtool_adv_t(u16 eee_adv)
 
 	return adv;
 }
+#define mmd_eee_adv_to_ethtool_adv_t(eee_adv) \
+	__kc_mmd_eee_adv_to_ethtool_adv_t(eee_adv)
 
 /**
  * ethtool_adv_to_mmd_eee_adv_t
@@ -3636,7 +3652,7 @@ static inline u32 mmd_eee_adv_to_ethtool_adv_t(u16 eee_adv)
  * to EEE advertisements for the MMD EEE Advertisement (7.60) and
  * MMD EEE Link Partner Ability (7.61) registers.
  */
-static inline u16 ethtool_adv_to_mmd_eee_adv_t(u32 adv)
+static inline u16 __kc_ethtool_adv_to_mmd_eee_adv_t(u32 adv)
 {
 	u16 reg = 0;
 
@@ -3655,6 +3671,8 @@ static inline u16 ethtool_adv_to_mmd_eee_adv_t(u32 adv)
 
 	return reg;
 }
+#define ethtool_adv_to_mmd_eee_adv_t(adv) \
+	__kc_ethtool_adv_to_mmd_eee_adv_t(adv)
 
 #ifndef pci_pcie_type
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24) )
@@ -3676,7 +3694,7 @@ static inline u8 pci_pcie_type(struct pci_dev *pdev)
 
 #define ptp_clock_register(caps, args...) ptp_clock_register(caps)
 
-#if !(SLE_VERSION_CODE && SLE_VERSION_CODE >= SLE_VERSION(11,3,0))
+#ifndef PCI_EXP_LNKSTA2
 int __kc_pcie_capability_read_word(struct pci_dev *dev, int pos, u16 *val);
 #define pcie_capability_read_word(d,p,v) __kc_pcie_capability_read_word(d,p,v)
 int __kc_pcie_capability_write_word(struct pci_dev *dev, int pos, u16 val);
@@ -3693,7 +3711,7 @@ static inline int pcie_capability_clear_word(struct pci_dev *dev, int pos,
 {
 	return __kc_pcie_capability_clear_and_set_word(dev, pos, clear, 0);
 }
-#endif /* !(SLE_VERSION_CODE && SLE_VERSION_CODE >= SLE_VERSION(11,3,0)) */
+#endif /* !PCI_EXP_LNKSTA2 */
 
 #if (SLE_VERSION_CODE && SLE_VERSION_CODE >= SLE_VERSION(11,3,0))
 #define USE_CONST_DEV_UC_CHAR
@@ -3716,7 +3734,8 @@ static inline int pcie_capability_clear_word(struct pci_dev *dev, int pos,
 /* Reserved Ethernet Addresses per IEEE 802.1Q */
 static const u8 eth_reserved_addr_base[ETH_ALEN] __aligned(2) = {
 	0x01, 0x80, 0xc2, 0x00, 0x00, 0x00 };
-#if !(SLE_VERSION_CODE && SLE_VERSION_CODE >= SLE_VERSION(11,3,0))
+#if !(SLE_VERSION_CODE && SLE_VERSION_CODE >= SLE_VERSION(11,3,0)) &&\
+    !(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,5))
 static inline bool is_link_local_ether_addr(const u8 *addr)
 {
 	__be16 *a = (__be16 *)addr;
@@ -3825,5 +3844,24 @@ static inline struct sk_buff *__kc__vlan_hwaccel_put_tag(struct sk_buff *skb,
 #else /* >= 3.10.0 */
 #define HAVE_ENCAP_TSO_OFFLOAD
 #endif /* >= 3.10.0 */
+
+/* #### Changed the next line to use (3,13,0) instead of (3,14,0) KeithW */
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,13,0) )
+#if (!(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(7,0)))
+#ifdef NETIF_F_RXHASH
+#define PKT_HASH_TYPE_L3 0
+static inline void
+skb_set_hash(struct sk_buff *skb, __u32 hash, __always_unused int type)
+{
+	skb->rxhash = hash;
+}
+#endif /* NETIF_F_RXHASH */
+#endif /* < RHEL7 */
+#endif /* < 3.14.0 */
+
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0) )
+#define SET_ETHTOOL_OPS(netdev, ops) ((netdev)->ethtool_ops = (ops))
+#define HAVE_VF_MIN_MAX_TXRATE 1
+#endif /* >= 3.16.0 */
 
 #endif /* _KCOMPAT_H_ */

@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -76,6 +76,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <rte_debug.h>
+#include <rte_atomic.h>
 
 #ifdef RTE_LIBRTE_EAL_VMWARE_TSC_MAP_SUPPORT
 /** Global switch to use VMWARE mapping of TSC instead of RDTSC */
@@ -125,6 +126,19 @@ rte_rdtsc(void)
 		     "=a" (tsc.lo_32),
 		     "=d" (tsc.hi_32));
 	return tsc.tsc_64;
+}
+
+/**
+ * Read the TSC register precisely where function is called.
+ *
+ * @return
+ *   The TSC for this lcore.
+ */
+static inline uint64_t
+rte_rdtsc_precise(void)
+{
+	rte_mb();
+	return rte_rdtsc();
 }
 
 /**
