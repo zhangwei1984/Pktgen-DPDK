@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -195,50 +195,5 @@ int rte_eal_intr_init(void);
  *  0 on success, negative on error
  */
 int rte_eal_alarm_init(void);
-
-/**
- * When parsing command-line args add a new entry to the whitelist string
- * to be parsed, i.e. this is used to join multiple --use-device flags together
- *
- * This function is private to EAL
- */
-int eal_dev_whitelist_add_entry(const char *entry);
-
-/**
- * Returns true if whitelist parameters are available for parsing,
- * false otherwise.
- *
- * This function is private to EAL
- */
-int eal_dev_whitelist_exists(void);
-
-/**
- * Parse the combined whitelist options into a single white-list for later use.
- *
- * This function is private to EAL
- */
-int eal_dev_whitelist_parse(void);
-
-/**
- * Check if a particular device is whitelisted or not. Returns true if the
- * device is in the whitelist.
- *
- * This function is private to EAL
- */
-int eal_dev_is_whitelisted(const char *device_str, const char **params);
-
-/**
- * This function clears the whitelist settings.
- *
- * This function is private to the EAL.
- */
-void eal_dev_whitelist_clear(void);
-
-/**
- * This function initialises any non-PCI i.e. dummy ethernet devices
- *
- * This function is private to the EAL.
- */
-int rte_eal_non_pci_ethdev_init(void);
 
 #endif /* _EAL_PRIVATE_H_ */

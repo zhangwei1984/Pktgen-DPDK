@@ -1,13 +1,14 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2014 6WIND S.A.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -64,6 +65,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <rte_devargs.h>
 
 #include <cmdline_rdline.h>
 #include <cmdline_parse.h>
@@ -149,12 +151,18 @@ static void cmd_autotest_parsed(void *parsed_result,
 		ret = test_cycles();
 	if (!strcmp(res->autotest, "ring_autotest"))
 		ret = test_ring();
+	if (!strcmp(res->autotest, "table_autotest"))
+		ret = test_table();
 	if (!strcmp(res->autotest, "ring_perf_autotest"))
 		ret = test_ring_perf();
 	if (!strcmp(res->autotest, "timer_autotest"))
 		ret = test_timer();
 	if (!strcmp(res->autotest, "timer_perf_autotest"))
 		ret = test_timer_perf();
+#ifdef RTE_LIBRTE_PMD_BOND
+	if (!strcmp(res->autotest, "link_bonding_autotest"))
+		ret = test_link_bonding();
+#endif
 	if (!strcmp(res->autotest, "mempool_autotest"))
 		ret = test_mempool();
 	if (!strcmp(res->autotest, "mempool_perf_autotest"))
@@ -177,6 +185,12 @@ static void cmd_autotest_parsed(void *parsed_result,
 		ret = test_common();
 	if (!strcmp(res->autotest, "ivshmem_autotest"))
 		ret = test_ivshmem();
+	if (!strcmp(res->autotest, "distributor_autotest"))
+		ret = test_distributor();
+	if (!strcmp(res->autotest, "distributor_perf_autotest"))
+		ret = test_distributor_perf();
+	if (!strcmp(res->autotest, "devargs_autotest"))
+		ret = test_devargs();
 #ifdef RTE_LIBRTE_PMD_RING
 	if (!strcmp(res->autotest, "ring_pmd_autotest"))
 		ret = test_pmd_ring();
@@ -186,6 +200,10 @@ static void cmd_autotest_parsed(void *parsed_result,
 	if (!strcmp(res->autotest, "acl_autotest"))
 		ret = test_acl();
 #endif /* RTE_LIBRTE_ACL */
+#ifdef RTE_LIBRTE_KVARGS
+	if (!strcmp(res->autotest, "kvargs_autotest"))
+		ret |= test_kvargs();
+#endif /* RTE_LIBRTE_KVARGS */
 
 	if (ret == 0)
 		printf("Test OK\n");
@@ -213,11 +231,15 @@ cmdline_parse_token_string_t cmd_autotest_autotest =
 			"alarm_autotest#interrupt_autotest#"
 			"version_autotest#eal_fs_autotest#"
 			"cmdline_autotest#func_reentrancy_autotest#"
+#ifdef RTE_LIBRTE_PMD_BOND
+			"link_bonding_autotest#"
+#endif
 			"mempool_perf_autotest#hash_perf_autotest#"
 			"memcpy_perf_autotest#ring_perf_autotest#"
 			"red_autotest#meter_autotest#sched_autotest#"
 			"memcpy_perf_autotest#kni_autotest#"
 			"pm_autotest#ivshmem_autotest#"
+			"devargs_autotest#table_autotest#"
 #ifdef RTE_LIBRTE_ACL
 			"acl_autotest#"
 #endif
@@ -226,7 +248,11 @@ cmdline_parse_token_string_t cmd_autotest_autotest =
 #ifdef RTE_LIBRTE_PMD_RING
 			"ring_pmd_autotest#"
 #endif
-			"common_autotest");
+#ifdef RTE_LIBRTE_KVARGS
+			"kvargs_autotest#"
+#endif
+			"common_autotest#"
+			"distributor_autotest#distributor_perf_autotest");
 
 cmdline_parse_inst_t cmd_autotest = {
 	.f = cmd_autotest_parsed,  /* function to call */
@@ -263,23 +289,26 @@ static void cmd_dump_parsed(void *parsed_result,
 	struct cmd_dump_result *res = parsed_result;
 
 	if (!strcmp(res->dump, "dump_physmem"))
-		rte_dump_physmem_layout();
+		rte_dump_physmem_layout(stdout);
 	else if (!strcmp(res->dump, "dump_memzone"))
-		rte_memzone_dump();
+		rte_memzone_dump(stdout);
 	else if (!strcmp(res->dump, "dump_log_history"))
-		rte_log_dump_history();
+		rte_log_dump_history(stdout);
 	else if (!strcmp(res->dump, "dump_struct_sizes"))
 		dump_struct_sizes();
 	else if (!strcmp(res->dump, "dump_ring"))
-		rte_ring_list_dump();
+		rte_ring_list_dump(stdout);
 	else if (!strcmp(res->dump, "dump_mempool"))
-		rte_mempool_list_dump();
+		rte_mempool_list_dump(stdout);
+	else if (!strcmp(res->dump, "dump_devargs"))
+		rte_eal_devargs_dump(stdout);
 }
 
 cmdline_parse_token_string_t cmd_dump_dump =
 	TOKEN_STRING_INITIALIZER(struct cmd_dump_result, dump,
 				 "dump_physmem#dump_memzone#dump_log_history#"
-				 "dump_struct_sizes#dump_ring#dump_mempool");
+				 "dump_struct_sizes#dump_ring#dump_mempool#"
+				 "dump_devargs");
 
 cmdline_parse_inst_t cmd_dump = {
 	.f = cmd_dump_parsed,  /* function to call */
@@ -310,7 +339,7 @@ static void cmd_dump_one_parsed(void *parsed_result, struct cmdline *cl,
 			cmdline_printf(cl, "Cannot find ring\n");
 			return;
 		}
-		rte_ring_dump(r);
+		rte_ring_dump(stdout, r);
 	}
 	else if (!strcmp(res->dump, "dump_mempool")) {
 		struct rte_mempool *mp;
@@ -319,7 +348,7 @@ static void cmd_dump_one_parsed(void *parsed_result, struct cmdline *cl,
 			cmdline_printf(cl, "Cannot find mempool\n");
 			return;
 		}
-		rte_mempool_dump(mp);
+		rte_mempool_dump(stdout, mp);
 	}
 }
 

@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -182,7 +182,7 @@ ixgbe_fdir_configure(struct rte_eth_dev *dev)
 
 	PMD_INIT_FUNC_TRACE();
 
-	if (hw->mac.type != ixgbe_mac_82599EB)
+	if (hw->mac.type != ixgbe_mac_82599EB && hw->mac.type !=ixgbe_mac_X540)
 		return -ENOSYS;
 
 	err = configure_fdir_flags(&dev->data->dev_conf.fdir_conf, &fdirctrl);
@@ -280,9 +280,8 @@ ixgbe_atr_compute_hash_82599(union ixgbe_atr_input *atr_input,
 	flow_vm_vlan = IXGBE_NTOHL(atr_input->dword_stream[0]);
 
 	/* generate common hash dword */
-	for (i = 10; i; i -= 2)
-		common_hash_dword ^= atr_input->dword_stream[i] ^
-				     atr_input->dword_stream[i - 1];
+	for (i = 1; i <= 13; i++)
+		common_hash_dword ^= atr_input->dword_stream[i];
 
 	hi_hash_dword = IXGBE_NTOHL(common_hash_dword);
 
@@ -464,7 +463,7 @@ fdir_add_update_signature_filter(struct rte_eth_dev *dev,
 	union ixgbe_atr_input input;
 	int err;
 
-	if (hw->mac.type != ixgbe_mac_82599EB)
+	if (hw->mac.type != ixgbe_mac_82599EB && hw->mac.type !=ixgbe_mac_X540)
 		return -ENOSYS;
 
 	err = fdir_filter_to_atr_input(fdir_filter, &input);
@@ -550,7 +549,7 @@ ixgbe_fdir_remove_signature_filter(struct rte_eth_dev *dev,
 
 	PMD_INIT_FUNC_TRACE();
 
-	if (hw->mac.type != ixgbe_mac_82599EB)
+	if (hw->mac.type != ixgbe_mac_82599EB && hw->mac.type !=ixgbe_mac_X540)
 		return -ENOSYS;
 
 	err = fdir_filter_to_atr_input(fdir_filter, &input);
@@ -674,7 +673,7 @@ ixgbe_fdir_set_masks(struct rte_eth_dev *dev, struct rte_fdir_masks *fdir_masks)
 
 	hw = IXGBE_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 
-	if (hw->mac.type != ixgbe_mac_82599EB)
+	if (hw->mac.type != ixgbe_mac_82599EB && hw->mac.type !=ixgbe_mac_X540)
 		return -ENOSYS;
 
 	err = ixgbe_reinit_fdir_tables_82599(hw);
@@ -784,7 +783,7 @@ fdir_add_update_perfect_filter(struct rte_eth_dev *dev,
 	union ixgbe_atr_input input;
 	int err;
 
-	if (hw->mac.type != ixgbe_mac_82599EB)
+	if (hw->mac.type != ixgbe_mac_82599EB && hw->mac.type !=ixgbe_mac_X540)
 		return -ENOSYS;
 
 	err = fdir_filter_to_atr_input(fdir_filter, &input);
@@ -836,7 +835,7 @@ ixgbe_fdir_remove_perfect_filter(struct rte_eth_dev *dev,
 
 	PMD_INIT_FUNC_TRACE();
 
-	if (hw->mac.type != ixgbe_mac_82599EB)
+	if (hw->mac.type != ixgbe_mac_82599EB && hw->mac.type !=ixgbe_mac_X540)
 		return -ENOSYS;
 
 	err = fdir_filter_to_atr_input(fdir_filter, &input);
@@ -859,7 +858,7 @@ ixgbe_fdir_info_get(struct rte_eth_dev *dev, struct rte_eth_fdir *fdir)
 			IXGBE_DEV_PRIVATE_TO_FDIR_INFO(dev->data->dev_private);
 	uint32_t reg;
 
-	if (hw->mac.type != ixgbe_mac_82599EB)
+	if (hw->mac.type != ixgbe_mac_82599EB && hw->mac.type !=ixgbe_mac_X540)
 		return;
 
 	/* Get the information from registers */

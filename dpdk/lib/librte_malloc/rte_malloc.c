@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -68,23 +68,43 @@ void rte_free(void *addr)
  * Allocate memory on specified heap.
  */
 void *
-rte_malloc_socket(const char *type, size_t size, unsigned align, int socket)
+rte_malloc_socket(const char *type, size_t size, unsigned align, int socket_arg)
 {
 	struct rte_mem_config *mcfg = rte_eal_get_configuration()->mem_config;
+	int socket, i;
+	void *ret;
 
 	/* return NULL if size is 0 or alignment is not power-of-2 */
 	if (size == 0 || !rte_is_power_of_2(align))
 		return NULL;
 
-	if (socket == SOCKET_ID_ANY)
+	if (socket_arg == SOCKET_ID_ANY)
 		socket = malloc_get_numa_socket();
+	else
+		socket = socket_arg;
 
 	/* Check socket parameter */
 	if (socket >= RTE_MAX_NUMA_NODES)
 		return NULL;
 
-	return malloc_heap_alloc(&mcfg->malloc_heaps[socket], type,
-			size, align == 0 ? 1 : align);
+	ret = malloc_heap_alloc(&mcfg->malloc_heaps[socket], type,
+				size, align == 0 ? 1 : align);
+	if (ret != NULL || socket_arg != SOCKET_ID_ANY)
+		return ret;
+
+	/* try other heaps */
+	for (i = 0; i < RTE_MAX_NUMA_NODES; i++) {
+		/* we already tried this one */
+		if (i == socket)
+			continue;
+
+		ret = malloc_heap_alloc(&mcfg->malloc_heaps[i], type,
+					size, align == 0 ? 1 : align);
+		if (ret != NULL)
+			return ret;
+	}
+
+	return NULL;
 }
 
 /*
@@ -168,9 +188,9 @@ rte_realloc(void *ptr, size_t size, unsigned align)
 }
 
 int
-rte_malloc_validate(void *ptr, size_t *size)
+rte_malloc_validate(const void *ptr, size_t *size)
 {
-	struct malloc_elem *elem = malloc_elem_from_data(ptr);
+	const struct malloc_elem *elem = malloc_elem_from_data(ptr);
 	if (!malloc_elem_cookies_ok(elem))
 		return -1;
 	if (size != NULL)
@@ -197,7 +217,7 @@ rte_malloc_get_socket_stats(int socket,
  * Print stats on memory type. If type is NULL, info on all types is printed
  */
 void
-rte_malloc_dump_stats(__rte_unused const char *type)
+rte_malloc_dump_stats(FILE *f, __rte_unused const char *type)
 {
 	unsigned int socket;
 	struct rte_malloc_socket_stats sock_stats;
@@ -206,14 +226,14 @@ rte_malloc_dump_stats(__rte_unused const char *type)
 		if ((rte_malloc_get_socket_stats(socket, &sock_stats) < 0))
 			continue;
 
-		printf("Socket:%u\n", socket);
-		printf("\tHeap_size:%zu,\n", sock_stats.heap_totalsz_bytes);
-		printf("\tFree_size:%zu,\n", sock_stats.heap_freesz_bytes);
-		printf("\tAlloc_size:%zu,\n", sock_stats.heap_allocsz_bytes);
-		printf("\tGreatest_free_size:%zu,\n",
+		fprintf(f, "Socket:%u\n", socket);
+		fprintf(f, "\tHeap_size:%zu,\n", sock_stats.heap_totalsz_bytes);
+		fprintf(f, "\tFree_size:%zu,\n", sock_stats.heap_freesz_bytes);
+		fprintf(f, "\tAlloc_size:%zu,\n", sock_stats.heap_allocsz_bytes);
+		fprintf(f, "\tGreatest_free_size:%zu,\n",
 				sock_stats.greatest_free_size);
-		printf("\tAlloc_count:%u,\n",sock_stats.alloc_count);
-		printf("\tFree_count:%u,\n", sock_stats.free_count);
+		fprintf(f, "\tAlloc_count:%u,\n",sock_stats.alloc_count);
+		fprintf(f, "\tFree_count:%u,\n", sock_stats.free_count);
 	}
 	return;
 }
@@ -226,4 +246,16 @@ rte_malloc_set_limit(__rte_unused const char *type,
 		__rte_unused size_t max)
 {
 	return 0;
+}
+
+/*
+ * Return the physical address of a virtual address obtained through rte_malloc
+ */
+phys_addr_t
+rte_malloc_virt2phy(const void *addr)
+{
+	const struct malloc_elem *elem = malloc_elem_from_data(addr);
+	if (elem == NULL)
+		return 0;
+	return elem->mz->phys_addr + ((uintptr_t)addr - (uintptr_t)elem->mz->addr);
 }

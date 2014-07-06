@@ -1,12 +1,12 @@
 #   BSD LICENSE
-# 
+#
 #   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
-# 
+#
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
 #   are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright
@@ -16,7 +16,7 @@
 #     * Neither the name of Intel Corporation nor the names of its
 #       contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
-# 
+#
 #   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 #   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -53,7 +53,7 @@ export BUILDING_RTE_SDK
 
 #
 # We can specify the configuration template when doing the "make
-# config". For instance: make config T=i686-default-baremetal-gcc
+# config". For instance: make config T=i686-native-baremetal-gcc
 #
 RTE_CONFIG_TEMPLATE :=
 ifdef T
@@ -85,61 +85,39 @@ export ROOTDIRS-y ROOTDIRS- ROOTDIRS-n
 .PHONY: default
 default: all
 
-.PHONY: config
-config:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkconfig.mk config
+.PHONY: config showconfigs showversion
+config showconfigs showversion:
+	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkconfig.mk $@
 
-.PHONY: test
-test:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdktest.mk test
-
-.PHONY: fast_test ring_test mempool_test perf_test coverage
-fast_test ring_test mempool_test perf_test coverage:
+.PHONY: test fast_test ring_test mempool_test perf_test coverage
+test fast_test ring_test mempool_test perf_test coverage:
 	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdktest.mk $@
 
 .PHONY: testall
 testall:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdktestall.mk testall
+	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdktestall.mk $@
 
-.PHONY: install
-install:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkinstall.mk install
+.PHONY: install uninstall
+install uninstall:
+	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkinstall.mk $@
 
-.PHONY: uninstall
-uninstall:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkinstall.mk uninstall
+.PHONY: doc help
+doc: doc-all
+help: doc-help
+doc-%:
+	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdoc.mk $*
 
-.PHONY: doc
-doc:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdoc.mk doc
+.PHONY: depdirs depgraph
+depdirs depgraph:
+	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdepdirs.mk $@
 
-.PHONY: pdfdoc
-pdfdoc:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdoc.mk pdfdoc
+.PHONY: gcov gcovclean
+gcov gcovclean:
+	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkgcov.mk $@
 
-.PHONY: doxydoc
-doxydoc:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdoc.mk doxydoc
-
-.PHONY: docclean
-docclean:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdoc.mk docclean
-
-.PHONY: depdirs
-depdirs:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdepdirs.mk depdirs
-
-.PHONY: depgraph
-depgraph:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdepdirs.mk depgraph
-
-.PHONY: gcovclean
-gcovclean:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkgcov.mk gcovclean
-
-.PHONY: gcov
-gcov:
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkgcov.mk gcov
+.PHONY: examples examples_clean
+examples examples_clean:
+	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkexamples.mk $@
 
 # all other build targets
 %:

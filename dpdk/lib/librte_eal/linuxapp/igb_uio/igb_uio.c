@@ -1,23 +1,23 @@
 /*-
  * GPL LICENSE SUMMARY
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
- * 
+ *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of version 2 of the GNU General Public License as
  *   published by the Free Software Foundation.
- * 
+ *
  *   This program is distributed in the hope that it will be useful, but
  *   WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *   General Public License for more details.
- * 
+ *
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
  *   The full GNU General Public License is included in this distribution
  *   in the file called LICENSE.GPL.
- * 
+ *
  *   Contact Information:
  *   Intel Corporation
  */
@@ -30,9 +30,10 @@
 #include <linux/msi.h>
 #include <linux/version.h>
 
-#ifdef CONFIG_XEN_DOM0 
+#ifdef CONFIG_XEN_DOM0
 #include <xen/xen.h>
 #endif
+#include <rte_pci_dev_features.h>
 
 /**
  * MSI-X related macros, copy from linux/pci_regs.h in kernel 2.6.39,
@@ -47,15 +48,16 @@
 #define PCI_MSIX_ENTRY_CTRL_MASKBIT     1
 #endif
 
-#define IGBUIO_NUM_MSI_VECTORS 1
+#ifdef RTE_PCI_CONFIG
+#define PCI_SYS_FILE_BUF_SIZE      10
+#define PCI_DEV_CAP_REG            0xA4
+#define PCI_DEV_CTRL_REG           0xA8
+#define PCI_DEV_CAP_EXT_TAG_MASK   0x20
+#define PCI_DEV_CTRL_EXT_TAG_SHIFT 8
+#define PCI_DEV_CTRL_EXT_TAG_MASK  (1 << PCI_DEV_CTRL_EXT_TAG_SHIFT)
+#endif
 
-/* interrupt mode */
-enum igbuio_intr_mode {
-	IGBUIO_LEGACY_INTR_MODE = 0,
-	IGBUIO_MSI_INTR_MODE,
-	IGBUIO_MSIX_INTR_MODE,
-	IGBUIO_INTR_MODE_MAX
-};
+#define IGBUIO_NUM_MSI_VECTORS 1
 
 /**
  * A structure describing the private information for a uio device.
@@ -64,28 +66,13 @@ struct rte_uio_pci_dev {
 	struct uio_info info;
 	struct pci_dev *pdev;
 	spinlock_t lock; /* spinlock for accessing PCI config space or msix data in multi tasks/isr */
-	enum igbuio_intr_mode mode;
+	enum rte_intr_mode mode;
 	struct msix_entry \
 		msix_entries[IGBUIO_NUM_MSI_VECTORS]; /* pointer to the msix vectors to be allocated later */
 };
 
 static char *intr_mode = NULL;
-static enum igbuio_intr_mode igbuio_intr_mode_preferred = IGBUIO_MSIX_INTR_MODE;
-
-/* PCI device id table */
-static struct pci_device_id igbuio_pci_ids[] = {
-#define RTE_PCI_DEV_ID_DECL_EM(vend, dev) {PCI_DEVICE(vend, dev)},
-#define RTE_PCI_DEV_ID_DECL_IGB(vend, dev) {PCI_DEVICE(vend, dev)},
-#define RTE_PCI_DEV_ID_DECL_IGBVF(vend, dev) {PCI_DEVICE(vend, dev)},
-#define RTE_PCI_DEV_ID_DECL_IXGBE(vend, dev) {PCI_DEVICE(vend, dev)},
-#define RTE_PCI_DEV_ID_DECL_IXGBEVF(vend, dev) {PCI_DEVICE(vend, dev)},
-#define RTE_PCI_DEV_ID_DECL_VIRTIO(vend, dev) {PCI_DEVICE(vend, dev)},
-#define RTE_PCI_DEV_ID_DECL_VMXNET3(vend, dev) {PCI_DEVICE(vend, dev)},
-#include <rte_pci_dev_ids.h>
-{ 0, },
-};
-
-MODULE_DEVICE_TABLE(pci, igbuio_pci_ids);
+static enum rte_intr_mode igbuio_intr_mode_preferred = RTE_INTR_MODE_MSIX;
 
 static inline struct rte_uio_pci_dev *
 igbuio_get_uio_pci_dev(struct uio_info *info)
@@ -109,7 +96,7 @@ int local_pci_num_vf(struct pci_dev *dev)
 
 	if (!dev->is_physfn)
 		return 0;
-	
+
 	return iov->nr_virtfn;
 #else
 	return pci_num_vf(dev);
@@ -142,12 +129,108 @@ store_max_vfs(struct device *dev, struct device_attribute *attr,
 	else /* do nothing if change max_vfs number */
 		err = -EINVAL;
 
-	return err ? err : count;							
+	return err ? err : count;
 }
 
+#ifdef RTE_PCI_CONFIG
+static ssize_t
+show_extended_tag(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct pci_dev *pci_dev = container_of(dev, struct pci_dev, dev);
+	uint32_t val = 0;
+
+	pci_read_config_dword(pci_dev, PCI_DEV_CAP_REG, &val);
+	if (!(val & PCI_DEV_CAP_EXT_TAG_MASK)) /* Not supported */
+		return snprintf(buf, PCI_SYS_FILE_BUF_SIZE, "%s\n", "invalid");
+
+	val = 0;
+	pci_bus_read_config_dword(pci_dev->bus, pci_dev->devfn,
+					PCI_DEV_CTRL_REG, &val);
+
+	return snprintf(buf, PCI_SYS_FILE_BUF_SIZE, "%s\n",
+		(val & PCI_DEV_CTRL_EXT_TAG_MASK) ? "on" : "off");
+}
+
+static ssize_t
+store_extended_tag(struct device *dev,
+		   struct device_attribute *attr,
+		   const char *buf,
+		   size_t count)
+{
+	struct pci_dev *pci_dev = container_of(dev, struct pci_dev, dev);
+	uint32_t val = 0, enable;
+
+	if (strncmp(buf, "on", 2) == 0)
+		enable = 1;
+	else if (strncmp(buf, "off", 3) == 0)
+		enable = 0;
+	else
+		return -EINVAL;
+
+	pci_bus_read_config_dword(pci_dev->bus, pci_dev->devfn,
+					PCI_DEV_CAP_REG, &val);
+	if (!(val & PCI_DEV_CAP_EXT_TAG_MASK)) /* Not supported */
+		return -EPERM;
+
+	val = 0;
+	pci_bus_read_config_dword(pci_dev->bus, pci_dev->devfn,
+					PCI_DEV_CTRL_REG, &val);
+	if (enable)
+		val |= PCI_DEV_CTRL_EXT_TAG_MASK;
+	else
+		val &= ~PCI_DEV_CTRL_EXT_TAG_MASK;
+	pci_bus_write_config_dword(pci_dev->bus, pci_dev->devfn,
+					PCI_DEV_CTRL_REG, val);
+
+	return count;
+}
+
+static ssize_t
+show_max_read_request_size(struct device *dev,
+			   struct device_attribute *attr,
+			   char *buf)
+{
+	struct pci_dev *pci_dev = container_of(dev, struct pci_dev, dev);
+	int val = pcie_get_readrq(pci_dev);
+
+	return snprintf(buf, PCI_SYS_FILE_BUF_SIZE, "%d\n", val);
+}
+
+static ssize_t
+store_max_read_request_size(struct device *dev,
+			    struct device_attribute *attr,
+			    const char *buf,
+			    size_t count)
+{
+	struct pci_dev *pci_dev = container_of(dev, struct pci_dev, dev);
+	unsigned long size = 0;
+	int ret;
+
+	if (strict_strtoul(buf, 0, &size) != 0)
+		return -EINVAL;
+
+	ret = pcie_set_readrq(pci_dev, (int)size);
+	if (ret < 0)
+		return ret;
+
+	return count;
+}
+#endif
+
 static DEVICE_ATTR(max_vfs, S_IRUGO | S_IWUSR, show_max_vfs, store_max_vfs);
+#ifdef RTE_PCI_CONFIG
+static DEVICE_ATTR(extended_tag, S_IRUGO | S_IWUSR, show_extended_tag, \
+	store_extended_tag);
+static DEVICE_ATTR(max_read_request_size, S_IRUGO | S_IWUSR, \
+	show_max_read_request_size, store_max_read_request_size);
+#endif
+
 static struct attribute *dev_attrs[] = {
 	&dev_attr_max_vfs.attr,
+#ifdef RTE_PCI_CONFIG
+	&dev_attr_extended_tag.attr,
+	&dev_attr_max_read_request_size.attr,
+#endif
         NULL,
 };
 
@@ -218,14 +301,13 @@ igbuio_set_interrupt_mask(struct rte_uio_pci_dev *udev, int32_t state)
 {
 	struct pci_dev *pdev = udev->pdev;
 
-	if (udev->mode == IGBUIO_MSIX_INTR_MODE) {
+	if (udev->mode == RTE_INTR_MODE_MSIX) {
 		struct msi_desc *desc;
 
 		list_for_each_entry(desc, &pdev->msi_list, list) {
 			igbuio_msix_mask_irq(desc, state);
 		}
-	}
-	else if (udev->mode == IGBUIO_LEGACY_INTR_MODE) {
+	} else if (udev->mode == RTE_INTR_MODE_LEGACY) {
 		uint32_t status;
 		uint16_t old, new;
 
@@ -297,7 +379,7 @@ igbuio_pci_irqhandler(int irq, struct uio_info *info)
 		goto spin_unlock;
 
 	/* for legacy mode, interrupt maybe shared */
-	if (udev->mode == IGBUIO_LEGACY_INTR_MODE) {
+	if (udev->mode == RTE_INTR_MODE_LEGACY) {
 		pci_read_config_dword(pdev, PCI_COMMAND, &cmd_status_dword);
 		status = cmd_status_dword >> 16;
 		/* interrupt is not ours, goes to out */
@@ -334,15 +416,15 @@ igbuio_dom0_mmap_phys(struct uio_info *info, struct vm_area_struct *vma)
 }
 
 /**
- * This is uio device mmap method which will use igbuio mmap for Xen 
- * Dom0 enviroment.
+ * This is uio device mmap method which will use igbuio mmap for Xen
+ * Dom0 environment.
  */
 static int
 igbuio_dom0_pci_mmap(struct uio_info *info, struct vm_area_struct *vma)
 {
 	int idx;
 
-	if (vma->vm_pgoff >= MAX_UIO_MAPS) 
+	if (vma->vm_pgoff >= MAX_UIO_MAPS)
 		return -EINVAL;
 	if(info->mem[vma->vm_pgoff].size == 0)
 		return  -EINVAL;
@@ -356,7 +438,7 @@ igbuio_dom0_pci_mmap(struct uio_info *info, struct vm_area_struct *vma)
 	default:
 		return -EINVAL;
 	}
-}       
+}
 #endif
 
 /* Remap pci resources described by bar #pci_bar in uio resource n. */
@@ -367,7 +449,7 @@ igbuio_pci_setup_iomem(struct pci_dev *dev, struct uio_info *info,
 	unsigned long addr, len;
 	void *internal_addr;
 
-	if (sizeof(info->mem) / sizeof (info->mem[0]) <= n)  
+	if (sizeof(info->mem) / sizeof (info->mem[0]) <= n)
 		return (EINVAL);
 
 	addr = pci_resource_start(dev, pci_bar);
@@ -392,7 +474,7 @@ igbuio_pci_setup_ioport(struct pci_dev *dev, struct uio_info *info,
 {
 	unsigned long addr, len;
 
-	if (sizeof(info->port) / sizeof (info->port[0]) <= n)  
+	if (sizeof(info->port) / sizeof (info->port[0]) <= n)
 		return (EINVAL);
 
 	addr = pci_resource_start(dev, pci_bar);
@@ -516,18 +598,18 @@ igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 #endif
 	udev->info.priv = udev;
 	udev->pdev = dev;
-	udev->mode = 0; /* set the default value for interrupt mode */
+	udev->mode = RTE_INTR_MODE_LEGACY;
 	spin_lock_init(&udev->lock);
 
 	/* check if it need to try msix first */
-	if (igbuio_intr_mode_preferred == IGBUIO_MSIX_INTR_MODE) {
+	if (igbuio_intr_mode_preferred == RTE_INTR_MODE_MSIX) {
 		int vector;
 
 		for (vector = 0; vector < IGBUIO_NUM_MSI_VECTORS; vector ++)
 			udev->msix_entries[vector].entry = vector;
 
 		if (pci_enable_msix(udev->pdev, udev->msix_entries, IGBUIO_NUM_MSI_VECTORS) == 0) {
-			udev->mode = IGBUIO_MSIX_INTR_MODE;
+			udev->mode = RTE_INTR_MODE_MSIX;
 		}
 		else {
 			pci_disable_msix(udev->pdev);
@@ -535,13 +617,13 @@ igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 		}
 	}
 	switch (udev->mode) {
-	case IGBUIO_MSIX_INTR_MODE:
+	case RTE_INTR_MODE_MSIX:
 		udev->info.irq_flags = 0;
 		udev->info.irq = udev->msix_entries[0].vector;
 		break;
-	case IGBUIO_MSI_INTR_MODE:
+	case RTE_INTR_MODE_MSI:
 		break;
-	case IGBUIO_LEGACY_INTR_MODE:
+	case RTE_INTR_MODE_LEGACY:
 		udev->info.irq_flags = IRQF_SHARED;
 		udev->info.irq = dev->irq;
 		break;
@@ -566,7 +648,7 @@ igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 fail_release_iomem:
 	sysfs_remove_group(&dev->dev.kobj, &dev_attr_grp);
 	igbuio_pci_release_iomem(&udev->info);
-	if (udev->mode == IGBUIO_MSIX_INTR_MODE)
+	if (udev->mode == RTE_INTR_MODE_MSIX)
 		pci_disable_msix(udev->pdev);
 	pci_release_regions(dev);
 fail_disable:
@@ -591,7 +673,7 @@ igbuio_pci_remove(struct pci_dev *dev)
 	uio_unregister_device(info);
 	igbuio_pci_release_iomem(info);
 	if (((struct rte_uio_pci_dev *)info->priv)->mode ==
-					IGBUIO_MSIX_INTR_MODE)
+			RTE_INTR_MODE_MSIX)
 		pci_disable_msix(dev);
 	pci_release_regions(dev);
 	pci_disable_device(dev);
@@ -607,11 +689,11 @@ igbuio_config_intr_mode(char *intr_str)
 		return 0;
 	}
 
-	if (!strcmp(intr_str, "msix")) {
-		igbuio_intr_mode_preferred = IGBUIO_MSIX_INTR_MODE;
+	if (!strcmp(intr_str, RTE_INTR_MODE_MSIX_NAME)) {
+		igbuio_intr_mode_preferred = RTE_INTR_MODE_MSIX;
 		printk(KERN_INFO "Use MSIX interrupt\n");
-	} else if (!strcmp(intr_str, "legacy")) {
-		igbuio_intr_mode_preferred = IGBUIO_LEGACY_INTR_MODE;
+	} else if (!strcmp(intr_str, RTE_INTR_MODE_LEGACY_NAME)) {
+		igbuio_intr_mode_preferred = RTE_INTR_MODE_LEGACY;
 		printk(KERN_INFO "Use legacy interrupt\n");
 	} else {
 		printk(KERN_INFO "Error: bad parameter - %s\n", intr_str);
@@ -623,7 +705,7 @@ igbuio_config_intr_mode(char *intr_str)
 
 static struct pci_driver igbuio_pci_driver = {
 	.name = "igb_uio",
-	.id_table = igbuio_pci_ids,
+	.id_table = NULL,
 	.probe = igbuio_pci_probe,
 	.remove = igbuio_pci_remove,
 };
@@ -652,8 +734,8 @@ module_exit(igbuio_pci_exit_module);
 module_param(intr_mode, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(intr_mode,
 "igb_uio interrupt mode (default=msix):\n"
-"    msix       Use MSIX interrupt\n"
-"    legacy     Use Legacy interrupt\n"
+"    " RTE_INTR_MODE_MSIX_NAME "       Use MSIX interrupt\n"
+"    " RTE_INTR_MODE_LEGACY_NAME "     Use Legacy interrupt\n"
 "\n");
 
 MODULE_DESCRIPTION("UIO driver for Intel IGB PCI cards");

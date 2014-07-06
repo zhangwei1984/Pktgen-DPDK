@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -65,12 +65,12 @@ struct virtqueue;
 #define VIRTIO_PCI_QUEUE_SEL      14 /* current VQ selection (16, RW) */
 #define VIRTIO_PCI_QUEUE_NOTIFY   16 /* notify host regarding VQ (16, RW) */
 #define VIRTIO_PCI_STATUS         18 /* device status register (8, RW) */
-#define VIRTIO_PCI_ISR            19 /* interrupt status register, reading
-                                      * also clears the register (8, RO) */
+#define VIRTIO_PCI_ISR		  19 /* interrupt status register, reading
+				      * also clears the register (8, RO) */
 /* Only if MSIX is enabled: */
 #define VIRTIO_MSI_CONFIG_VECTOR  20 /* configuration change vector (16, RW) */
-#define VIRTIO_MSI_QUEUE_VECTOR   22 /* vector for selected VQ notifications
-                                      (16, RW) */
+#define VIRTIO_MSI_QUEUE_VECTOR	  22 /* vector for selected VQ notifications
+				      (16, RW) */
 
 /* The bit of the ISR which indicates a device has an interrupt. */
 #define VIRTIO_PCI_ISR_INTR   0x1
@@ -165,7 +165,7 @@ struct virtio_hw {
 	uint32_t    io_base;
 	uint32_t    host_features;
 	uint32_t    guest_features;
-	
+
 	struct virtqueue *cvq;
 
 	uint16_t    vtnet_hdr_size;
@@ -192,7 +192,9 @@ struct virtio_net_config {
 	uint8_t    mac[ETHER_ADDR_LEN];
 	/* See VIRTIO_NET_F_STATUS and VIRTIO_NET_S_* above */
 	uint16_t   status;
-};
+	uint16_t   max_virtqueue_pairs;
+} __attribute__((packed));
+
 /* Value indicated in device config */
 #define VIRTIO_PCI_FLAG_MSIX  0x0020
 /*
@@ -253,7 +255,7 @@ outl_p(unsigned int data, unsigned int port)
 static inline int
 vtpci_with_feature(struct virtio_hw *hw, uint32_t feature)
 {
-	return ((hw->guest_features & feature) != 0);
+	return (hw->guest_features & feature) != 0;
 }
 
 /*

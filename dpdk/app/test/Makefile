@@ -1,12 +1,12 @@
 #   BSD LICENSE
-# 
+#
 #   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
-# 
+#
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
 #   are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright
@@ -16,7 +16,7 @@
 #     * Neither the name of Intel Corporation nor the names of its
 #       contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
-# 
+#
 #   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 #   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -39,7 +39,7 @@ APP = test
 #
 # all sources are stored in SRCS-y
 #
-SRCS-$(CONFIG_RTE_APP_TEST) := commands.c
+SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) := commands.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_pci.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_prefetch.c
@@ -52,6 +52,12 @@ SRCS-$(CONFIG_RTE_APP_TEST) += test_spinlock.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_memory.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_memzone.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_ring.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_table.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_table_pipeline.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_table_tables.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_table_ports.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_table_combined.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_table_acl.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_ring_perf.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_rwlock.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_timer.c
@@ -78,13 +84,13 @@ SRCS-$(CONFIG_RTE_APP_TEST) += test_version.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_eal_fs.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_func_reentrancy.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline.c
-SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_num.c
-SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_etheraddr.c
-SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_portlist.c
-SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_ipaddr.c
-SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_cirbuf.c
-SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_string.c
-SRCS-$(CONFIG_RTE_APP_TEST) += test_cmdline_lib.c
+SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += test_cmdline_num.c
+SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += test_cmdline_etheraddr.c
+SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += test_cmdline_portlist.c
+SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += test_cmdline_ipaddr.c
+SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += test_cmdline_cirbuf.c
+SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += test_cmdline_string.c
+SRCS-$(CONFIG_RTE_LIBRTE_CMDLINE) += test_cmdline_lib.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_red.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_sched.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_meter.c
@@ -93,14 +99,27 @@ SRCS-$(CONFIG_RTE_APP_TEST) += test_power.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_common.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_timer_perf.c
 SRCS-$(CONFIG_RTE_APP_TEST) += test_ivshmem.c
-
+SRCS-$(CONFIG_RTE_APP_TEST) += test_distributor.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_distributor_perf.c
+SRCS-$(CONFIG_RTE_APP_TEST) += test_devargs.c
+SRCS-$(CONFIG_RTE_APP_TEST) += virtual_pmd.c
+SRCS-$(CONFIG_RTE_APP_TEST) += packet_burst_generator.c
 ifeq ($(CONFIG_RTE_APP_TEST),y)
 SRCS-$(CONFIG_RTE_LIBRTE_ACL) += test_acl.c
+SRCS-$(CONFIG_RTE_LIBRTE_PMD_BOND) += test_link_bonding.c
 SRCS-$(CONFIG_RTE_LIBRTE_PMD_RING) += test_pmd_ring.c
+SRCS-$(CONFIG_RTE_LIBRTE_KVARGS) += test_kvargs.c
 endif
 
 CFLAGS += -O3
 CFLAGS += $(WERROR_FLAGS)
+
+# Allow use of deprecated rte_snprintf in test_string_fns.c
+ifeq ($(CC), icc)
+CFLAGS_test_string_fns.o += -Wd1478
+else
+CFLAGS_test_string_fns.o += -Wno-deprecated-declarations
+endif
 
 # Disable warnings of deprecated-declarations in test_kni.c
 ifeq ($(CC), icc)

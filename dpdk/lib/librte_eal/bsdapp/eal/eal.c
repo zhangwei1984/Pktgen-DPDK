@@ -1,13 +1,14 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2014 6WIND S.A.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -65,6 +66,8 @@
 #include <rte_cpuflags.h>
 #include <rte_interrupts.h>
 #include <rte_pci.h>
+#include <rte_dev.h>
+#include <rte_devargs.h>
 #include <rte_common.h>
 #include <rte_version.h>
 #include <rte_atomic.h>
@@ -86,7 +89,10 @@
 #define OPT_NO_HUGE     "no-huge"
 #define OPT_FILE_PREFIX "file-prefix"
 #define OPT_SOCKET_MEM  "socket-mem"
-#define OPT_USE_DEVICE  "use-device"
+#define OPT_USE_DEVICE "use-device"
+#define OPT_PCI_WHITELIST "pci-whitelist"
+#define OPT_PCI_BLACKLIST "pci-blacklist"
+#define OPT_VDEV        "vdev"
 #define OPT_SYSLOG      "syslog"
 
 #define RTE_EAL_BLACKLIST_SIZE	0x100
@@ -131,8 +137,6 @@ static struct flock wr_lock = {
 static struct rte_config rte_config = {
 		.mem_config = &early_mem_config,
 };
-
-static struct rte_pci_addr eal_dev_blacklist[RTE_EAL_BLACKLIST_SIZE];
 
 /* internal configuration (per-core) */
 struct lcore_config lcore_config[RTE_MAX_LCORE];
@@ -244,7 +248,7 @@ rte_eal_config_attach(void)
 			rte_panic("Cannot open '%s' for rte_mem_config\n", pathname);
 	}
 
-	rte_mem_cfg_addr = mmap(NULL, sizeof(*rte_config.mem_config), 
+	rte_mem_cfg_addr = mmap(NULL, sizeof(*rte_config.mem_config),
 				PROT_READ | PROT_WRITE, MAP_SHARED, mem_cfg_fd, 0);
 	close(mem_cfg_fd);
 	if (rte_mem_cfg_addr == MAP_FAILED)
@@ -277,8 +281,6 @@ eal_proc_type_detect(void)
 static void
 rte_config_init(void)
 {
-	/* set the magic in configuration structure */
-	rte_config.magic = RTE_MAGIC;
 	rte_config.process_type = (internal_config.process_type == RTE_PROC_AUTO) ?
 			eal_proc_type_detect() : /* for auto, detect the type */
 			internal_config.process_type; /* otherwise use what's already set */
@@ -306,18 +308,22 @@ eal_usage(const char *prgname)
 	       "EAL options:\n"
 	       "  -c COREMASK  : A hexadecimal bitmask of cores to run on\n"
 	       "  -n NUM       : Number of memory channels\n"
-		   "  -v           : Display version information on startup\n"
-	       "  -b <domain:bus:devid.func>: to prevent EAL from using specified "
-           "PCI device\n"
-	       "                 (multiple -b options are allowed)\n"
+	       "  -v           : Display version information on startup\n"
 	       "  -m MB        : memory to allocate\n"
 	       "  -r NUM       : force number of memory ranks (don't detect)\n"
 	       "  --"OPT_PROC_TYPE"  : type of this process\n"
-	       "  --"OPT_USE_DEVICE": use the specified ethernet device(s) only. "
-	    		   "Use comma-separate <[domain:]bus:devid.func> values.\n"
-	       "               [NOTE: Cannot be used with -b option]\n"
-	       "  --"OPT_VMWARE_TSC_MAP": use VMware TSC map instead of "
-	    		   "native RDTSC\n"
+	       "  --"OPT_PCI_BLACKLIST", -b: add a PCI device in black list.\n"
+	       "               Prevent EAL from using this PCI device. The argument\n"
+	       "               format is <domain:bus:devid.func>.\n"
+	       "  --"OPT_PCI_WHITELIST", -w: add a PCI device in white list.\n"
+	       "               Only use the specified PCI devices. The argument format\n"
+	       "               is <[domain:]bus:devid.func>. This option can be present\n"
+	       "               several times (once per device).\n"
+	       "               [NOTE: PCI whitelist cannot be used with -b option]\n"
+	       "  --"OPT_VDEV": add a virtual device.\n"
+	       "               The argument format is <driver><id>[,key=val,...]\n"
+	       "               (ex: --vdev=eth_pcap0,iface=eth2).\n"
+	       "  --"OPT_VMWARE_TSC_MAP": use VMware TSC map instead of native RDTSC\n"
 	       "\nEAL options for DEBUG use only:\n"
 	       "  --"OPT_NO_HUGE"  : use malloc instead of hugetlbfs\n"
 	       "  --"OPT_NO_PCI"   : disable pci\n"
@@ -352,11 +358,11 @@ rte_set_application_usage_hook( rte_usage_hook_t usage_func )
 static int xdigit2val(unsigned char c)
 {
 	int val;
-	if(isdigit(c)) 
+	if(isdigit(c))
 		val = c - '0';
 	else if(isupper(c))
 		val = c - 'A' + 10;
-	else 
+	else
 		val = c - 'a' + 10;
 	return val;
 }
@@ -483,22 +489,6 @@ eal_parse_proc_type(const char *arg)
 	return RTE_PROC_INVALID;
 }
 
-static ssize_t
-eal_parse_blacklist_opt(const char *optarg, size_t idx)
-{
-	if (idx >= sizeof (eal_dev_blacklist) / sizeof (eal_dev_blacklist[0])) {
-		RTE_LOG(ERR, EAL, "%s - too many devices to blacklist...\n", optarg);
-		return (-EINVAL);
-	} else if (eal_parse_pci_DomBDF(optarg, eal_dev_blacklist + idx) < 0 &&
-			eal_parse_pci_BDF(optarg, eal_dev_blacklist + idx) < 0) {
-		RTE_LOG(ERR, EAL, "%s - invalid device to blacklist...\n", optarg);
-		return (-EINVAL);
-	}
-
-	idx += 1;
-	return (idx);
-}
-
 /* Parse the argument given in the command line of the application */
 static int
 eal_parse_args(int argc, char **argv)
@@ -507,7 +497,6 @@ eal_parse_args(int argc, char **argv)
 	char **argvopt;
 	int option_index;
 	int coremask_ok = 0;
-	ssize_t blacklist_index = 0;
 	char *prgname = argv[0];
 	static struct option lgopts[] = {
 		{OPT_NO_HUGE, 0, 0, 0},
@@ -519,7 +508,9 @@ eal_parse_args(int argc, char **argv)
 		{OPT_PROC_TYPE, 1, 0, 0},
 		{OPT_FILE_PREFIX, 1, 0, 0},
 		{OPT_SOCKET_MEM, 1, 0, 0},
-		{OPT_USE_DEVICE, 1, 0, 0},
+		{OPT_PCI_WHITELIST, 1, 0, 0},
+		{OPT_PCI_BLACKLIST, 1, 0, 0},
+		{OPT_VDEV, 1, 0, 0},
 		{OPT_SYSLOG, 1, NULL, 0},
 		{0, 0, 0, 0}
 	};
@@ -548,16 +539,24 @@ eal_parse_args(int argc, char **argv)
 
 	internal_config.vmware_tsc_map = 0;
 
-	while ((opt = getopt_long(argc, argvopt, "b:c:m:n:r:v",
+	while ((opt = getopt_long(argc, argvopt, "b:w:c:m:n:r:v",
 				  lgopts, &option_index)) != EOF) {
 
 		switch (opt) {
 		/* blacklist */
 		case 'b':
-			if ((blacklist_index = eal_parse_blacklist_opt(optarg,
-			    blacklist_index)) < 0) {
+			if (rte_eal_devargs_add(RTE_DEVTYPE_BLACKLISTED_PCI,
+					optarg) < 0) {
 				eal_usage(prgname);
 				return (-1);
+			}
+			break;
+		/* whitelist */
+		case 'w':
+			if (rte_eal_devargs_add(RTE_DEVTYPE_WHITELISTED_PCI,
+					optarg) < 0) {
+				eal_usage(prgname);
+				return -1;
 			}
 			break;
 		/* coremask */
@@ -638,7 +637,31 @@ eal_parse_args(int argc, char **argv)
 				return -1;
 			}
 			else if (!strcmp(lgopts[option_index].name, OPT_USE_DEVICE)) {
-				eal_dev_whitelist_add_entry(optarg);
+				printf("The --use-device option is deprecated, please use\n"
+					"--whitelist or --vdev instead.\n");
+				eal_usage(prgname);
+				return -1;
+			}
+			else if (!strcmp(lgopts[option_index].name, OPT_PCI_BLACKLIST)) {
+				if (rte_eal_devargs_add(RTE_DEVTYPE_BLACKLISTED_PCI,
+						optarg) < 0) {
+					eal_usage(prgname);
+					return -1;
+				}
+			}
+			else if (!strcmp(lgopts[option_index].name, OPT_PCI_WHITELIST)) {
+				if (rte_eal_devargs_add(RTE_DEVTYPE_WHITELISTED_PCI,
+						optarg) < 0) {
+					eal_usage(prgname);
+					return -1;
+				}
+			}
+			else if (!strcmp(lgopts[option_index].name, OPT_VDEV)) {
+				if (rte_eal_devargs_add(RTE_DEVTYPE_VIRTUAL,
+						optarg) < 0) {
+					eal_usage(prgname);
+					return -1;
+				}
 			}
 			else if (!strcmp(lgopts[option_index].name, OPT_SYSLOG)) {
 				if (eal_parse_syslog(optarg) < 0) {
@@ -697,20 +720,12 @@ eal_parse_args(int argc, char **argv)
 		return -1;
 	}
 
-	/* if no blacklist, parse a whitelist */
-	if (blacklist_index > 0) {
-		if (eal_dev_whitelist_exists()) {
-			RTE_LOG(ERR, EAL, "Error: blacklist [-b] and whitelist "
-					"[--use-device] options cannot be used at the same time\n");
-			eal_usage(prgname);
-			return -1;
-		}
-		rte_eal_pci_set_blacklist(eal_dev_blacklist, blacklist_index);
-	} else {
-		if (eal_dev_whitelist_exists() && eal_dev_whitelist_parse() < 0) {
-			RTE_LOG(ERR,EAL, "Error parsing whitelist[--use-device] options\n");
-			return -1;
-		}
+	if (rte_eal_devargs_type_count(RTE_DEVTYPE_WHITELISTED_PCI) != 0 &&
+		rte_eal_devargs_type_count(RTE_DEVTYPE_BLACKLISTED_PCI) != 0) {
+		RTE_LOG(ERR, EAL, "Error: blacklist [-b] and whitelist "
+			"[-w] options cannot be used at the same time\n");
+		eal_usage(prgname);
+		return -1;
 	}
 
 	if (optind >= 0)
@@ -751,7 +766,7 @@ sync_func(__attribute__((unused)) void *arg)
 	return 0;
 }
 
-inline static void 
+inline static void
 rte_eal_mcfg_complete(void)
 {
 	/* ALL shared mem_config related INIT DONE */
@@ -759,7 +774,13 @@ rte_eal_mcfg_complete(void)
 		rte_config.mem_config->magic = RTE_MAGIC;
 }
 
-/* Abstraction for port I/0 privilage */
+/* return non-zero if hugepages are enabled. */
+int rte_eal_has_hugepages(void)
+{
+	return !internal_config.no_hugetlbfs;
+}
+
+/* Abstraction for port I/0 privilege */
 static int
 rte_eal_iopl_init(void)
 {
@@ -854,8 +875,8 @@ rte_eal_init(int argc, char **argv)
 
 	rte_eal_mcfg_complete();
 
-	if (rte_eal_non_pci_ethdev_init() < 0)
-		rte_panic("Cannot init non-PCI eth_devs\n");
+	if (rte_eal_dev_init(PMD_INIT_PRE_PCI_PROBE) < 0)
+		rte_panic("Cannot init pmd devices\n");
 
 	RTE_LCORE_FOREACH_SLAVE(i) {
 
@@ -885,6 +906,14 @@ rte_eal_init(int argc, char **argv)
 	 */
 	rte_eal_mp_remote_launch(sync_func, NULL, SKIP_MASTER);
 	rte_eal_mp_wait_lcore();
+
+	/* Probe & Initialize PCI devices */
+	if (rte_eal_pci_probe())
+			rte_panic("Cannot probe PCI\n");
+
+	/* Initialize any outstanding devices */
+	if (rte_eal_dev_init(PMD_INIT_POST_PCI_PROBE) < 0)
+		rte_panic("Cannot init pmd devices\n");
 
 	return fctret;
 }

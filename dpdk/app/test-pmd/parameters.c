@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -71,27 +71,42 @@
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 #include <rte_string_fns.h>
+#ifdef RTE_LIBRTE_CMDLINE
 #include <cmdline_parse.h>
 #include <cmdline_parse_etheraddr.h>
+#endif
+#ifdef RTE_LIBRTE_PMD_BOND
+#include <rte_eth_bond.h>
+#endif
 
 #include "testpmd.h"
 
 static void
 usage(char* progname)
 {
-	printf("usage: %s [--interactive|-i] [--help|-h] | ["
+	printf("usage: %s "
+#ifdef RTE_LIBRTE_CMDLINE
+	       "[--interactive|-i] "
+#endif
+	       "[--help|-h] | [--auto-start|-a] | ["
 	       "--coremask=COREMASK --portmask=PORTMASK --numa "
 	       "--mbuf-size= | --total-num-mbufs= | "
 	       "--nb-cores= | --nb-ports= | "
+#ifdef RTE_LIBRTE_CMDLINE
 	       "--eth-peers-configfile= | "
 	       "--eth-peer=X,M:M:M:M:M:M | "
+#endif
 	       "--pkt-filter-mode= |"
 	       "--rss-ip | --rss-udp | "
 	       "--rxpt= | --rxht= | --rxwt= | --rxfreet= | "
 	       "--txpt= | --txht= | --txwt= | --txfreet= | "
 	       "--txrst= | --txqflags= ]\n",
 	       progname);
+#ifdef RTE_LIBRTE_CMDLINE
 	printf("  --interactive: run in interactive mode.\n");
+#endif
+	printf("  --auto-start: start forwarding on init "
+	       "[always when non-interactive].\n");
 	printf("  --help: display this message and quit.\n");
 	printf("  --nb-cores=N: set the number of forwarding cores "
 	       "(1 <= N <= %d).\n", nb_lcores);
@@ -118,10 +133,12 @@ usage(char* progname)
 	printf("  --total-num-mbufs=N: set the number of mbufs to be allocated "
 	       "in mbuf pools.\n");
 	printf("  --max-pkt-len=N: set the maximum size of packet to N bytes.\n");
+#ifdef RTE_LIBRTE_CMDLINE
 	printf("  --eth-peers-configfile=name: config file with ethernet addresses "
 	       "of peer ports.\n");
 	printf("  --eth-peer=X,M:M:M:M:M:M: set the MAC address of the X peer "
 	       "port (0 <= X < %d).\n", RTE_MAX_ETHPORTS);
+#endif
 	printf("  --pkt-filter-mode=N: set Flow Director mode "
 	       "(N: none (default mode) or signature or perfect).\n");
 	printf("  --pkt-filter-report-hash=N: set Flow Director report mode "
@@ -144,6 +161,8 @@ usage(char* progname)
 	printf("  --disable-rss: disable rss.\n");
 	printf("  --port-topology=N: set port topology (N: paired (default) or "
 	       "chained).\n");
+	printf("  --forward-mode=N: set forwarding mode (N: %s).\n",
+	       list_pkt_forwarding_modes());
 	printf("  --rss-ip: set RSS functions to IPv4/IPv6 only .\n");
 	printf("  --rss-udp: set RSS functions to IPv4/IPv6 + UDP.\n");
 	printf("  --rxq=N: set the number of RX queues per port to N.\n");
@@ -180,8 +199,12 @@ usage(char* progname)
 	       "(0 <= mapping <= %d).\n", RTE_ETHDEV_QUEUE_STAT_CNTRS - 1);
 	printf("  --no-flush-rx: Don't flush RX streams before forwarding."
 	       " Used mainly with PCAP drivers.\n");
+	printf("  --txpkts=X[,Y]*: set TX segment sizes.\n");
+	printf("  --disable-link-check: disable check on link status when "
+	       "starting/stopping ports.\n");
 }
 
+#ifdef RTE_LIBRTE_CMDLINE
 static int
 init_peer_eth_addrs(char *config_filename)
 {
@@ -210,6 +233,7 @@ init_peer_eth_addrs(char *config_filename)
 	nb_peer_eth_addrs = (portid_t) i;
 	return 0;
 }
+#endif
 
 /*
  * Parse the coremask given as argument (hexadecimal string) and set
@@ -279,7 +303,7 @@ parse_queue_stats_mapping_config(const char *q_arg, int is_rx)
 		if(size >= sizeof(s))
 			return -1;
 
-		rte_snprintf(s, sizeof(s), "%.*s", size, p);
+		snprintf(s, sizeof(s), "%.*s", size, p);
 		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
 			return -1;
 		for (i = 0; i < _NUM_FLD; i++){
@@ -295,14 +319,14 @@ parse_queue_stats_mapping_config(const char *q_arg, int is_rx)
 			return -1;
 		}
 
-		if (is_rx ? (nb_rx_queue_stats_mappings >= MAX_RX_QUEUE_STATS_MAPPINGS) :
-		    (nb_tx_queue_stats_mappings >= MAX_TX_QUEUE_STATS_MAPPINGS)) {
-			printf("exceeded max number of %s queue statistics mappings: %hu\n",
-			       is_rx ? "RX" : "TX",
-			       is_rx ? nb_rx_queue_stats_mappings : nb_tx_queue_stats_mappings);
-			return -1;
-		}
 		if (!is_rx) {
+			if ((nb_tx_queue_stats_mappings >=
+						MAX_TX_QUEUE_STATS_MAPPINGS)) {
+				printf("exceeded max number of TX queue "
+						"statistics mappings: %hu\n",
+						nb_tx_queue_stats_mappings);
+				return -1;
+			}
 			tx_queue_stats_mappings_array[nb_tx_queue_stats_mappings].port_id =
 				(uint8_t)int_fld[FLD_PORT];
 			tx_queue_stats_mappings_array[nb_tx_queue_stats_mappings].queue_id =
@@ -312,6 +336,13 @@ parse_queue_stats_mapping_config(const char *q_arg, int is_rx)
 			++nb_tx_queue_stats_mappings;
 		}
 		else {
+			if ((nb_rx_queue_stats_mappings >=
+						MAX_RX_QUEUE_STATS_MAPPINGS)) {
+				printf("exceeded max number of RX queue "
+						"statistics mappings: %hu\n",
+						nb_rx_queue_stats_mappings);
+				return -1;
+			}
 			rx_queue_stats_mappings_array[nb_rx_queue_stats_mappings].port_id =
 				(uint8_t)int_fld[FLD_PORT];
 			rx_queue_stats_mappings_array[nb_rx_queue_stats_mappings].queue_id =
@@ -343,7 +374,7 @@ parse_portnuma_config(const char *q_arg)
 		_NUM_FLD
 	};
 	unsigned long int_fld[_NUM_FLD];
-	char *str_fld[_NUM_FLD];	
+	char *str_fld[_NUM_FLD];
 
 	/* reset from value set at definition */
 	while ((p = strchr(p0,'(')) != NULL) {
@@ -355,7 +386,7 @@ parse_portnuma_config(const char *q_arg)
 		if(size >= sizeof(s))
 			return -1;
 
-		rte_snprintf(s, sizeof(s), "%.*s", size, p);
+		snprintf(s, sizeof(s), "%.*s", size, p);
 		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
 			return -1;
 		for (i = 0; i < _NUM_FLD; i++) {
@@ -396,7 +427,7 @@ parse_ringnuma_config(const char *q_arg)
 		_NUM_FLD
 	};
 	unsigned long int_fld[_NUM_FLD];
-	char *str_fld[_NUM_FLD];	
+	char *str_fld[_NUM_FLD];
 	#define RX_RING_ONLY 0x1
 	#define TX_RING_ONLY 0x2
 	#define RXTX_RING    0x3
@@ -411,7 +442,7 @@ parse_ringnuma_config(const char *q_arg)
 		if(size >= sizeof(s))
 			return -1;
 
-		rte_snprintf(s, sizeof(s), "%.*s", size, p);
+		snprintf(s, sizeof(s), "%.*s", size, p);
 		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
 			return -1;
 		for (i = 0; i < _NUM_FLD; i++) {
@@ -454,9 +485,55 @@ parse_ringnuma_config(const char *q_arg)
 				ring_flag,port_id);
 			break;
 		}
-	}	
-	
+	}
+
 	return 0;
+}
+
+static unsigned int
+parse_item_list(char* str, unsigned int max_items, unsigned int *parsed_items)
+{
+	unsigned int nb_item;
+	unsigned int value;
+	unsigned int i;
+	int value_ok;
+	char c;
+
+	/*
+	 * First parse all items in the list and store their value.
+	 */
+	value = 0;
+	nb_item = 0;
+	value_ok = 0;
+	for (i = 0; i < strlen(str); i++) {
+		c = str[i];
+		if ((c >= '0') && (c <= '9')) {
+			value = (unsigned int) (value * 10 + (c - '0'));
+			value_ok = 1;
+			continue;
+		}
+		if (c != ',') {
+			printf("character %c is not a decimal digit\n", c);
+			return (0);
+		}
+		if (! value_ok) {
+			printf("No valid value before comma\n");
+			return (0);
+		}
+		if (nb_item < max_items) {
+			parsed_items[nb_item] = value;
+			value_ok = 0;
+			value = 0;
+		}
+		nb_item++;
+	}
+
+	if (nb_item >= max_items)
+		rte_exit(EXIT_FAILURE, "too many txpkt segments!\n");
+
+	parsed_items[nb_item++] = value;
+
+	return (nb_item);
 }
 
 void
@@ -469,9 +546,12 @@ launch_args_parse(int argc, char** argv)
 
 	static struct option lgopts[] = {
 		{ "help",			0, 0, 0 },
+#ifdef RTE_LIBRTE_CMDLINE
 		{ "interactive",		0, 0, 0 },
+		{ "auto-start",			0, 0, 0 },
 		{ "eth-peers-configfile",	1, 0, 0 },
 		{ "eth-peer",			1, 0, 0 },
+#endif
 		{ "ports",			1, 0, 0 },
 		{ "nb-cores",			1, 0, 0 },
 		{ "nb-ports",			1, 0, 0 },
@@ -481,7 +561,7 @@ launch_args_parse(int argc, char** argv)
 		{ "mp-anon",			0, 0, 0 },
 		{ "port-numa-config",           1, 0, 0 },
 		{ "ring-numa-config",           1, 0, 0 },
-		{ "socket-num",			1, 0, 0 },	
+		{ "socket-num",			1, 0, 0 },
 		{ "mbuf-size",			1, 0, 0 },
 		{ "total-num-mbufs",		1, 0, 0 },
 		{ "max-pkt-len",		1, 0, 0 },
@@ -496,6 +576,7 @@ launch_args_parse(int argc, char** argv)
 		{ "enable-drop-en",            0, 0, 0 },
 		{ "disable-rss",                0, 0, 0 },
 		{ "port-topology",              1, 0, 0 },
+		{ "forward-mode",               1, 0, 0 },
 		{ "rss-ip",			0, 0, 0 },
 		{ "rss-udp",			0, 0, 0 },
 		{ "rxq",			1, 0, 0 },
@@ -517,26 +598,45 @@ launch_args_parse(int argc, char** argv)
 		{ "tx-queue-stats-mapping",	1, 0, 0 },
 		{ "rx-queue-stats-mapping",	1, 0, 0 },
 		{ "no-flush-rx",	0, 0, 0 },
+		{ "txpkts",			1, 0, 0 },
+		{ "disable-link-check",		0, 0, 0 },
 		{ 0, 0, 0, 0 },
 	};
 
 	argvopt = argv;
 
-	while ((opt = getopt_long(argc, argvopt, "ih",
+#ifdef RTE_LIBRTE_CMDLINE
+#define SHORTOPTS "i"
+#else
+#define SHORTOPTS ""
+#endif
+	while ((opt = getopt_long(argc, argvopt, SHORTOPTS "ah",
 				 lgopts, &opt_idx)) != EOF) {
 		switch (opt) {
+#ifdef RTE_LIBRTE_CMDLINE
 		case 'i':
 			printf("Interactive-mode selected\n");
 			interactive = 1;
 			break;
+#endif
+		case 'a':
+			printf("Auto-start selected\n");
+			auto_start = 1;
+			break;
+
 		case 0: /*long options */
 			if (!strcmp(lgopts[opt_idx].name, "help")) {
 				usage(argv[0]);
 				rte_exit(EXIT_SUCCESS, "Displayed help\n");
 			}
+#ifdef RTE_LIBRTE_CMDLINE
 			if (!strcmp(lgopts[opt_idx].name, "interactive")) {
 				printf("Interactive-mode selected\n");
 				interactive = 1;
+			}
+			if (!strcmp(lgopts[opt_idx].name, "auto-start")) {
+				printf("Auto-start selected\n");
+				auto_start = 1;
 			}
 			if (!strcmp(lgopts[opt_idx].name,
 				    "eth-peers-configfile")) {
@@ -567,6 +667,7 @@ launch_args_parse(int argc, char** argv)
 						peer_addr[c];
 				nb_peer_eth_addrs++;
 			}
+#endif
 			if (!strcmp(lgopts[opt_idx].name, "nb-ports")) {
 				n = atoi(optarg);
 				if (n > 0 && n <= nb_ports)
@@ -731,16 +832,19 @@ launch_args_parse(int argc, char** argv)
 					port_topology = PORT_TOPOLOGY_PAIRED;
 				else if (!strcmp(optarg, "chained"))
 					port_topology = PORT_TOPOLOGY_CHAINED;
+				else if (!strcmp(optarg, "loop"))
+					port_topology = PORT_TOPOLOGY_LOOP;
 				else
 					rte_exit(EXIT_FAILURE, "port-topology %s invalid -"
 						 " must be: paired or chained \n",
 						 optarg);
 			}
+			if (!strcmp(lgopts[opt_idx].name, "forward-mode"))
+				set_pkt_forwarding_mode(optarg);
 			if (!strcmp(lgopts[opt_idx].name, "rss-ip"))
-				rss_hf = ETH_RSS_IPV4 | ETH_RSS_IPV6;
+				rss_hf = ETH_RSS_IP;
 			if (!strcmp(lgopts[opt_idx].name, "rss-udp"))
-				rss_hf = ETH_RSS_IPV4 |
-						ETH_RSS_IPV6 | ETH_RSS_IPV4_UDP;
+				rss_hf = ETH_RSS_UDP;
 			if (!strcmp(lgopts[opt_idx].name, "rxq")) {
 				n = atoi(optarg);
 				if (n >= 1 && n <= (int) MAX_QUEUE_ID)
@@ -940,8 +1044,20 @@ launch_args_parse(int argc, char** argv)
 						 "invalid RX queue statistics mapping config entered\n");
 				}
 			}
+			if (!strcmp(lgopts[opt_idx].name, "txpkts")) {
+				unsigned seg_lengths[RTE_MAX_SEGS_PER_PKT];
+				unsigned int nb_segs;
+
+				nb_segs = parse_item_list(optarg, RTE_MAX_SEGS_PER_PKT, seg_lengths);
+				if (nb_segs > 0)
+					set_tx_pkt_segments(seg_lengths, nb_segs);
+				else
+					rte_exit(EXIT_FAILURE, "bad txpkts\n");
+			}
 			if (!strcmp(lgopts[opt_idx].name, "no-flush-rx"))
 				no_flush_rx = 1;
+			if (!strcmp(lgopts[opt_idx].name, "disable-link-check"))
+				no_link_check = 1;
 
 			break;
 		case 'h':

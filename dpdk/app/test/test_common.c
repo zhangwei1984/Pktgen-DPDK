@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -35,8 +35,6 @@
 #include <string.h>
 #include <rte_common.h>
 #include <rte_hexdump.h>
-
-#include <cmdline_parse.h>
 
 #include "test.h"
 
@@ -61,9 +59,9 @@ test_macros(int __rte_unused unused_parm)
 
 	RTE_SET_USED(unused);
 
-	if (RTE_PTR_ADD(SMALLER, PTR_DIFF) != BIGGER)
+	if ((uintptr_t)RTE_PTR_ADD(SMALLER, PTR_DIFF) != BIGGER)
 		FAIL_MACRO(RTE_PTR_ADD);
-	if (RTE_PTR_SUB(BIGGER, PTR_DIFF) != SMALLER)
+	if ((uintptr_t)RTE_PTR_SUB(BIGGER, PTR_DIFF) != SMALLER)
 		FAIL_MACRO(RTE_PTR_SUB);
 	if (RTE_PTR_DIFF(BIGGER, SMALLER) != PTR_DIFF)
 		FAIL_MACRO(RTE_PTR_DIFF);
@@ -85,8 +83,8 @@ test_misc(void)
 	if (rte_bsf32(129))
 		FAIL("rte_bsf32");
 
-	rte_memdump("test", memdump, sizeof(memdump));
-	rte_hexdump("test", memdump, sizeof(memdump));
+	rte_memdump(stdout, "test", memdump, sizeof(memdump));
+	rte_hexdump(stdout, "test", memdump, sizeof(memdump));
 
 	rte_pause();
 

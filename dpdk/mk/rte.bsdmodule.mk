@@ -1,12 +1,12 @@
 #   BSD LICENSE
-# 
+#
 #   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
 #   All rights reserved.
-# 
+#
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
 #   are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright
@@ -16,7 +16,7 @@
 #     * Neither the name of Intel Corporation nor the names of its
 #       contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
-# 
+#
 #   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 #   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -74,24 +74,24 @@ build: _postbuild
 # Link all sources in build directory
 %_link: FORCE
 	$(if $(call compare,$(notdir $*),$*),\
-	@if [ ! -f $(notdir $(*)) ]; then ln -nfs $(SRCDIR)/$(*) . ; fi,\
-	@if [ ! -f $(notdir $(*)) ]; then ln -nfs $(SRCDIR)/$(*) . ; fi)
+	$(Q)if [ ! -f $(notdir $(*)) ]; then ln -nfs $(SRCDIR)/$(*) . ; fi,\
+	$(Q)if [ ! -f $(notdir $(*)) ]; then ln -nfs $(SRCDIR)/$(*) . ; fi)
 
 # build module
 $(MODULE).ko: $(SRCS_LINKS)
-	@if [ ! -f $(notdir Makefile) ]; then ln -nfs $(SRCDIR)/Makefile . ; fi
-	@if [ ! -f $(notdir BSDmakefile) ]; then ln -nfs $(SRCDIR)/BSDmakefile . ; fi
-	@MAKEFLAGS= $(BSDMAKE) -v 
+	$(Q)if [ ! -f $(notdir Makefile) ]; then ln -nfs $(SRCDIR)/Makefile . ; fi
+	$(Q)if [ ! -f $(notdir BSDmakefile) ]; then ln -nfs $(SRCDIR)/BSDmakefile . ; fi
+	$(Q)MAKEFLAGS= $(BSDMAKE)
 
 # install module in $(RTE_OUTPUT)/kmod
 $(RTE_OUTPUT)/kmod/$(MODULE).ko: $(MODULE).ko
-	@echo INSTALL-MODULE $(MODULE).ko
-	@[ -d $(RTE_OUTPUT)/kmod ] || mkdir -p $(RTE_OUTPUT)/kmod
-	@cp -f $(MODULE).ko $(RTE_OUTPUT)/kmod
+	$(Q)echo INSTALL-MODULE $(MODULE).ko
+	$(Q)[ -d $(RTE_OUTPUT)/kmod ] || mkdir -p $(RTE_OUTPUT)/kmod
+	$(Q)cp -f $(MODULE).ko $(RTE_OUTPUT)/kmod
 
 # install module
 modules_install:
-	@MAKEFLAGS= $(BSDMAKE) install
+	$(Q)MAKEFLAGS= $(BSDMAKE) install
 
 .PHONY: clean
 clean: _postclean
@@ -99,12 +99,12 @@ clean: _postclean
 # do a make clean and remove links
 .PHONY: doclean
 doclean:
-	@if [ ! -f $(notdir Makefile) ]; then ln -nfs $(SRCDIR)/Makefile . ; fi
+	$(Q)if [ ! -f $(notdir Makefile) ]; then ln -nfs $(SRCDIR)/Makefile . ; fi
 	$(Q)$(MAKE) -C $(RTE_KERNELDIR) M=$(CURDIR) O=$(RTE_KERNELDIR) clean
-	@$(foreach FILE,$(SRCS-y) $(SRCS-n) $(SRCS-),\
+	$(Q)$(foreach FILE,$(SRCS-y) $(SRCS-n) $(SRCS-),\
 		if [ -h $(notdir $(FILE)) ]; then rm -f $(notdir $(FILE)) ; fi ;)
-	@if [ -h $(notdir Makefile) ]; then rm -f $(notdir Makefile) ; fi
-	@rm -f $(_BUILD_TARGETS) $(_INSTALL_TARGETS) $(_CLEAN_TARGETS) \
+	$(Q)if [ -h $(notdir Makefile) ]; then rm -f $(notdir Makefile) ; fi
+	$(Q)rm -f $(_BUILD_TARGETS) $(_INSTALL_TARGETS) $(_CLEAN_TARGETS) \
 		$(INSTALL-FILES-all)
 
 include $(RTE_SDK)/mk/internal/rte.install-post.mk

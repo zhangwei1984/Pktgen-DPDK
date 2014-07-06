@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -66,15 +66,15 @@ static int32_t
 get_num_hugepages(const char *subdir)
 {
 	char path[PATH_MAX];
-	long unsigned resv_pages = 0, num_pages = 0;
+	long unsigned resv_pages, num_pages = 0;
 	const char *nr_hp_file;
 	const char *nr_rsvd_file = "resv_hugepages";
 
 	/* first, check how many reserved pages kernel reports */
-	rte_snprintf(path, sizeof(path), "%s/%s/%s",
-					sys_dir_path, subdir, nr_rsvd_file);
+	snprintf(path, sizeof(path), "%s/%s/%s",
+			sys_dir_path, subdir, nr_rsvd_file);
 
-	if ( eal_parse_sysfs_value(path, &resv_pages) < 0)
+	if (eal_parse_sysfs_value(path, &resv_pages) < 0)
 		return 0;
 
 	/* if secondary process, just look at the number of hugepages,
@@ -86,7 +86,7 @@ get_num_hugepages(const char *subdir)
 
 	memset(path, 0, sizeof(path));
 
-	rte_snprintf(path, sizeof(path), "%s/%s/%s",
+	snprintf(path, sizeof(path), "%s/%s/%s",
 			sys_dir_path, subdir, nr_hp_file);
 
 	if (eal_parse_sysfs_value(path, &num_pages) < 0)
@@ -97,7 +97,7 @@ get_num_hugepages(const char *subdir)
 				subdir);
 
 	/* adjust num_pages in case of primary process */
-	if ( num_pages > 0 && internal_config.process_type == RTE_PROC_PRIMARY )
+	if (num_pages > 0 && internal_config.process_type == RTE_PROC_PRIMARY)
 		num_pages -= resv_pages;
 
 	return (int32_t)num_pages;
