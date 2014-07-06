@@ -241,9 +241,9 @@ wr_splash_screen(int row, int col, char * appname, char * created_by)
 	int		i;
 
 	row = 3;
-	scrn_color(YELLOW, NO_COLOR, OFF);
+	scrn_color(BLUE, NO_COLOR, OFF);
 	scrn_printf(row++, col, "%s", COPYRIGHT_MSG);
-	scrn_color(WHITE, NO_COLOR, BOLD);
+	scrn_color(GREEN, NO_COLOR, BOLD);
 	for(i=0, row++; wr_copyright[i] != NULL; i++)
 		scrn_printf(row++, 7, "%s", wr_copyright[i]);
 	scrn_color(BLUE, NO_COLOR, BOLD);

@@ -83,4 +83,6 @@ SRCS-y := commands.c lpktgenlib.c pktgen-cmds.c pktgen.c \
 CFLAGS += -O3 -g -fno-stack-protector -I../lib/common -I../lib/scrn -I../lib/lua
 LDFLAGS += -g -lpcap -L../lib/common/ -L../lib/lua -L../lib/scrn -llua -lscrn -lcommon
 
+DEP_$(APP) += ../lib/common/libcommon.a ../lib/lua/liblua.a ../lib/scrn/libscrn.a
+
 include $(RTE_SDK)/mk/rte.app.mk
