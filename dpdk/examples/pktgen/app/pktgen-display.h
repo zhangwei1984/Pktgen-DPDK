@@ -77,7 +77,7 @@
 
 
 /* Initialize screen data structures */
-extern void pktgen_init_screen(void);
+extern void pktgen_init_screen(int theme);
 
 
 /**************************************************************************//**

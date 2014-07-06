@@ -180,7 +180,7 @@ void * pktgen_get_lua()
 static void
 pktgen_usage(const char *prgname)
 {
-    printf("Usage: %s [EAL options] -- -p PORTMASK [-h] [-P] [-G] [-f cmd_file] [-l log_file] [-s P:PCAP_file] [-m <string>]\n"
+    printf("Usage: %s [EAL options] -- -p PORTMASK [-h] [-P] [-G] [-T] [-f cmd_file] [-l log_file] [-s P:PCAP_file] [-m <string>]\n"
            "  -p PORTMASK  hexadecimal bitmask of ports to configure\n"
            "  -s P:file    PCAP packet stream file, 'P' is the port number\n"
            "  -f filename  Command file (.pkt) to execute or a Lua script (.lua) file\n"
@@ -190,6 +190,7 @@ pktgen_usage(const char *prgname)
     	   "               If -g is used that enable socket support as a server application\n"
     	   "  -G           Enable socket support using default server values localhost:0x5606 \n"
     	   "  -N           Enable NUMA support\n"
+           "  -T           Enable the color output\n"
            "  -m <string>  matrix for mapping ports to logical cores\n"
     	   "      BNF: (or kind of BNF)\n"
     	   "      <matrix-string>   := \"\"\" <lcore-port> { \",\" <lcore-port>} \"\"\"\n"
@@ -258,7 +259,7 @@ pktgen_parse_args(int argc, char **argv)
     for (opt = 0; opt < argc; opt++)
     	pktgen.argv[opt] = strdup(argv[opt]);
 
-    while ((opt = getopt_long(argc, argvopt, "p:m:f:l:s:g:hPNG",
+    while ((opt = getopt_long(argc, argvopt, "p:m:f:l:s:g:hPNGT",
                   lgopts, &option_index)) != EOF) {
         switch (opt) {
         case 'p':			// Port mask (required).
@@ -326,6 +327,10 @@ pktgen_parse_args(int argc, char **argv)
         	}
         	break;
 
+		case 'T':
+			pktgen.flags	|= ENABLE_THEME_FLAG;
+			break;
+
         case 'h':			// print out the help message
             pktgen_usage(prgname);
             return -1;
@@ -375,23 +380,22 @@ main(int argc, char **argv)
 
     memset(&pktgen, 0, sizeof(pktgen));
 
-    /* Initialize the screen and logging */
-    pktgen_init_log();
-    pktgen_init_screen();
-	pktgen_cpu_init();
-
-    wr_print_copyright(PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
-
     pktgen.flags            = PRINT_LABELS_FLAG;
     pktgen.ident            = 0x1234;
     pktgen.nb_rxd           = DEFAULT_RX_DESC;
     pktgen.nb_txd           = DEFAULT_TX_DESC;
     pktgen.nb_ports_per_page= DEFAULT_PORTS_PER_PAGE;
 
+    wr_print_copyright(PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
+
     if ( (pktgen.l2p = wr_l2p_create()) == NULL )
 		pktgen_log_panic("Unable to create l2p");
 
     pktgen.portdesc_cnt = wr_get_portdesc(pktgen.portlist, pktgen.portdesc, RTE_MAX_ETHPORTS, 0);
+
+    /* Initialize the screen and logging */
+    pktgen_init_log();
+	pktgen_cpu_init();
 
     /* initialize EAL */
     ret = rte_eal_init(argc, argv);
@@ -408,6 +412,8 @@ main(int argc, char **argv)
     ret = pktgen_parse_args(argc, argv);
     if (ret < 0)
         return -1;
+
+    pktgen_init_screen((pktgen.flags & ENABLE_THEME_FLAG) ? THEME_ON : THEME_OFF);
 
     if ((ret = rte_eal_pci_probe()) < 0)
         pktgen_log_panic("Cannot probe PCI, %s", rte_strerror(-ret));

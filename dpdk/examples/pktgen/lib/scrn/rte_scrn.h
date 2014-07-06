@@ -73,8 +73,7 @@
 
 #include <rte_atomic.h>
 
-
-#define SCRN_VERSION	"1.0.0"
+#define SCRN_VERSION	"1.2.0"
 
 typedef struct rte_scrn_s {
 	rte_atomic32_t	pause;		//!< Pause the update of the screen.

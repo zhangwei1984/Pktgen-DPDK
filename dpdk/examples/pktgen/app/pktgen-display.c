@@ -176,9 +176,9 @@ theme_color_map_t theme_color_map[] = {
 
 /* Initialize screen data structures */
 void
-pktgen_init_screen(void)
+pktgen_init_screen(int theme)
 {
-	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, THEME_ON);
+	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
 }
 
 

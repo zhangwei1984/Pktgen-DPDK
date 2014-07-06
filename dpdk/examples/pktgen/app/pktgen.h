@@ -296,7 +296,8 @@ typedef struct pktgen_s {
 
 	port_info_t				info[RTE_MAX_ETHPORTS];	/**< Port information */
 	lc_info_t				core_info[RTE_MAX_LCORE];
-	uint32_t				core_cnt;
+	uint16_t				core_cnt;
+	uint16_t				pad0;
 	lscpu_t				  * lscpu;
 	char				  * uname;
 	eth_stats_t				cumm_rate_totals;	/**< port rates total values */
@@ -329,6 +330,7 @@ enum {		// Pktgen flags bits
 	TX_DEBUG_FLAG			= (1 << 7),			/**< TX Debug output */
 	FAKE_PORTS_FLAG			= (1 << 9),			/**< Fake ports enabled */
 	BLINK_PORTS_FLAG		= (1 << 10),		/**< Blink the port leds */
+	ENABLE_THEME_FLAG		= (1 << 11),		/**< Enable theme or color support */
 
 	CONFIG_PAGE_FLAG		= (1 << 16),		/**< Display the configure page */
 	SEQUENCE_PAGE_FLAG		= (1 << 17),		/**< Display the Packet sequence page */
