@@ -69,6 +69,7 @@
 
 #include "pktgen.h"
 #include "lpktgenlib.h"
+#include "lua_shell.h"
 #include "lua-socket.h"
 #include "pktgen-cmds.h"
 #include "commands.h"
@@ -389,6 +390,13 @@ main(int argc, char **argv)
     if ( (pktgen.l2p = wr_l2p_create()) == NULL )
 		pktgen_log_panic("Unable to create l2p");
 
+    pktgen.portdesc_cnt = wr_get_portdesc(pktgen.portlist, pktgen.portdesc, RTE_MAX_ETHPORTS, 0);
+
+//    pktgen.enabled_port_mask = -1;
+//    pktgen.blacklist_cnt = wr_create_blacklist(pktgen.enabled_port_mask, pktgen.portlist,
+//    		pktgen.portdesc_cnt, pktgen.portdesc);
+//    pktgen_log_info(">>> Blacklisted port count %d", pktgen.blacklist_cnt);
+
     /* initialize EAL */
     ret = rte_eal_init(argc, argv);
     if (ret < 0)
@@ -405,18 +413,10 @@ main(int argc, char **argv)
     if (ret < 0)
         return -1;
 
-    /* init drivers */
-    if ((ret = rte_pmd_init_all()) < 0)
-		pktgen_log_panic("Cannot init devices");
-
-    pktgen.portdesc_cnt = wr_get_portdesc(pktgen.portlist, pktgen.portdesc, RTE_MAX_ETHPORTS, 0);
-
-    pktgen.blacklist_cnt = wr_create_blacklist(pktgen.enabled_port_mask, pktgen.portlist,
-    		pktgen.portdesc_cnt, pktgen.portdesc);
-    pktgen_log_info(">>> Blacklisted port count %d", pktgen.blacklist_cnt);
-
     if ((ret = rte_eal_pci_probe()) < 0)
         pktgen_log_panic("Cannot probe PCI, %s", rte_strerror(-ret));
+
+    lua_newlib_add(_lua_openlib);
 
     // Open the Lua script handler.
     if ( (pktgen.L = lua_create_instance()) == NULL ) {

@@ -62,7 +62,7 @@ SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include := lapi.h lauxlib.h lcode.h lctype.h lde
 SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += ldo.h lfunc.h lgc.h llex.h llimits.h lmem.h
 SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += lobject.h lopcodes.h lparser.h lstate.h lstring.h
 SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += ltable.h ltm.h luaconf.h lua.h lualib.h lua-socket.h
-SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += lundump.h lvm.h lzio.h
+SYMLINK-$(CONFIG_RTE_LIBWR_LUA)-include += lundump.h lvm.h lzio.h lua_shell.h
 
 # this lib needs eal
 DEPDIRS-$(CONFIG_RTE_LIBWR_LUA) += lib/librte_eal lib/librte_mempool

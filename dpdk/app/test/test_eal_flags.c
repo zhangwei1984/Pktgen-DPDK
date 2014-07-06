@@ -1,13 +1,14 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2014 6WIND S.A.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -31,8 +32,6 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdio.h>
-
-#include <cmdline_parse.h>
 
 #include "test.h"
 
@@ -58,7 +57,8 @@
 #define no_hpet "--no-hpet"
 #define no_huge "--no-huge"
 #define no_shconf "--no-shconf"
-#define use_device "--use-device"
+#define pci_whitelist "--pci-whitelist"
+#define vdev "--vdev"
 #define memtest "memtest"
 #define memtest1 "memtest1"
 #define memtest2 "memtest2"
@@ -85,7 +85,7 @@ get_hugepage_path(char * src, int src_len, char * dst, int dst_len)
 		return 0;
 
 	if (strncmp(tokens[2], "hugetlbfs", sizeof("hugetlbfs")) == 0) {
-		rte_snprintf(dst, dst_len, "%s", tokens[1]);
+		snprintf(dst, dst_len, "%s", tokens[1]);
 		return 1;
 	}
 	return 0;
@@ -114,7 +114,7 @@ process_hugefiles(const char * prefix, enum hugepage_action action)
 
 	int fd, lck_result, result = 0;
 
-	const int prefix_len = rte_snprintf(hugefile_prefix,
+	const int prefix_len = snprintf(hugefile_prefix,
 			sizeof(hugefile_prefix), "%smap_", prefix);
 	if (prefix_len <= 0 || prefix_len >= (int)sizeof(hugefile_prefix)
 			|| prefix_len >= (int)sizeof(dirent->d_name)) {
@@ -160,9 +160,9 @@ process_hugefiles(const char * prefix, enum hugepage_action action)
 				{
 					char file_path[PATH_MAX] = {0};
 
-					rte_snprintf(file_path, sizeof(file_path),
+					snprintf(file_path, sizeof(file_path),
 						"%s/%s", hugedir, dirent->d_name);
-					
+
 					/* remove file */
 					if (remove(file_path) < 0) {
 						printf("Error deleting %s - %s!\n",
@@ -257,35 +257,22 @@ get_current_prefix(char * prefix, int size)
 	char buf[PATH_MAX] = {0};
 
 	/* get file for config (fd is always 3) */
-	rte_snprintf(path, sizeof(path), "/proc/self/fd/%d", 3);
+	snprintf(path, sizeof(path), "/proc/self/fd/%d", 3);
 
 	/* return NULL on error */
 	if (readlink(path, buf, sizeof(buf)) == -1)
 		return NULL;
 
 	/* get the basename */
-	rte_snprintf(buf, sizeof(buf), "%s", basename(buf));
+	snprintf(buf, sizeof(buf), "%s", basename(buf));
 
 	/* copy string all the way from second char up to start of _config */
-	rte_snprintf(prefix, size, "%.*s",
-			strnlen(buf, sizeof(buf)) - sizeof("_config"), &buf[1]);
+	snprintf(prefix, size, "%.*s",
+			(int)(strnlen(buf, sizeof(buf)) - sizeof("_config")),
+			&buf[1]);
 
 	return prefix;
 }
-
-/* extra function prototypes for internal eal function to test in whitelist 
- * ICC 12 doesn't approve of this practice, so temporarily disable warnings for it */
-#ifdef __INTEL_COMPILER
-#pragma warning disable 1419
-#endif
-extern int eal_dev_whitelist_exists(void);
-extern int eal_dev_whitelist_add_entry(const char *);
-extern int eal_dev_whitelist_parse(void);
-extern int eal_dev_is_whitelisted(const char *, const char **);
-extern void eal_dev_whitelist_clear(void);
-#ifdef __INTEL_COMPILER
-#pragma warning enable 1419
-#endif
 
 /*
  * Test that the app doesn't run with invalid whitelist option.
@@ -305,33 +292,32 @@ test_whitelist_flag(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 #endif
 
 	const char *wlinval[][11] = {
 		{prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-				use_device, "error", "", ""},
+				pci_whitelist, "error", "", ""},
 		{prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-				use_device, "0:0:0", "", ""},
+				pci_whitelist, "0:0:0", "", ""},
 		{prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-				use_device, "0:error:0.1", "", ""},
+				pci_whitelist, "0:error:0.1", "", ""},
 		{prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-				use_device, "0:0:0.1error", "", ""},
+				pci_whitelist, "0:0:0.1error", "", ""},
 		{prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-				use_device, "error0:0:0.1", "", ""},
+				pci_whitelist, "error0:0:0.1", "", ""},
 		{prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-				use_device, "0:0:0.1.2", "", ""},
-		{prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-				use_device, "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x",
-				use_device, "y,z,1,2,3,4,5,6,7,8,9,0"},
+				pci_whitelist, "0:0:0.1.2", "", ""},
 	};
 	/* Test with valid whitelist option */
 	const char *wlval1[] = {prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-			use_device, "00FF:09:0B.3"};
+			pci_whitelist, "00FF:09:0B.3"};
 	const char *wlval2[] = {prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-			use_device, "09:0B.3,0a:0b.1"};
+			pci_whitelist, "09:0B.3", pci_whitelist, "0a:0b.1"};
 	const char *wlval3[] = {prgname, prefix, mp_flag, "-n", "1", "-c", "1",
-			use_device, "09:0B.3;type=test,08:00.1;type=normal"};
+			pci_whitelist, "09:0B.3,type=test",
+			pci_whitelist, "08:00.1,type=normal",
+	};
 
 	for (i = 0; i < sizeof(wlinval) / sizeof(wlinval[0]); i++) {
 		if (launch_proc(wlinval[i]) == 0) {
@@ -353,32 +339,6 @@ test_whitelist_flag(void)
 		return -1;
 	}
 
-	/* extra-sanity checks of whitelists - to be run only if no whitelist */
-	if (eal_dev_whitelist_exists())
-		return 0;
-
-	/* check that whitelist_parse returns error without whitelist */
-	if (eal_dev_whitelist_parse() != -1) {
-		printf("ERROR: calling whitelist parse without a whitelist doesn't "
-				"return an error\n");
-		return -1;
-	}
-	if (eal_dev_is_whitelisted("adevice", NULL)) {
-		printf("Whitelist lookup does not return false if no whitelist\n");
-		return -1;
-	}
-	eal_dev_whitelist_add_entry("0000:00:00.0");
-	eal_dev_whitelist_parse();
-	if (eal_dev_is_whitelisted("adevice", NULL)) {
-		printf("Whitelist lookup does not return false for unlisted dev\n");
-		return -1;
-	}
-	if (!eal_dev_is_whitelisted("0000:00:00.0", NULL)) {
-		printf("Whitelist lookup does not return true for whitelisted dev\n");
-		return -1;
-	}
-	eal_dev_whitelist_clear();
-
 	return 0;
 }
 
@@ -398,7 +358,7 @@ test_invalid_b_flag(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 #endif
 
 	const char *blinval[][9] = {
@@ -428,6 +388,53 @@ test_invalid_b_flag(void)
 	return 0;
 }
 
+/*
+ *  Test that the app doesn't run with invalid vdev option.
+ *  Final test ensures it does run with valid options as sanity check
+ */
+#ifdef RTE_LIBRTE_PMD_RING
+static int
+test_invalid_vdev_flag(void)
+{
+	/* Test with invalid vdev option */
+	const char *vdevinval[] = {prgname, "--file-prefix=vdev","-n", "1",
+				"-c", "1", vdev, "eth_dummy"};
+
+	/* Test with valid vdev option */
+	const char *vdevval1[] = {prgname, "--file-prefix=vdev", "-n", "1",
+	"-c", "1", vdev, "eth_ring0"};
+
+	const char *vdevval2[] = {prgname, "--file-prefix=vdev", "-n", "1",
+	"-c", "1", vdev, "eth_ring0,args=test"};
+
+	const char *vdevval3[] = {prgname, "--file-prefix=vdev", "-n", "1",
+	"-c", "1", vdev, "eth_ring0,nodeaction=r1:0:CREATE"};
+
+	if (launch_proc(vdevinval) == 0) {
+		printf("Error - process did run ok with invalid "
+			"vdev parameter\n");
+		return -1;
+	}
+
+	if (launch_proc(vdevval1) != 0) {
+		printf("Error - process did not run ok with valid vdev value\n");
+		return -1;
+	}
+
+	if (launch_proc(vdevval2) != 0) {
+		printf("Error - process did not run ok with valid vdev value,"
+			"with dummy args\n");
+		return -1;
+	}
+
+	if (launch_proc(vdevval3) != 0) {
+		printf("Error - process did not run ok with valid vdev value,"
+			"with valid args\n");
+		return -1;
+	}
+	return 0;
+}
+#endif
 
 /*
  * Test that the app doesn't run with invalid -r option.
@@ -444,7 +451,7 @@ test_invalid_r_flag(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 #endif
 
 	const char *rinval[][9] = {
@@ -488,7 +495,7 @@ test_missing_c_flag(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 #endif
 
 	/* -c flag but no coremask value */
@@ -531,7 +538,7 @@ test_missing_n_flag(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 #endif
 
 	/* -n flag but no value */
@@ -574,7 +581,7 @@ test_no_hpet_flag(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 
 	/* With --no-hpet */
 	const char *argv1[] = {prgname, prefix, mp_flag, no_hpet, "-c", "1", "-n", "2"};
@@ -654,7 +661,7 @@ test_dom0_misc_flags(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 
 	/* check that some general flags don't prevent things from working.
 	 * All cases, apart from the first, app should run.
@@ -706,7 +713,7 @@ test_dom0_misc_flags(void)
 		printf("Error - process did not run ok with --no-shconf flag\n");
 		return -1;
 	}
-	
+
 	return 0;
 }
 #else
@@ -728,7 +735,7 @@ test_misc_flags(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 
 	/*
 	 * get first valid hugepage path
@@ -806,6 +813,22 @@ test_misc_flags(void)
 	const char *argv11[] = {prgname, "--file-prefix=virtaddr",
 			"-c", "1", "-n", "2", "--base-virtaddr=0x12345678"};
 
+	/* try running with --vfio-intr INTx flag */
+	const char *argv12[] = {prgname, "--file-prefix=intr",
+			"-c", "1", "-n", "2", "--vfio-intr=legacy"};
+
+	/* try running with --vfio-intr MSI flag */
+	const char *argv13[] = {prgname, "--file-prefix=intr",
+			"-c", "1", "-n", "2", "--vfio-intr=msi"};
+
+	/* try running with --vfio-intr MSI-X flag */
+	const char *argv14[] = {prgname, "--file-prefix=intr",
+			"-c", "1", "-n", "2", "--vfio-intr=msix"};
+
+	/* try running with --vfio-intr invalid flag */
+	const char *argv15[] = {prgname, "--file-prefix=intr",
+			"-c", "1", "-n", "2", "--vfio-intr=invalid"};
+
 
 	if (launch_proc(argv0) == 0) {
 		printf("Error - process ran ok with invalid flag\n");
@@ -856,6 +879,26 @@ test_misc_flags(void)
 	}
 	if (launch_proc(argv11) != 0) {
 		printf("Error - process did not run ok with --base-virtaddr parameter\n");
+		return -1;
+	}
+	if (launch_proc(argv12) != 0) {
+		printf("Error - process did not run ok with "
+				"--vfio-intr INTx parameter\n");
+		return -1;
+	}
+	if (launch_proc(argv13) != 0) {
+		printf("Error - process did not run ok with "
+				"--vfio-intr MSI parameter\n");
+		return -1;
+	}
+	if (launch_proc(argv14) != 0) {
+		printf("Error - process did not run ok with "
+				"--vfio-intr MSI-X parameter\n");
+		return -1;
+	}
+	if (launch_proc(argv15) == 0) {
+		printf("Error - process run ok with "
+				"--vfio-intr invalid parameter\n");
 		return -1;
 	}
 	return 0;
@@ -993,7 +1036,7 @@ test_memory_flags(void)
 		printf("Error - unable to get current prefix!\n");
 		return -1;
 	}
-	rte_snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
+	snprintf(prefix, sizeof(prefix), "--file-prefix=%s", tmp);
 #endif
 #ifdef RTE_LIBRTE_XEN_DOM0
 	mem_size = "30";
@@ -1054,32 +1097,32 @@ test_memory_flags(void)
 		return -1;
 	}
 
-	rte_snprintf(invalid_socket_mem, sizeof(invalid_socket_mem), "--socket-mem=");
+	snprintf(invalid_socket_mem, sizeof(invalid_socket_mem), "--socket-mem=");
 
 	/* add one extra socket */
 	for (i = 0; i < num_sockets + 1; i++) {
-		rte_snprintf(buf, sizeof(buf), "%s2", invalid_socket_mem);
-		rte_snprintf(invalid_socket_mem, sizeof(invalid_socket_mem), "%s", buf);
+		snprintf(buf, sizeof(buf), "%s2", invalid_socket_mem);
+		snprintf(invalid_socket_mem, sizeof(invalid_socket_mem), "%s", buf);
 
 		if (num_sockets + 1 - i > 1) {
-			rte_snprintf(buf, sizeof(buf), "%s,", invalid_socket_mem);
-			rte_snprintf(invalid_socket_mem, sizeof(invalid_socket_mem), "%s", buf);
+			snprintf(buf, sizeof(buf), "%s,", invalid_socket_mem);
+			snprintf(invalid_socket_mem, sizeof(invalid_socket_mem), "%s", buf);
 		}
 	}
 
 	/* construct a valid socket mask with 2 megs on each existing socket */
 	char valid_socket_mem[SOCKET_MEM_STRLEN];
 
-	rte_snprintf(valid_socket_mem, sizeof(valid_socket_mem), "--socket-mem=");
+	snprintf(valid_socket_mem, sizeof(valid_socket_mem), "--socket-mem=");
 
 	/* add one extra socket */
 	for (i = 0; i < num_sockets; i++) {
-		rte_snprintf(buf, sizeof(buf), "%s2", valid_socket_mem);
-		rte_snprintf(valid_socket_mem, sizeof(valid_socket_mem), "%s", buf);
+		snprintf(buf, sizeof(buf), "%s2", valid_socket_mem);
+		snprintf(valid_socket_mem, sizeof(valid_socket_mem), "%s", buf);
 
 		if (num_sockets - i > 1) {
-			rte_snprintf(buf, sizeof(buf), "%s,", valid_socket_mem);
-			rte_snprintf(valid_socket_mem, sizeof(valid_socket_mem), "%s", buf);
+			snprintf(buf, sizeof(buf), "%s,", valid_socket_mem);
+			snprintf(valid_socket_mem, sizeof(valid_socket_mem), "%s", buf);
 		}
 	}
 
@@ -1202,6 +1245,13 @@ test_eal_flags(void)
 		return ret;
 	}
 
+#ifdef RTE_LIBRTE_PMD_RING
+	ret = test_invalid_vdev_flag();
+	if (ret < 0) {
+		printf("Error in test_invalid_vdev_flag()\n");
+		return ret;
+	}
+#endif
 	ret = test_invalid_r_flag();
 	if (ret < 0) {
 		printf("Error in test_invalid_r_flag()\n");

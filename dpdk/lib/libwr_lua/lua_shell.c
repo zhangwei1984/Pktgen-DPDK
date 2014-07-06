@@ -17,6 +17,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #include "lua-socket.h"
+#include "lua_shell.h"
 
 #if !defined(LUA_PROGNAME)
 #define LUA_PROGNAME		"lua-shell"
@@ -262,12 +263,30 @@ static int handle_luainit(lua_State *L) {
 		return dostring(L, init, name);
 }
 
+static newlib_t	newlibs[MAX_NEW_LIBS];
+static int newlibs_idx = 0;
+
+int lua_newlib_add(newlib_t n) {
+	if ( newlibs_idx >= MAX_NEW_LIBS )
+		return -1;
+	newlibs[newlibs_idx++] = n;
+	return 0;
+}
+
+void lua_newlibs_init(lua_State * L) {
+	int		i;
+
+	for(i = 0; i < newlibs_idx; i++)
+		newlibs[i](L);
+
+}
+
 static int pmain(lua_State *L) {
 
 	/* open standard libraries */
 	luaL_checkversion(L);
 
-	_lua_openlib(L);
+	lua_newlibs_init(L);
 
 	if (handle_luainit(L) != LUA_OK)
 		return 0; /* error running LUA_INIT */

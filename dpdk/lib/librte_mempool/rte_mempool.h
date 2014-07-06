@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -59,6 +59,7 @@
  * that won't work as rte_lcore_id() will not return a correct value.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <errno.h>
@@ -212,7 +213,7 @@ struct rte_mempool {
  * Calculates size of the mempool header.
  * @param mp
  *   Pointer to the memory pool.
- * @param pgn 
+ * @param pgn
  *   Number of page used to store mempool objects.
  */
 #define	MEMPOOL_HEADER_SIZE(mp, pgn)	(sizeof(*(mp)) + \
@@ -314,6 +315,7 @@ static inline void __mempool_write_trailer_cookie(void *obj)
  */
 #ifdef RTE_LIBRTE_MEMPOOL_DEBUG
 #ifndef __INTEL_COMPILER
+#pragma GCC push_options
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
 static inline void __mempool_check_cookies(const struct rte_mempool *mp,
@@ -380,7 +382,7 @@ static inline void __mempool_check_cookies(const struct rte_mempool *mp,
 	}
 }
 #ifndef __INTEL_COMPILER
-#pragma GCC diagnostic error "-Wcast-qual"
+#pragma GCC pop_options
 #endif
 #else
 #define __mempool_check_cookies(mp, obj_table_const, n, free) do {} while(0)
@@ -473,7 +475,7 @@ typedef void (rte_mempool_ctor_t)(struct rte_mempool *, void *);
  *   never be used. The access to the per-lcore table is of course
  *   faster than the multi-producer/consumer pool. The cache can be
  *   disabled if the cache_size argument is set to 0; it can be useful to
- *   avoid loosing objects in cache. Note that even if not used, the
+ *   avoid losing objects in cache. Note that even if not used, the
  *   memory space for cache is always reserved in a mempool structure,
  *   except if CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE is set to 0.
  * @param private_data_size
@@ -564,7 +566,7 @@ rte_mempool_create(const char *name, unsigned n, unsigned elt_size,
  *   never be used. The access to the per-lcore table is of course
  *   faster than the multi-producer/consumer pool. The cache can be
  *   disabled if the cache_size argument is set to 0; it can be useful to
- *   avoid loosing objects in cache. Note that even if not used, the
+ *   avoid losing objects in cache. Note that even if not used, the
  *   memory space for cache is always reserved in a mempool structure,
  *   except if CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE is set to 0.
  * @param private_data_size
@@ -665,7 +667,7 @@ rte_mempool_xmem_create(const char *name, unsigned n, unsigned elt_size,
  *   never be used. The access to the per-lcore table is of course
  *   faster than the multi-producer/consumer pool. The cache can be
  *   disabled if the cache_size argument is set to 0; it can be useful to
- *   avoid loosing objects in cache. Note that even if not used, the
+ *   avoid losing objects in cache. Note that even if not used, the
  *   memory space for cache is always reserved in a mempool structure,
  *   except if CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE is set to 0.
  * @param private_data_size
@@ -732,10 +734,12 @@ rte_dom0_mempool_create(const char *name, unsigned n, unsigned elt_size,
 /**
  * Dump the status of the mempool to the console.
  *
+ * @param f
+ *   A pointer to a file for output
  * @param mp
  *   A pointer to the mempool structure.
  */
-void rte_mempool_dump(const struct rte_mempool *mp);
+void rte_mempool_dump(FILE *f, const struct rte_mempool *mp);
 
 /**
  * @internal Put several objects back in the mempool; used internally.
@@ -1255,12 +1259,20 @@ rte_mempool_empty(const struct rte_mempool *mp)
 static inline phys_addr_t
 rte_mempool_virt2phy(const struct rte_mempool *mp, const void *elt)
 {
-	uintptr_t off;
+	if (rte_eal_has_hugepages()) {
+		uintptr_t off;
 
-	off = (const char *)elt - (const char *)mp->elt_va_start;
-	return (mp->elt_pa[off >> mp->pg_shift] + (off & mp->pg_mask));
+		off = (const char *)elt - (const char *)mp->elt_va_start;
+		return (mp->elt_pa[off >> mp->pg_shift] + (off & mp->pg_mask));
+	} else {
+		/*
+		 * If huge pages are disabled, we cannot assume the
+		 * memory region to be physically contiguous.
+		 * Lookup for each element.
+		 */
+		return rte_mem_virt2phy(elt);
+	}
 }
-
 
 /**
  * Check the consistency of mempool objects.
@@ -1289,8 +1301,11 @@ static inline void *rte_mempool_get_priv(struct rte_mempool *mp)
 
 /**
  * Dump the status of all mempools on the console
+ *
+ * @param f
+ *   A pointer to a file for output
  */
-void rte_mempool_list_dump(void);
+void rte_mempool_list_dump(FILE *f);
 
 /**
  * Search a mempool from its name
@@ -1323,7 +1338,7 @@ uint32_t rte_mempool_calc_obj_size(uint32_t elt_size, uint32_t flags,
 
 /**
  * Calculate maximum amount of memory required to store given number of objects.
- * Assumes that the memory buffer will be alligned at page boundary.
+ * Assumes that the memory buffer will be aligned at page boundary.
  * Note, that if object size is bigger then page size, then it assumes that
  * we have a subsets of physically continuous  pages big enough to store
  * at least one object.
@@ -1364,6 +1379,17 @@ size_t rte_mempool_xmem_size(uint32_t elt_num, size_t elt_sz,
  */
 ssize_t rte_mempool_xmem_usage(void *vaddr, uint32_t elt_num, size_t elt_sz,
 	const phys_addr_t paddr[], uint32_t pg_num, uint32_t pg_shift);
+
+/**
+ * Walk list of all memory pools
+ *
+ * @param func
+ *   Iterator function
+ * @param arg
+ *   Argument passed to iterator
+ */
+void rte_mempool_walk(void (*func)(const struct rte_mempool *, void *arg),
+		      void *arg);
 
 #ifdef __cplusplus
 }

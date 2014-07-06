@@ -560,11 +560,11 @@ pktgen_screen(const char * onOff)
 			scrn_pause();
 			scrn_cls();
 			scrn_setw(1);
-			scrn_pos(rows, 1);
+			scrn_pos(100, 1);
 		}
 	} else {
 		scrn_cls();
-		scrn_pos(rows,1);
+		scrn_pos(100,1);
 		scrn_setw(pktgen.last_row+1);
 		scrn_resume();
 		pktgen_redisplay(1);
@@ -803,17 +803,17 @@ pktgen_mempool_dump(port_info_t * info, char * name)
 		return;
 	for(q = 0; q < NUM_Q; q++) {
 		if ( all || !strcmp(name, "tx") )
-			rte_mempool_dump(info->q[q].tx_mp);
+			rte_mempool_dump(stdout, info->q[q].tx_mp);
 		if ( all || !strcmp(name, "rx") )
-			rte_mempool_dump(info->q[q].rx_mp);
+			rte_mempool_dump(stdout, info->q[q].rx_mp);
 		if ( all || !strcmp(name, "range") )
-			rte_mempool_dump(info->q[q].range_mp);
+			rte_mempool_dump(stdout, info->q[q].range_mp);
 		if ( all || !strcmp(name, "seq") )
-			rte_mempool_dump(info->q[q].seq_mp);
+			rte_mempool_dump(stdout, info->q[q].seq_mp);
 		if ( all || !strcmp(name, "arp") )
-			rte_mempool_dump(info->q[q].special_mp);
+			rte_mempool_dump(stdout, info->q[q].special_mp);
 		if ( all || !strcmp(name, "pcap") )
-			rte_mempool_dump(info->q[q].pcap_mp);
+			rte_mempool_dump(stdout, info->q[q].pcap_mp);
 	}
 }
 

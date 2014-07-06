@@ -81,6 +81,7 @@
 #include <rte_atomic.h>
 #include <rte_cycles.h>
 #include <rte_pci.h>
+#include <rte_devargs.h>
 #include <rte_debug.h>
 #include <rte_scrn.h>
 
@@ -188,32 +189,32 @@ wr_free_portdesc( uint8_t ** portdesc, uint32_t num )
 
 uint32_t
 wr_create_blacklist(uint64_t portmask, struct rte_pci_addr * portlist, uint32_t port_cnt, uint8_t * desc[]) {
-    static struct rte_pci_addr	blacklist[RTE_MAX_ETHPORTS];
     uint32_t i, idx;
+    char pci_addr_str[32];
 
     if ( (portmask == 0) || (portlist == NULL) || (port_cnt == 0) )
     	return 0;
-
-	memset(blacklist, '\0', sizeof(blacklist));			// Zero the complete list.
 
 	if ( desc )
 		fprintf(stdout, "Ports: Port Mask: %016lx blacklisted = --, not-blacklisted = ++\n", portmask);
 	idx = 0;
     for(i = 0; i < port_cnt; i++) {
+		memset(pci_addr_str, 0, sizeof(pci_addr_str));
 		if ( (portmask & (1ULL << i)) == 0 ) {
 			if ( desc )
 				fprintf(stdout, "-- %s\n", desc[i]);
-			blacklist[idx++] = portlist[i];
+			strncpy(pci_addr_str, (void *)desc[i], 12);
+			rte_eal_devargs_add(RTE_DEVTYPE_BLACKLISTED_PCI, pci_addr_str);
+			idx++;
 		} else {
+			strncpy(pci_addr_str, (void *)desc[i], 12);
+			rte_eal_devargs_add(RTE_DEVTYPE_WHITELISTED_PCI, pci_addr_str);
 			if ( desc )
 				fprintf(stdout, "++ %s\n", desc[i]);
 		}
 	}
     if ( desc )
     	fprintf(stdout, "\n");
-
-	if ( idx )
-		rte_eal_pci_set_blacklist(blacklist, idx);
 
 	return idx;
 }

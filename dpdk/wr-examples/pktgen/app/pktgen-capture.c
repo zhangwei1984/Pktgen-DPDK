@@ -104,7 +104,7 @@ void pktgen_packet_capture_init(capture_t *capture, int socket_id)
 	capture->port     = RTE_MAX_ETHPORTS;
 	capture->mem_used = 0;
 
-	rte_snprintf(memzone_name, sizeof(memzone_name), "Capture_MZ_%d", socket_id);
+	snprintf(memzone_name, sizeof(memzone_name), "Capture_MZ_%d", socket_id);
 	capture->mz = rte_memzone_reserve(memzone_name, 0, socket_id,
 			RTE_MEMZONE_1GB | RTE_MEMZONE_SIZE_HINT_ONLY);
 }

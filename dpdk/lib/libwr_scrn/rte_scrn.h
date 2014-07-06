@@ -92,6 +92,8 @@ typedef enum { BLACK = 0, RED = 1, GREEN = 2, YELLOW = 3, BLUE = 4, MAGENTA = 5,
 			   RGB = 8, DEFAULT_FG = 9, DEFAULT_BG = 9, UNKNOWN_COLOR=99 } color_e;
 typedef enum { OFF = 0, BOLD = 1, UNDERSCORE = 4, BLINK = 5, REVERSE = 7, CONCEALED = 8, UNKNOWN_ATTR = 99 } attr_e;
 
+typedef uint8_t		rgb_t;
+
 extern rte_scrn_t * scrn;
 
 #define	scrn_puts(...)	{ printf(__VA_ARGS__); fflush(stdout); }
@@ -213,8 +215,9 @@ static __inline__ void scrn_color(color_e fg, color_e bg, attr_e attr) {
 	scrn_puts("\033[%d;%d;%dm", attr, fg + 30, bg + 40);
 }
 
-static __inline__ void scrn_color256(uint8_t fb, uint8_t r, uint8_t g, uint8_t b) {
-	scrn_puts("\033[%d;2;%d;%d;%dm", fb, r, g, b);
+// Setup for 256 RGB color methods
+static __inline__ void scrn_rgb(uint8_t fg_bg, rgb_t r, rgb_t g, rgb_t b) {
+	scrn_puts("\033[%d;2;%d;%d;%dm", fg_bg, r, g, b);
 }
 
 extern void scrn_center(int16_t r, const char * fmt, ...);

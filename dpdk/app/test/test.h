@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -43,10 +43,6 @@
 
 extern const char *prgname;
 
-#include <cmdline_parse.h>
-
-extern cmdline_parse_ctx_t main_ctx[];
-
 int main(int argc, char **argv);
 
 int test_pci(void);
@@ -61,6 +57,7 @@ int test_cycles(void);
 int test_logs(void);
 int test_memzone(void);
 int test_ring(void);
+int test_table(void);
 int test_ring_perf(void);
 int test_mempool(void);
 int test_mempool_perf(void);
@@ -96,6 +93,11 @@ int test_power(void);
 int test_common(void);
 int test_pmd_ring(void);
 int test_ivshmem(void);
+int test_distributor(void);
+int test_distributor_perf(void);
+int test_kvargs(void);
+int test_devargs(void);
+int test_link_bonding(void);
 
 int test_pci_run;
 

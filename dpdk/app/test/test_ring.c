@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -58,8 +58,6 @@
 #include <rte_common.h>
 #include <rte_errno.h>
 #include <rte_hexdump.h>
-
-#include <cmdline_parse.h>
 
 #include "test.h"
 
@@ -114,7 +112,7 @@ static struct rte_ring *r;
 	if (!(exp)) {							\
 		printf("error at %s:%d\tcondition " #exp " failed\n",	\
 		    __func__, __LINE__);				\
-		rte_ring_dump(r);					\
+		rte_ring_dump(stdout, r);				\
 		return (-1);						\
 	}
 
@@ -275,7 +273,7 @@ test_ring_basic_full_empty(void * const src[], void *dst[])
 
 		/* check data */
 		TEST_RING_VERIFY(0 == memcmp(src, dst, rsz));
-		rte_ring_dump(r);
+		rte_ring_dump(stdout, r);
 	}
 	return (0);
 }
@@ -343,8 +341,8 @@ test_ring_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -389,8 +387,8 @@ test_ring_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -411,8 +409,8 @@ test_ring_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -457,8 +455,8 @@ test_ring_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -552,8 +550,8 @@ test_ring_burst_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -618,8 +616,8 @@ test_ring_burst_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -667,8 +665,8 @@ test_ring_burst_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -690,8 +688,8 @@ test_ring_burst_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -740,8 +738,8 @@ test_ring_burst_basic(void)
 
 	/* check data */
 	if (memcmp(src, dst, cur_dst - dst)) {
-		rte_hexdump("src", src, cur_src - src);
-		rte_hexdump("dst", dst, cur_dst - dst);
+		rte_hexdump(stdout, "src", src, cur_src - src);
+		rte_hexdump(stdout, "dst", dst, cur_dst - dst);
 		printf("data after dequeue is not the same\n");
 		goto fail;
 	}
@@ -1390,7 +1388,7 @@ test_ring(void)
 		return -1;
 
 	/* dump the ring status */
-	rte_ring_list_dump();
+	rte_ring_list_dump(stdout);
 
 	return 0;
 }

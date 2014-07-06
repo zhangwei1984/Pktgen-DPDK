@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -32,7 +32,7 @@
  */
 /*   BSD LICENSE
  *
- *   Copyright(c) 2013 6WIND.
+ *   Copyright 2013-2014 6WIND S.A.
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -80,13 +80,14 @@ extern "C" {
 #include <sys/queue.h>
 #include <stdint.h>
 #include <inttypes.h>
+
 #include <rte_interrupts.h>
 
 TAILQ_HEAD(pci_device_list, rte_pci_device); /**< PCI devices in D-linked Q. */
 TAILQ_HEAD(pci_driver_list, rte_pci_driver); /**< PCI drivers in D-linked Q. */
 
-extern struct pci_driver_list driver_list; /**< Global list of PCI drivers. */
-extern struct pci_device_list device_list; /**< Global list of PCI devices. */
+extern struct pci_driver_list pci_driver_list; /**< Global list of PCI drivers. */
+extern struct pci_device_list pci_device_list; /**< Global list of PCI devices. */
 
 /** Pathname of PCI devices directory. */
 #define SYSFS_PCI_DEVICES "/sys/bus/pci/devices"
@@ -136,6 +137,8 @@ struct rte_pci_addr {
 	uint8_t function;               /**< Device function. */
 };
 
+struct rte_devargs;
+
 /**
  * A structure describing a PCI device.
  */
@@ -148,7 +151,7 @@ struct rte_pci_device {
 	const struct rte_pci_driver *driver;    /**< Associated driver */
 	uint16_t max_vfs;                       /**< sriov enable if not zero */
 	int numa_node;                          /**< NUMA node connection */
-	unsigned int blacklisted:1;             /**< Device is blacklisted */
+	struct rte_devargs *devargs;            /**< Device user arguments */
 };
 
 /** Any PCI device identifier (vendor, device, ...) */
@@ -188,12 +191,14 @@ struct rte_pci_driver {
 	uint32_t drv_flags;                     /**< Flags contolling handling of device. */
 };
 
-#ifdef RTE_EAL_UNBIND_PORTS
-/** Device needs igb_uio kernel module */
-#define RTE_PCI_DRV_NEED_IGB_UIO 0x0001
-#endif
+/** Device needs PCI BAR mapping (done with either IGB_UIO or VFIO) */
+#define RTE_PCI_DRV_NEED_MAPPING 0x0001
 /** Device driver must be registered several times until failure */
 #define RTE_PCI_DRV_MULTIPLE 0x0002
+/** Device needs to be unbound even if no module is provided */
+#define RTE_PCI_DRV_FORCE_UNBIND 0x0004
+/** Device driver supports link state interrupt */
+#define RTE_PCI_DRV_INTR_LSC	0x0008
 
 /**< Internal use only - Macro used by pci addr parsing functions **/
 #define GET_PCIADDR_FIELD(in, fd, lim, dlm)                   \
@@ -269,8 +274,16 @@ int rte_eal_pci_probe(void);
 
 /**
  * Dump the content of the PCI bus.
+ *
+ * @param f
+ *   A pointer to a file for output
  */
-void rte_eal_pci_dump(void);
+void rte_eal_pci_dump(FILE *f);
+
+/**
+ * Dump the known content of the PCI bus.
+ */
+void rte_eal_known_devices_dump(FILE *f);
 
 /**
  * Register a PCI driver.
@@ -289,16 +302,6 @@ void rte_eal_pci_register(struct rte_pci_driver *driver);
  *   to be unregistered.
  */
 void rte_eal_pci_unregister(struct rte_pci_driver *driver);
-
-/**
- * Register a list of PCI locations that will be blacklisted (not used by DPDK).
- *
- * @param blacklist
- *   List of PCI device addresses that will not be used by DPDK.
- * @param size
- *   Number of items in the list.
- */
-void rte_eal_pci_set_blacklist(struct rte_pci_addr *blacklist, unsigned size);
 
 #ifdef __cplusplus
 }

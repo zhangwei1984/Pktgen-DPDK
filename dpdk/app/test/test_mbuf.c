@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -59,8 +59,6 @@
 #include <rte_mbuf.h>
 #include <rte_random.h>
 #include <rte_cycles.h>
-
-#include <cmdline_parse.h>
 
 #include "test.h"
 
@@ -160,7 +158,7 @@ test_pktmbuf_with_non_ascii_data(void)
 	memset(data, 0xff, rte_pktmbuf_pkt_len(m));
 	if (!rte_pktmbuf_is_contiguous(m))
 		GOTO_FAIL("Buffer should be continuous");
-	rte_pktmbuf_dump(m, MBUF_TEST_DATA_LEN);
+	rte_pktmbuf_dump(stdout, m, MBUF_TEST_DATA_LEN);
 
 	rte_pktmbuf_free(m);
 
@@ -193,7 +191,7 @@ test_one_pktmbuf(void)
 	if (rte_pktmbuf_pkt_len(m) != 0)
 		GOTO_FAIL("Bad length");
 
-	rte_pktmbuf_dump(m, 0);
+	rte_pktmbuf_dump(stdout, m, 0);
 
 	/* append data */
 
@@ -207,8 +205,8 @@ test_one_pktmbuf(void)
 	memset(data, 0x66, rte_pktmbuf_pkt_len(m));
 	if (!rte_pktmbuf_is_contiguous(m))
 		GOTO_FAIL("Buffer should be continuous");
-	rte_pktmbuf_dump(m, MBUF_TEST_DATA_LEN);
-	rte_pktmbuf_dump(m, 2*MBUF_TEST_DATA_LEN);
+	rte_pktmbuf_dump(stdout, m, MBUF_TEST_DATA_LEN);
+	rte_pktmbuf_dump(stdout, m, 2*MBUF_TEST_DATA_LEN);
 
 	/* this append should fail */
 
@@ -276,7 +274,7 @@ test_one_pktmbuf(void)
 
 	rte_mbuf_sanity_check(m, RTE_MBUF_PKT, 1);
 	rte_mbuf_sanity_check(m, RTE_MBUF_PKT, 0);
-	rte_pktmbuf_dump(m, 0);
+	rte_pktmbuf_dump(stdout, m, 0);
 
 	/* this prepend should fail */
 
@@ -466,7 +464,7 @@ test_pktmbuf_pool_ptr(void)
 	unsigned i;
 	struct rte_mbuf *m[NB_MBUF];
 	int ret = 0;
-		
+
 	for (i=0; i<NB_MBUF; i++)
 		m[i] = NULL;
 
@@ -485,10 +483,10 @@ test_pktmbuf_pool_ptr(void)
 		if (m[i] != NULL)
 			rte_pktmbuf_free(m[i]);
 	}
-	
+
 	for (i=0; i<NB_MBUF; i++)
 		m[i] = NULL;
-		
+
 	/* alloc NB_MBUF mbufs */
 	for (i=0; i<NB_MBUF; i++) {
 		m[i] = rte_pktmbuf_alloc(pktmbuf_pool);
@@ -715,8 +713,8 @@ test_refcnt_mbuf(void)
 		rte_panic("refernced mbufs: %u, freed mbufs: %u\n",
 		          tref, refcnt_lcore[master]);
 
-	rte_mempool_dump(refcnt_pool);
-	rte_ring_dump(refcnt_mbuf_ring);
+	rte_mempool_dump(stdout, refcnt_pool);
+	rte_ring_dump(stdout, refcnt_mbuf_ring);
 
 #endif
 	return (0);
@@ -863,7 +861,7 @@ test_mbuf(void)
 		printf("test_mbuf_pool() failed (2)\n");
 		return -1;
 	}
-	
+
 	/* test that the pointer to the data on a packet mbuf is set properly */
 	if (test_pktmbuf_pool_ptr() < 0) {
 		printf("test_pktmbuf_pool_ptr() failed\n");

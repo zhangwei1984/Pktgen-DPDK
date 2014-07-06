@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -36,8 +36,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
-
-#include <cmdline_parse.h>
 
 #include "test.h"
 
@@ -146,7 +144,7 @@ static int
 kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 {
 	printf("Change MTU of port %d to %u\n", port_id, new_mtu);
-	kni_pkt_mtu = new_mtu;	
+	kni_pkt_mtu = new_mtu;
 	printf("Change MTU of port %d to %i successfully.\n",
 					 port_id, kni_pkt_mtu);
 	return 0;
@@ -392,7 +390,7 @@ test_kni_processing(uint8_t port_id, struct rte_mempool *mp)
 	rte_eth_dev_info_get(port_id, &info);
 	conf.addr = info.pci_dev->addr;
 	conf.id = info.pci_dev->id;
-	rte_snprintf(conf.name, sizeof(conf.name), TEST_KNI_PORT);
+	snprintf(conf.name, sizeof(conf.name), TEST_KNI_PORT);
 
 	/* core id 1 configured for kernel thread */
 	conf.core_id = 1;
@@ -460,7 +458,7 @@ test_kni_processing(uint8_t port_id, struct rte_mempool *mp)
 		return -1;
 	}
 	test_kni_ctx = NULL;
-	
+
 	/* test of releasing a released kni device */
 	if (rte_kni_release(kni) == 0) {
 		printf("should not release a released kni device\n");
@@ -479,7 +477,7 @@ test_kni_processing(uint8_t port_id, struct rte_mempool *mp)
 		printf("fail to release kni\n");
 		return -1;
 	}
-	
+
 	return ret;
 fail_kni:
 	if (rte_kni_release(kni) < 0) {
@@ -509,11 +507,6 @@ test_kni(void)
 	mp = test_kni_create_mempool();
 	if (!mp) {
 		printf("fail to create mempool for kni\n");
-		return -1;
-	}
-	ret = rte_pmd_init_all();
-	if (ret < 0) {
-		printf("fail to initialize PMD\n");
 		return -1;
 	}
 	ret = rte_eal_pci_probe();
@@ -654,7 +647,7 @@ test_kni(void)
 
 	/* test of getting KNI device with an invalid string name */
 	memset(&conf, 0, sizeof(conf));
-	rte_snprintf(conf.name, sizeof(conf.name), "testing");
+	snprintf(conf.name, sizeof(conf.name), "testing");
 	kni = rte_kni_get(conf.name);
 	if (kni) {
 		ret = -1;

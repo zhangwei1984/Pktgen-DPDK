@@ -125,6 +125,7 @@
 #include "lauxlib.h"
 
 #include "lua-socket.h"
+#include "lua_shell.h"
 
 extern void * lua_get_private(void * L);
 extern void lua_shell(void *);
@@ -402,7 +403,7 @@ lua_create_instance(void)
 	luai_writestring(L, LUA_COPYRIGHT, strlen(LUA_COPYRIGHT));
 	luai_writeline(L);
 
-	_lua_openlib(L);
+	lua_newlibs_init(L);
 
     return L;
 }

@@ -1,12 +1,13 @@
 #   BSD LICENSE
-# 
+#
 #   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
+#   Copyright(c) 2013 6WIND S.A.
 #   All rights reserved.
-# 
+#
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
 #   are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright
@@ -16,7 +17,7 @@
 #     * Neither the name of Intel Corporation nor the names of its
 #       contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
-# 
+#
 #   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 #   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -29,43 +30,39 @@
 #   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-ifdef O
-ifeq ("$(origin O)", "command line")
-$(error "Cannot use O= with doc target")
-endif
-endif
-
 ifdef T
 ifeq ("$(origin T)", "command line")
 $(error "Cannot use T= with doc target")
 endif
 endif
 
-.PHONY: doc
-doc:
-	$(Q)$(MAKE) -C $(RTE_SDK)/doc/images $@ BASEDOCDIR=.. DOCDIR=images
-	$(Q)$(MAKE) -f $(RTE_SDK)/doc/rst/Makefile -C $(RTE_SDK)/doc/pdf pdfdoc BASEDOCDIR=.. DOCDIR=rst
-	$(Q)$(MAKE) -f $(RTE_SDK)/mk/rte.sdkdoc.mk doxydoc
+.PHONY: help
+help:
+	@cat $(RTE_SDK)/doc/build-sdk-quick.txt
+	@$(MAKE) -rR showconfigs | sed 's,^,\t\t\t\t,'
 
-.PHONY: pdfdoc
-pdfdoc:
-	$(Q)$(MAKE) -C $(RTE_SDK)/doc/images $@ BASEDOCDIR=.. DOCDIR=images
-	$(Q)$(MAKE) -f $(RTE_SDK)/doc/rst/Makefile -C $(RTE_SDK)/doc/pdf $@ BASEDOCDIR=.. DOCDIR=rst
+.PHONY: all
+all: htmlapi
 
-.PHONY: doxydoc
-doxydoc:
-	$(Q)$(MAKE) -C $(RTE_SDK)/doc/images $@ BASEDOCDIR=.. DOCDIR=images
-	$(Q)mkdir -p $(RTE_SDK)/doc/latex
-	$(Q)cat $(RTE_SDK)/doc/gen/doxygen_pdf/Doxyfile | doxygen -
-	$(Q)mv $(RTE_SDK)/doc/images/*.pdf $(RTE_SDK)/doc/latex/
-	$(Q)sed -i s/darkgray/headercolour/g $(RTE_SDK)/doc/latex/doxygen.sty
-	$(Q)cp $(RTE_SDK)/doc/gen/doxygen_pdf/Makefile_doxygen $(RTE_SDK)/doc/latex/Makefile
-	$(Q)$(MAKE) -C $(RTE_SDK)/doc/latex
-	$(Q)mv $(RTE_SDK)/doc/latex/refman.pdf $(RTE_SDK)/doc/api_gen.pdf
-	$(Q)rm -rf $(RTE_SDK)/doc/latex
+.PHONY: clean
+clean: htmlapi-clean
 
-.PHONY: docclean
-docclean:
-	$(Q)$(MAKE) -C $(RTE_SDK)/doc/images $@ BASEDOCDIR=.. DOCDIR=images
-	$(Q)$(MAKE) -f $(RTE_SDK)/doc/rst/Makefile -C $(RTE_SDK)/doc/pdf $@ BASEDOCDIR=.. DOCDIR=rst
-	$(Q)rm -rf $(RTE_SDK)/doc/latex
+.PHONY: htmlapi
+htmlapi: htmlapi-clean
+	@echo 'doxygen for API...'
+	$(Q)mkdir -p $(RTE_OUTPUT)/doc/html
+	$(Q)(cat $(RTE_SDK)/doc/doxy-api.conf         && \
+	    printf 'PROJECT_NUMBER = '                && \
+	                      $(MAKE) -rR showversion && \
+	    echo OUTPUT_DIRECTORY = $(RTE_OUTPUT)/doc && \
+	    echo HTML_OUTPUT      = html/api          && \
+	    echo GENERATE_HTML    = YES               && \
+	    echo GENERATE_LATEX   = NO                && \
+	    echo GENERATE_MAN     = NO                )| \
+	    doxygen -
+	$(Q)$(RTE_SDK)/doc/doxy-html-custom.sh $(RTE_OUTPUT)/doc/html/api/doxygen.css
+
+.PHONY: htmlapi-clean
+htmlapi-clean:
+	$(Q)rm -f $O/doc/html/api/*
+	$(Q)rmdir -p --ignore-fail-on-non-empty $(RTE_OUTPUT)/doc/html/api 2>&- || true

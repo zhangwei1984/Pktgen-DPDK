@@ -266,7 +266,8 @@ const char * help_info[] = {
 		"prime <portlist>                   - Transmit N packets on each port listed. See set prime command above",
 		"delay milliseconds                 - Wait a number of milliseconds for scripting commands",
 		"sleep seconds                      - Wait a number of seconds for scripting commands",
-		"pci show                           - Show the PCI bus devices",
+		"dev.list                           - Show the device whitelist/blacklist/Virtual",
+		"pci.list                           - Show all the PCI devices",
 		"clear <portlist>                   - Clear the statistics",
 		"clr                                - Clear all Statistices",
 		"cls                                - Clear the screen",
@@ -968,9 +969,46 @@ cmdline_parse_inst_t cmd_geometry = {
 
 /**********************************************************/
 
+struct cmd_dev_result {
+	cmdline_fixed_string_t dev;
+};
+
+/**************************************************************************//**
+*
+* cmd_dev_parsed - Display the PCI bus devices.
+*
+* DESCRIPTION
+* Display all of the PCI bus devices.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static void cmd_dev_parsed(__attribute__((unused)) void *parsed_result,
+			   __attribute__((unused)) struct cmdline *cl,
+			   __attribute__((unused)) void *data)
+{
+	rte_eal_known_devices_dump(stdout);
+}
+
+cmdline_parse_token_string_t cmd_dev_cmds =
+	TOKEN_STRING_INITIALIZER(struct cmd_dev_result, dev, "dev.list");
+
+cmdline_parse_inst_t cmd_dev = {
+	.f = cmd_dev_parsed,
+	.data = NULL,
+	.help_str = "dev.list",
+	.tokens = {
+		(void *)&cmd_dev_cmds,
+		NULL,
+	},
+};
+
+/**********************************************************/
+
 struct cmd_pci_result {
 	cmdline_fixed_string_t pci;
-	cmdline_fixed_string_t what;
 };
 
 /**************************************************************************//**
@@ -989,21 +1027,18 @@ static void cmd_pci_parsed(__attribute__((unused)) void *parsed_result,
 			   __attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
-	rte_eal_pci_dump();
+	rte_eal_pci_dump(stdout);
 }
 
 cmdline_parse_token_string_t cmd_pci_cmds =
-	TOKEN_STRING_INITIALIZER(struct cmd_pci_result, pci, "pci");
-cmdline_parse_token_string_t cmd_pci_what =
-	TOKEN_STRING_INITIALIZER(struct cmd_pci_result, what, "show");
+	TOKEN_STRING_INITIALIZER(struct cmd_pci_result, pci, "pci.list");
 
 cmdline_parse_inst_t cmd_pci = {
 	.f = cmd_pci_parsed,
 	.data = NULL,
-	.help_str = "pci show",
+	.help_str = "pci.list",
 	.tokens = {
 		(void *)&cmd_pci_cmds,
-		(void *)&cmd_pci_what,
 		NULL,
 	},
 };
@@ -4030,6 +4065,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	    (cmdline_parse_inst_t *)&cmd_dest_mac,
 	    (cmdline_parse_inst_t *)&cmd_dst_ip,
 	    (cmdline_parse_inst_t *)&cmd_dst_port,
+	    (cmdline_parse_inst_t *)&cmd_dev,
 	    (cmdline_parse_inst_t *)&cmd_geometry,
 	    (cmdline_parse_inst_t *)&cmd_help,
 	    (cmdline_parse_inst_t *)&cmd_icmp_echo,

@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -60,6 +60,7 @@
 #include <rte_atomic.h>
 #include <rte_string_fns.h>
 #include <rte_malloc.h>
+#include <rte_dev.h>
 
 #include "vmxnet3/vmxnet3_defs.h"
 
@@ -125,7 +126,7 @@ gpa_zone_reserve(struct rte_eth_dev *dev, uint32_t size,
 	char z_name[RTE_MEMZONE_NAMESIZE];
 	const struct rte_memzone *mz;
 
-	rte_snprintf(z_name, sizeof(z_name), "%s_%d_%s",
+	snprintf(z_name, sizeof(z_name), "%s_%d_%s",
 					dev->driver->pci_drv.name, dev->data->port_id, post_string);
 
 	mz = rte_memzone_lookup(z_name);
@@ -196,10 +197,10 @@ eth_vmxnet3_dev_init(__attribute__((unused)) struct eth_driver *eth_drv,
 	eth_dev->tx_pkt_burst = &vmxnet3_xmit_pkts;
 	pci_dev = eth_dev->pci_dev;
 
-	/* 
- 	* for secondary processes, we don't initialise any further as primary
- 	* has already done this work. 
- 	*/
+	/*
+	 * for secondary processes, we don't initialise any further as primary
+	 * has already done this work.
+	 */
 	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
 		return 0;
 
@@ -218,20 +219,20 @@ eth_vmxnet3_dev_init(__attribute__((unused)) struct eth_driver *eth_drv,
     ver = VMXNET3_READ_BAR1_REG(hw, VMXNET3_REG_VRRS);
     PMD_INIT_LOG(DEBUG, "Harware version : %d\n", ver);
     if (ver & 0x1)
-    	VMXNET3_WRITE_BAR1_REG(hw, VMXNET3_REG_VRRS, 1);
+		VMXNET3_WRITE_BAR1_REG(hw, VMXNET3_REG_VRRS, 1);
     else {
-    	PMD_INIT_LOG(ERR, "Uncompatiable h/w version, should be 0x1\n");
-    	return -EIO;
+		PMD_INIT_LOG(ERR, "Uncompatiable h/w version, should be 0x1\n");
+		return -EIO;
     }
 
     /* Check UPT version compatibility with driver. */
     ver = VMXNET3_READ_BAR1_REG(hw, VMXNET3_REG_UVRS);
     PMD_INIT_LOG(DEBUG, "UPT harware version : %d\n", ver);
     if (ver & 0x1)
-    	VMXNET3_WRITE_BAR1_REG(hw, VMXNET3_REG_UVRS, 1);
+		VMXNET3_WRITE_BAR1_REG(hw, VMXNET3_REG_UVRS, 1);
     else {
-    	PMD_INIT_LOG(ERR, "Incompatiable UPT version.\n");
-    	return -EIO;
+		PMD_INIT_LOG(ERR, "Incompatiable UPT version.\n");
+		return -EIO;
     }
 
 	/* Getting MAC Address */
@@ -267,9 +268,7 @@ static struct eth_driver rte_vmxnet3_pmd = {
 	{
 		.name = "rte_vmxnet3_pmd",
 		.id_table = pci_id_vmxnet3_map,
-#ifdef RTE_EAL_UNBIND_PORTS
-		.drv_flags = RTE_PCI_DRV_NEED_IGB_UIO,
-#endif
+		.drv_flags = RTE_PCI_DRV_NEED_MAPPING,
 	},
 	.eth_dev_init = eth_vmxnet3_dev_init,
 	.dev_private_size = sizeof(struct vmxnet3_adapter),
@@ -280,8 +279,8 @@ static struct eth_driver rte_vmxnet3_pmd = {
  * Invoked once at EAL init time.
  * Register itself as the [Poll Mode] Driver of Virtual PCI VMXNET3 devices.
  */
-int
-rte_vmxnet3_pmd_init(void)
+static int
+rte_vmxnet3_pmd_init(const char *name __rte_unused, const char *param __rte_unused)
 {
 	PMD_INIT_FUNC_TRACE();
 
@@ -312,13 +311,13 @@ vmxnet3_dev_configure(struct rte_eth_dev *dev)
 	hw->num_rx_queues = (uint8_t)dev->data->nb_rx_queues;
 	hw->num_tx_queues = (uint8_t)dev->data->nb_tx_queues;
 
-	/* 
-	 * Allocate a memzone for Vmxnet3_DriverShared - Vmxnet3_DSDevRead 
+	/*
+	 * Allocate a memzone for Vmxnet3_DriverShared - Vmxnet3_DSDevRead
 	 * on current socket
 	 */
 	mz = gpa_zone_reserve(dev, sizeof (struct Vmxnet3_DriverShared),
 		"shared", rte_socket_id(), 8);
-				
+
 	if (mz == NULL) {
 		PMD_INIT_LOG(ERR, "ERROR: Creating shared zone\n");
 		return (-ENOMEM);
@@ -328,8 +327,8 @@ vmxnet3_dev_configure(struct rte_eth_dev *dev)
 	hw->shared = mz->addr;
 	hw->sharedPA = mz->phys_addr;
 
-	/* 
-	* Allocate a memzone for Vmxnet3_RxQueueDesc - Vmxnet3_TxQueueDesc 
+	/*
+	* Allocate a memzone for Vmxnet3_RxQueueDesc - Vmxnet3_TxQueueDesc
 	* on current socket
 	*/
 	mz = gpa_zone_reserve(dev, size, "queuedesc",
@@ -730,7 +729,7 @@ vmxnet3_process_events(struct vmxnet3_hw *hw)
 		return;
 	}
 
-	/* 
+	/*
 	* ECR bits when written with 1b are cleared. Hence write
 	* events back to ECR so that the bits which were set will be reset.
 	*/
@@ -765,3 +764,10 @@ vmxnet3_process_events(struct vmxnet3_hw *hw)
 
 }
 #endif
+
+static struct rte_driver rte_vmxnet3_driver = {
+	.type = PMD_PDEV,
+	.init = rte_vmxnet3_pmd_init,
+};
+
+PMD_REGISTER_DRIVER(rte_vmxnet3_driver);

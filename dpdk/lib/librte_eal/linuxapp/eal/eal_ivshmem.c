@@ -1,13 +1,13 @@
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -17,7 +17,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -364,7 +364,7 @@ read_metadata(char * path, int path_len, int fd, uint64_t flen)
 				sizeof(struct rte_ivshmem_metadata_entry));
 
 		/* copy path */
-		rte_snprintf(ivshmem_config->segment[idx].path, path_len, "%s", path);
+		snprintf(ivshmem_config->segment[idx].path, path_len, "%s", path);
 
 		idx++;
 	}
@@ -469,10 +469,10 @@ create_shared_config(void)
 	int fd;
 
 	/* build ivshmem config file path */
-	rte_snprintf(path, sizeof(path), IVSHMEM_CONFIG_PATH,
+	snprintf(path, sizeof(path), IVSHMEM_CONFIG_PATH,
 			internal_config.hugefile_prefix);
 
-	fd = open(path, O_CREAT | O_RDWR);
+	fd = open(path, O_CREAT | O_RDWR, 0600);
 
 	if (fd < 0) {
 		RTE_LOG(ERR, EAL, "Could not open %s: %s\n", path, strerror(errno));
@@ -486,7 +486,10 @@ create_shared_config(void)
 		return -1;
 	}
 
-	ftruncate(fd, sizeof(struct ivshmem_shared_config));
+	if (ftruncate(fd, sizeof(struct ivshmem_shared_config)) < 0) {
+		RTE_LOG(ERR, EAL, "ftruncate failed: %s\n", strerror(errno));
+		return -1;
+	}
 
 	ivshmem_config = mmap(NULL, sizeof(struct ivshmem_shared_config),
 			PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -517,7 +520,7 @@ open_shared_config(void)
 	int fd;
 
 	/* build ivshmem config file path */
-	rte_snprintf(path, sizeof(path), IVSHMEM_CONFIG_PATH,
+	snprintf(path, sizeof(path), IVSHMEM_CONFIG_PATH,
 			internal_config.hugefile_prefix);
 
 	fd = open(path, O_RDONLY);
@@ -583,7 +586,7 @@ static inline int
 map_all_segments(void)
 {
 	struct ivshmem_segment ms_tbl[RTE_MAX_MEMSEG];
-	struct ivshmem_pci_device * pci_dev; 
+	struct ivshmem_pci_device * pci_dev;
 	struct rte_mem_config * mcfg;
 	struct ivshmem_segment * seg;
 	int fd, fd_zero;
@@ -822,8 +825,8 @@ rte_eal_ivshmem_obj_init(void)
 	}
 
 #ifdef RTE_LIBRTE_IVSHMEM_DEBUG
-	rte_memzone_dump();
-	rte_ring_list_dump();
+	rte_memzone_dump(stdout);
+	rte_ring_list_dump(stdout);
 #endif
 
 	return 0;
@@ -840,7 +843,7 @@ int rte_eal_ivshmem_init(void)
 	/* initialize everything to 0 */
 	memset(path, 0, sizeof(path));
 	ivshmem_config = NULL;
-	
+
 	pagesz = getpagesize();
 
 	RTE_LOG(DEBUG, EAL, "Searching for IVSHMEM devices...\n");
@@ -854,7 +857,7 @@ int rte_eal_ivshmem_init(void)
 	}
 	else {
 
-		TAILQ_FOREACH(dev, &device_list, next) {
+		TAILQ_FOREACH(dev, &pci_device_list, next) {
 
 			if (is_ivshmem_device(dev)) {
 
@@ -866,7 +869,7 @@ int rte_eal_ivshmem_init(void)
 					continue;
 
 				/* construct pci device path */
-				rte_snprintf(path, sizeof(path), IVSHMEM_RESOURCE_PATH,
+				snprintf(path, sizeof(path), IVSHMEM_RESOURCE_PATH,
 						dev->addr.domain, dev->addr.bus, dev->addr.devid,
 						dev->addr.function);
 
@@ -913,9 +916,9 @@ int rte_eal_ivshmem_init(void)
 							dev->addr.bus, dev->addr.devid, dev->addr.function);
 
 					ivshmem_config->pci_devs[ivshmem_config->pci_devs_idx].ioremap_addr = res->phys_addr;
-					rte_snprintf(ivshmem_config->pci_devs[ivshmem_config->pci_devs_idx].path,
+					snprintf(ivshmem_config->pci_devs[ivshmem_config->pci_devs_idx].path,
 							sizeof(ivshmem_config->pci_devs[ivshmem_config->pci_devs_idx].path),
-							path);
+							"%s", path);
 
 					ivshmem_config->pci_devs_idx++;
 				}

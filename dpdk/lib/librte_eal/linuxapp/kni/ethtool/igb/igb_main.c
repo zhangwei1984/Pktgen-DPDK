@@ -200,7 +200,11 @@ static int igb_ndo_set_vf_vlan(struct net_device *netdev,
 static int igb_ndo_set_vf_spoofchk(struct net_device *netdev, int vf,
 				bool setting);
 #endif
+#ifdef HAVE_VF_MIN_MAX_TXRATE
+static int igb_ndo_set_vf_bw(struct net_device *, int, int, int);
+#else /* HAVE_VF_MIN_MAX_TXRATE */
 static int igb_ndo_set_vf_bw(struct net_device *netdev, int vf, int tx_rate);
+#endif /* HAVE_VF_MIN_MAX_TXRATE */
 static int igb_ndo_get_vf_config(struct net_device *netdev, int vf,
 				 struct ifla_vf_info *ivi);
 static void igb_check_vf_rate_limit(struct igb_adapter *);
@@ -1007,7 +1011,7 @@ static void igb_set_interrupt_capability(struct igb_adapter *adapter, bool msix)
 		/* start with one vector for every rx queue */
 		numvecs = adapter->num_rx_queues;
 
-		/* if tx handler is seperate add 1 for every tx queue */
+		/* if tx handler is separate add 1 for every tx queue */
 		if (!(adapter->flags & IGB_FLAG_QUEUE_PAIRS))
 			numvecs += adapter->num_tx_queues;
 
@@ -2057,8 +2061,8 @@ void igb_reset(struct igb_adapter *adapter)
 }
 
 #ifdef HAVE_NDO_SET_FEATURES
-static netdev_features_t igb_fix_features(struct net_device *netdev,
-					  netdev_features_t features)
+static kni_netdev_features_t igb_fix_features(struct net_device *netdev,
+					      kni_netdev_features_t features)
 {
 	/*
 	 * Since there is no support for separate tx vlan accel
@@ -2080,7 +2084,7 @@ static netdev_features_t igb_fix_features(struct net_device *netdev,
 }
 
 static int igb_set_features(struct net_device *netdev,
-			    netdev_features_t features)
+			    kni_netdev_features_t features)
 {
 	u32 changed = netdev->features ^ features;
 
@@ -2278,7 +2282,11 @@ static const struct net_device_ops igb_netdev_ops = {
 #ifdef IFLA_VF_MAX
 	.ndo_set_vf_mac		= igb_ndo_set_vf_mac,
 	.ndo_set_vf_vlan	= igb_ndo_set_vf_vlan,
+#ifdef HAVE_VF_MIN_MAX_TXRATE
+	.ndo_set_vf_rate	= igb_ndo_set_vf_bw,
+#else /* HAVE_VF_MIN_MAX_TXRATE */
 	.ndo_set_vf_tx_rate	= igb_ndo_set_vf_bw,
+#endif /* HAVE_VF_MIN_MAX_TXRATE */
 	.ndo_get_vf_config	= igb_ndo_get_vf_config,
 #ifdef HAVE_VF_SPOOFCHK_CONFIGURE
 	.ndo_set_vf_spoofchk	= igb_ndo_set_vf_spoofchk,
@@ -2294,12 +2302,14 @@ static const struct net_device_ops igb_netdev_ops = {
 #ifdef HAVE_VLAN_RX_REGISTER
 	.ndo_vlan_rx_register	= igb_vlan_mode,
 #endif
+#ifndef HAVE_RHEL6_NETDEV_OPS_EXT_FDB
 #ifdef NTF_SELF
 	.ndo_fdb_add		= igb_ndo_fdb_add,
 #ifndef USE_DEFAULT_FDB_DEL_DUMP
 	.ndo_fdb_del		= igb_ndo_fdb_del,
 	.ndo_fdb_dump		= igb_ndo_fdb_dump,
 #endif
+#endif /* ! HAVE_RHEL6_NETDEV_OPS_EXT_FDB */
 #ifdef HAVE_BRIDGE_ATTRIBS
 	.ndo_bridge_setlink	= igb_ndo_bridge_setlink,
 	.ndo_bridge_getlink	= igb_ndo_bridge_getlink,
@@ -7366,7 +7376,8 @@ static inline void igb_rx_hash(struct igb_ring *ring,
 			       struct sk_buff *skb)
 {
 	if (netdev_ring(ring)->features & NETIF_F_RXHASH)
-		skb->rxhash = le32_to_cpu(rx_desc->wb.lower.hi_dword.rss);
+		skb_set_hash(skb, le32_to_cpu(rx_desc->wb.lower.hi_dword.rss),
+			     PKT_HASH_TYPE_L3);
 }
 
 #endif
@@ -9275,7 +9286,7 @@ int igb_del_mac_filter(struct igb_adapter *adapter, u8* addr, u16 queue)
 	if (is_zero_ether_addr(addr))
 		return 0;
 	for (i = 0; i < hw->mac.rar_entry_count; i++) {
-		if (!compare_ether_addr(addr, adapter->mac_table[i].addr) &&
+		if (ether_addr_equal(addr, adapter->mac_table[i].addr) &&
 		    adapter->mac_table[i].queue == queue) {
 			adapter->mac_table[i].state = IGB_MAC_STATE_MODIFIED;
 			memset(adapter->mac_table[i].addr, 0, ETH_ALEN);
@@ -9386,7 +9397,12 @@ static void igb_check_vf_rate_limit(struct igb_adapter *adapter)
 	}
 }
 
+#ifdef HAVE_VF_MIN_MAX_TXRATE
+static int igb_ndo_set_vf_bw(struct net_device *netdev, int vf, int min_tx_rate,
+			     int tx_rate)
+#else /* HAVE_VF_MIN_MAX_TXRATE */
 static int igb_ndo_set_vf_bw(struct net_device *netdev, int vf, int tx_rate)
+#endif /* HAVE_VF_MIN_MAX_TXRATE */
 {
 	struct igb_adapter *adapter = netdev_priv(netdev);
 	struct e1000_hw *hw = &adapter->hw;
@@ -9394,6 +9410,11 @@ static int igb_ndo_set_vf_bw(struct net_device *netdev, int vf, int tx_rate)
 
 	if (hw->mac.type != e1000_82576)
 		return -EOPNOTSUPP;
+
+#ifdef HAVE_VF_MIN_MAX_TXRATE
+	if (min_tx_rate)
+		return -EINVAL;
+#endif /* HAVE_VF_MIN_MAX_TXRATE */
 
 	actual_link_speed = igb_link_mbps(adapter->link_speed);
 	if ((vf >= adapter->vfs_allocated_count) ||
@@ -9416,7 +9437,12 @@ static int igb_ndo_get_vf_config(struct net_device *netdev,
 		return -EINVAL;
 	ivi->vf = vf;
 	memcpy(&ivi->mac, adapter->vf_data[vf].vf_mac_addresses, ETH_ALEN);
+#ifdef HAVE_VF_MIN_MAX_TXRATE
+	ivi->max_tx_rate = adapter->vf_data[vf].tx_rate;
+	ivi->min_tx_rate = 0;
+#else /* HAVE_VF_MIN_MAX_TXRATE */
 	ivi->tx_rate = adapter->vf_data[vf].tx_rate;
+#endif /* HAVE_VF_MIN_MAX_TXRATE */
 	ivi->vlan = adapter->vf_data[vf].pf_vlan;
 	ivi->qos = adapter->vf_data[vf].pf_qos;
 #ifdef HAVE_VF_SPOOFCHK_CONFIGURE

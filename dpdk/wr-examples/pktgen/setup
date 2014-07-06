@@ -3,7 +3,7 @@
 sdk=../..
 
 if [ -z ${RTE_TARGET} ]; then
-	target=x86_64-wr-linuxapp-gcc
+	target=x86_64-pktgen-linuxapp-gcc
 else
 	target=${RTE_TARGET}
 fi
@@ -47,5 +47,5 @@ echo "trying to remove old rte_kni module and may get an error message, ignore i
 rmmod rte_kni
 insmod $sdk/$target/kmod/rte_kni.ko "lo_mode=lo_mode_ring"
 
-$sdk/tools/pci_unbind.py -b igb_uio 03:00.0 03:00.1 83:00.0 83:00.1 85:00.0 85:00.1 88:00.0 88:00.1
-$sdk/tools/pci_unbind.py --status
+$sdk/tools/dpdk_nic_bind.py -b igb_uio 03:00.0 03:00.1 83:00.0 83:00.1 85:00.0 85:00.1 88:00.0 88:00.1
+$sdk/tools/dpdk_nic_bind.py --status

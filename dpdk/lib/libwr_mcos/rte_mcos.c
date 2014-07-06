@@ -73,7 +73,6 @@
 #include <rte_timer.h>
 #include <rte_debug.h>
 #include <rte_ring.h>
-#include <rte_msg.h>
 #include <rte_mempool.h>
 #include <rte_spinlock.h>
 #include <rte_timer.h>

@@ -3082,8 +3082,9 @@ static inline void __kc_skb_frag_unref(skb_frag_t *frag)
 
 /*****************************************************************************/
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0) )
-typedef u32 netdev_features_t;
+typedef u32 kni_netdev_features_t;
 #else /* ! < 3.3.0 */
+typedef netdev_features_t kni_netdev_features_t;
 #define HAVE_INT_NDO_VLAN_RX_ADD_VID
 #ifdef ETHTOOL_SRXNTUPLE
 #undef ETHTOOL_SRXNTUPLE
@@ -3106,6 +3107,11 @@ typedef u32 netdev_features_t;
 
 /*****************************************************************************/
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) )
+static inline bool __kc_ether_addr_equal(const u8 *addr1, const u8 *addr2)
+{
+	return !compare_ether_addr(addr1, addr2);
+}
+#define ether_addr_equal(_addr1, _addr2) __kc_ether_addr_equal((_addr1),(_addr2))
 #else
 #define HAVE_FDB_OPS
 #endif /* < 3.5.0 */
@@ -3129,4 +3135,9 @@ static inline int __kc_pci_vfs_assigned(struct pci_dev *dev)
 #define pci_vfs_assigned(dev) __kc_pci_vfs_assigned(dev)
 
 #endif
+
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0) )
+#define SET_ETHTOOL_OPS(netdev, ops) ((netdev)->ethtool_ops = (ops))
+#endif /* >= 3.16.0 */
+
 #endif /* _KCOMPAT_H_ */
