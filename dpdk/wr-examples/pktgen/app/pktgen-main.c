@@ -392,11 +392,6 @@ main(int argc, char **argv)
 
     pktgen.portdesc_cnt = wr_get_portdesc(pktgen.portlist, pktgen.portdesc, RTE_MAX_ETHPORTS, 0);
 
-//    pktgen.enabled_port_mask = -1;
-//    pktgen.blacklist_cnt = wr_create_blacklist(pktgen.enabled_port_mask, pktgen.portlist,
-//    		pktgen.portdesc_cnt, pktgen.portdesc);
-//    pktgen_log_info(">>> Blacklisted port count %d", pktgen.blacklist_cnt);
-
     /* initialize EAL */
     ret = rte_eal_init(argc, argv);
     if (ret < 0)
