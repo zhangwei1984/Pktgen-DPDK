@@ -256,11 +256,12 @@ You will need to adjust the version number to match your current kernel version.
 If you upgrade your system or kernel version you will need to install the correct
 headers and rebuild the RTE_TARGET directory.
 
-`# sudo apt-get install libpcap-dev`
+```
+# sudo apt-get install libpcap-dev
 
 export RTE_SDK=<installDir>/Pktgen-DPDK/dpdk
 export RTE_TARGET=x86_64-pktgen-linuxapp-gcc
-
+```
 Create the DPDK build tree:
 ```
 # cd $RTE_SDK
@@ -410,13 +411,12 @@ Usage: ./app/pktgen [EAL options] -- -p PORTMASK [-h] [-P] [-G] [-f cmd_file] [-
                                       core 3 handles port 1 rx & core 4 handles port 0-7 tx
       BTW: you can use "{}" instead of "[]" as it does not matter to the syntax.
   -h           Display the help information
-```
 ** Note: To determine the Ethernet ports in your system use 'lspci | grep Ethernet' to 
    get a list of all ports in the system. Some ports may not be useable by DPDK/Pktgen.
    The first port listed is bit 0 or least signification bit in the '-c' mask.
    Another method is to compile the test_pmd example and run './test_pmd -c 0x3 -n 2'
    command to list out the ports DPDK is able to use.
-
+```
 A new feature for pktgen and DPDK is to run multiple instances of pktgen. This
 allows the developer to share ports on the same machine.
 
@@ -443,8 +443,8 @@ running the new version.
 
 Running the doit script produces output as follows, but maybe different on your
 system configuration.
-
-`[22:20][keithw@keithw-S5520HC:pktgen(master)]$ sudo ./doit`
+```
+[22:20][keithw@keithw-S5520HC:pktgen(master)]$ sudo ./doit
 ------------------------------------------------------------------------
 -----------------------
   
@@ -512,7 +512,6 @@ system configuration.
   
   Pktgen created by: Keith Wiles -- >>> Powered by IntelÂ® DPDK <<<
 -----------------------
-```
 EAL: Detected lcore 0 as core 0 on socket 0
 EAL: Detected lcore 1 as core 1 on socket 0                                                                                         
 EAL: Detected lcore 2 as core 2 on socket 0                                                                                         
@@ -848,9 +847,8 @@ Port  1: Link Up - speed 10000 Mbps - full-duplex <Enable promiscuous mode>
          USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
                Pktgen created by Keith Wiles -- >>> Powered by IntelÂ® DPDK <<<
-
-------------------
 ```
+------------------
 ```
 - Ports 0-3 of 6   ** Main Page **  Copyright (c) <2010-2014>, Wind River Systems, Inc. Powered by IntelÂ® DPDK
   Flags:Port    :   P-------------:0   P-------------:1
@@ -1120,13 +1118,12 @@ The set_seq.pkt command file can also be one of the files in pktgen/test directo
 which are Lua based scripts instead of command line scripts as in set_seq.pkt file.
 
 -- test/set_seq.lua
-   <More Help: Press Return to Continue>
 The Lua version is easier to remember the layout of the agruments if you want to
 use that one instead of set_seq.pkt file.
 
-`./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 128,128 -- -p 0x30 -P -m "[1:3].0, [2:4].1" -f test/set_seq.lua`
-
 ```
+./app/pktgen -c 1f -n 3 --proc-type auto --socket-mem 128,128 -- -p 0x30 -P -m "[1:3].0, [2:4].1" -f test/set_seq.lua`
+
 -- The '--' is a comment in Lua
 local seq_table = {			-- entries can be in any order
     ["eth_dst_addr"] = "0011:4455:6677",
@@ -1160,7 +1157,8 @@ use 'socat' program on a Linux machine. The socat program is very powerfull appl
 and can do a lot of things. I used socat to debug Pktgen using the following
 command, which gives me a readline inteface to Pktgen's socket interface.
 
-`# socat -d -d READLINE TCP4:localhost:22022`
+$ socat -d -d READLINE TCP4:localhost:22022
+
 'You will see socat create the connection and then wait for Lua command scripts for you'
 To exit this command type Control-D to exit and close the connection.
 
@@ -1171,7 +1169,7 @@ $ socat - TCP4:localhost:22022 < test/hello-world.lua
 
 Lua Vesrion      : Lua 5.2
 Pktgen Version   : 2.0.0
-Pktgen Copyright : Copyright (c) <2010-2014>, Wind River Systems, Inc.
+Pktgen Copyright : Copyright (c) `<2010-2014>`, Wind River Systems, Inc.
 Pktgen Authors   : Keith Wiles @ Wind River Systems
 
 Hello World!!!!
