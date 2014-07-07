@@ -72,6 +72,10 @@
 /* Screen data structure */
 rte_scrn_t *scrn;
 
+#define MAX_COLOR_NAME_SIZE		64
+#define MAX_PROMPT_STRING_SIZE	64
+
+static char prompt_str[MAX_PROMPT_STRING_SIZE] = { 0 };
 
 /* String to color value mapping */
 typedef struct string_color_map_s {
@@ -92,9 +96,9 @@ string_color_map_t string_color_map[] = {
 	{ "white",		DEFAULT_BG	},
 	{ "default",	WHITE		},	/* alias */
 
-	{ "none",		NO_COLOR	},
-	{ "default_fg",	NO_COLOR	},
-	{ "default_bg",	NO_COLOR	},
+	{ "none",		NO_CHANGE	},
+	{ "default_fg",	NO_CHANGE	},
+	{ "default_bg",	NO_CHANGE	},
 	NULL
 };
 
@@ -132,44 +136,44 @@ theme_color_map_t theme_color_map[] = {
 	/*
 	 * Top line of the screen
 	 */
-	{ "top.spinner",		CYAN,		NO_COLOR,	BOLD	},
-	{ "top.ports",			GREEN,		NO_COLOR,	BOLD	},
-	{ "top.page",			WHITE,		NO_COLOR,	BOLD	},
-	{ "top.copyright",		YELLOW,		NO_COLOR,	OFF		},
-	{ "top.poweredby",		BLUE,		NO_COLOR,	BOLD	},
+	{ "top.spinner",		CYAN,		NO_CHANGE,	BOLD	},
+	{ "top.ports",			GREEN,		NO_CHANGE,	BOLD	},
+	{ "top.page",			WHITE,		NO_CHANGE,	BOLD	},
+	{ "top.copyright",		YELLOW,		NO_CHANGE,	OFF		},
+	{ "top.poweredby",		BLUE,		NO_CHANGE,	BOLD	},
 
 	/*
 	 * Separator between displayed values and command history
 	 */
-	{ "sep.dash",			BLUE,		NO_COLOR,	OFF		},
-	{ "sep.text",			WHITE,		NO_COLOR,	OFF		},
+	{ "sep.dash",			BLUE,		NO_CHANGE,	OFF		},
+	{ "sep.text",			WHITE,		NO_CHANGE,	OFF		},
 
 	/*
 	 * Stats screen
 	 */
 	/* Port related */
-	{ "stats.port.label",	BLUE,		NO_COLOR,	BOLD	},
-	{ "stats.port.flags",	BLUE,		NO_COLOR,	BOLD	},
-	{ "stats.port.status",	YELLOW,		NO_COLOR,	BOLD	},
+	{ "stats.port.label",	BLUE,		NO_CHANGE,	BOLD	},
+	{ "stats.port.flags",	BLUE,		NO_CHANGE,	BOLD	},
+	{ "stats.port.status",	YELLOW,		NO_CHANGE,	BOLD	},
 
 	/* Dynamic elements (updated every second) */
-	{ "stats.dyn.label",	YELLOW,		NO_COLOR,	OFF		},
-	{ "stats.dyn.values",	YELLOW,		NO_COLOR,	OFF		},
+	{ "stats.dyn.label",	YELLOW,		NO_CHANGE,	OFF		},
+	{ "stats.dyn.values",	YELLOW,		NO_CHANGE,	OFF		},
 
 	/* Static elements (only update when explicitly set to different value) */
-	{ "stats.stat.label",	MAGENTA,	NO_COLOR,	OFF		},
-	{ "stats.stat.values",	WHITE,		NO_COLOR,	BOLD	},
+	{ "stats.stat.label",	MAGENTA,	NO_CHANGE,	OFF		},
+	{ "stats.stat.values",	WHITE,		NO_CHANGE,	BOLD	},
 
 	/* Total statistics */
-	{ "stats.total.label",	RED,		NO_COLOR,	BOLD	},
+	{ "stats.total.label",	RED,		NO_CHANGE,	BOLD	},
 
 	/* Colon separating labels and values */
-	{ "stats.colon",		BLUE,		NO_COLOR,	BOLD	},
+	{ "stats.colon",		BLUE,		NO_CHANGE,	BOLD	},
 
 	/*
 	 * Misc.
 	 */
-	{ "pktgen.prompt",		GREEN,		NO_COLOR,	OFF		},
+	{ "pktgen.prompt",		GREEN,		NO_CHANGE,	OFF		},
 	NULL
 };
 
@@ -243,7 +247,7 @@ lookup_item(const char *elem)
 
 	/* Look up colors and attributes for elem */
 	for (result = theme_color_map; result->name != NULL; ++result) {
-		if (strncasecmp(result->name, elem, 64) == 0) {
+		if (strncasecmp(result->name, elem, MAX_COLOR_NAME_SIZE) == 0) {
 			break;
 		}
 	}
@@ -278,26 +282,24 @@ pktgen_display_set_color(const char *elem) {
 const char *
 pktgen_get_prompt(void)
 {
-	static char prompt_str[64] = { 0 };
 	theme_color_map_t *def, *prompt;
 
-	if ( scrn->theme == THEME_OFF ) {
-		snprintf(prompt_str, sizeof(prompt_str), "%s> ", PKTGEN_APP_NAME);
-		return prompt_str;
+	// Set default return value.
+	snprintf(prompt_str, sizeof(prompt_str), "%s> ", PKTGEN_APP_NAME);
+
+	if ( scrn->theme == THEME_ON ) {
+		// Look up the default and prompt values
+		def    = lookup_item(NULL);
+		prompt = lookup_item("pktgen.prompt");
+
+		if ( (def == NULL) || (prompt == NULL) )
+			pktgen_log_error("Prompt and/or default color undefined");
+		else
+			snprintf(prompt_str, sizeof(prompt_str), "\033[%d;%d;%dm%s>\033[%d;%d;%dm ",
+					prompt->attr, 30 + prompt->fg_color, 40 + prompt->bg_color,
+					PKTGEN_APP_NAME,
+					def->attr,    30 + def->fg_color,    40 + def->bg_color);
 	}
-
-	def    = lookup_item(NULL);
-	prompt = lookup_item("pktgen.prompt");
-
-	if ((def == NULL) || ( prompt == NULL)) {
-		pktgen_log_error("Prompt or default color undefined");
-		return;
-	}
-
-	snprintf(prompt_str, sizeof(prompt_str), "\033[%d;%d;%dm%s>\033[%d;%d;%dm ",
-			prompt->attr, 30 + prompt->fg_color, 40 + prompt->bg_color,
-			PKTGEN_APP_NAME,
-			def->attr,    30 + def->fg_color,    40 + def->bg_color);
 
 	return prompt_str;
 }
@@ -367,7 +369,7 @@ pktgen_theme_show(void)
 		printf("     ");
 		pktgen_display_set_color(theme_color_map[i].name);
 		printf("%-s", theme_color_map[i].name);
-		pktgen_display_set_color("default");
+		pktgen_display_set_color(NULL);
 		printf("\n");
 	}
 }

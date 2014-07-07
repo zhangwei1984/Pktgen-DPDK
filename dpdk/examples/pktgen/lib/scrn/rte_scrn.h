@@ -88,7 +88,7 @@ enum { SCRN_ON = 0, SCRN_OFF = 1 };
 enum { THEME_OFF = 0, THEME_ON = 1 };
 
 typedef enum { BLACK = 0, RED = 1, GREEN = 2, YELLOW = 3, BLUE = 4, MAGENTA = 5, CYAN = 6, WHITE = 7,
-			   RGB = 8, DEFAULT_FG = 9, DEFAULT_BG = 9, NO_COLOR = 98, UNKNOWN_COLOR=99 } color_e;
+			   RGB = 8, DEFAULT_FG = 9, DEFAULT_BG = 9, NO_CHANGE = 98, UNKNOWN_COLOR=99 } color_e;
 typedef enum { OFF = 0, BOLD = 1, UNDERSCORE = 4, BLINK = 5, REVERSE = 7, CONCEALED = 8, NO_ATTR = 98, UNKNOWN_ATTR = 99 } attr_e;
 
 typedef uint8_t		rgb_t;
@@ -216,11 +216,11 @@ static __inline__ void scrn_fgbgcolor( color_e fg, color_e bg, attr_e attr ) {
 
 static __inline__ void scrn_color(color_e fg, color_e bg, attr_e attr) {
 
-	if ( (fg != NO_COLOR) && (bg != NO_COLOR) )
+	if ( (fg != NO_CHANGE) && (bg != NO_CHANGE) )
 		scrn_fgbgcolor(fg, bg, attr);
-	else if ( fg == NO_COLOR )
+	else if ( fg == NO_CHANGE )
 		scrn_bgcolor(bg, attr);
-	else if ( bg == NO_COLOR )
+	else if ( bg == NO_CHANGE )
 		scrn_fgcolor(fg, attr);
 }
 

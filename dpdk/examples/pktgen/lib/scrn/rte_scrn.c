@@ -136,10 +136,7 @@ rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols, int theme)
 	scrn->nrows		= nrows;
 	scrn->ncols		= ncols;
 	scrn->theme		= theme;
-	if ( theme == THEME_ON )
-		scrn_color(GREEN, NO_COLOR, OFF);
-	else
-		scrn_color(BLUE, NO_COLOR, OFF);
+	scrn_color(DEFAULT_FG, DEFAULT_BG, OFF);
 
 	scrn_erase();
 
