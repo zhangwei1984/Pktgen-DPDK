@@ -3845,8 +3845,8 @@ static inline struct sk_buff *__kc__vlan_hwaccel_put_tag(struct sk_buff *skb,
 #define HAVE_ENCAP_TSO_OFFLOAD
 #endif /* >= 3.10.0 */
 
-/* #### Changed the next line to use (3,13,0) instead of (3,14,0) KeithW */
-#if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,13,0) )
+/* #### Changed the next line to use (3,13,8) instead of (3,14,0) KeithW */
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,13,8) )
 #if (!(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(7,0)))
 #ifdef NETIF_F_RXHASH
 #define PKT_HASH_TYPE_L3 0
