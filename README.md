@@ -6,6 +6,7 @@ Pktgen version 2.7.0 using DPDK-1.7.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.7.1   - Add a command line option '-T' to enable themes and set themes off by default.
  - 2.7.0   - Update to DPDK 1.7.0, Note: DPDK 1.7.0 changed how ports are detected and blacklisted,
              which means the port index is now different. You will need to blacklist or whitelist ports
              with the DPDK '-b' or '--pci-blacklist or --pci-whitelist' options. Pktgen does not blacklist
