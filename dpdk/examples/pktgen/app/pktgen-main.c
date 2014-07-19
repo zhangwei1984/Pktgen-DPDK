@@ -180,8 +180,7 @@ void * pktgen_get_lua()
 static void
 pktgen_usage(const char *prgname)
 {
-    printf("Usage: %s [EAL options] -- -p PORTMASK [-h] [-P] [-G] [-T] [-f cmd_file] [-l log_file] [-s P:PCAP_file] [-m <string>]\n"
-           "  -p PORTMASK  hexadecimal bitmask of ports to configure\n"
+    printf("Usage: %s [EAL options] -- [-h] [-P] [-G] [-T] [-f cmd_file] [-l log_file] [-s P:PCAP_file] [-m <string>]\n"
            "  -s P:file    PCAP packet stream file, 'P' is the port number\n"
            "  -f filename  Command file (.pkt) to execute or a Lua script (.lua) file\n"
            "  -l filename  Write log to filename\n"
@@ -262,15 +261,9 @@ pktgen_parse_args(int argc, char **argv)
     while ((opt = getopt_long(argc, argvopt, "p:m:f:l:s:g:hPNGT",
                   lgopts, &option_index)) != EOF) {
         switch (opt) {
-        case 'p':			// Port mask (required).
-            pktgen.enabled_port_mask = wr_parse_portmask(optarg);
-            if (pktgen.enabled_port_mask < 0) {
-                pktgen_log_error("Invalid portmask");
-                pktgen_usage(prgname);
-                return -1;
-            }
-            break;
-
+		case 'p':
+			// Port mask not used anymore
+			break;
         case 'f':			// Command file or Lua script.
             pktgen.cmd_filename = strdup(optarg);
             break;
@@ -342,13 +335,6 @@ pktgen_parse_args(int argc, char **argv)
         }
     }
 
-    // If the port mask is not set we exit with usage message.
-    if (pktgen.enabled_port_mask == 0) {
-        pktgen_log_error("Portmask is not specified (parameter -p)");
-        pktgen_usage(prgname);
-        return -1;
-    }
-
     // Setup the program name
     if (optind >= 0)
         argv[optind-1] = prgname;
@@ -415,8 +401,8 @@ main(int argc, char **argv)
 
     pktgen_init_screen((pktgen.flags & ENABLE_THEME_FLAG) ? THEME_ON : THEME_OFF);
 
-    if ((ret = rte_eal_pci_probe()) < 0)
-        pktgen_log_panic("Cannot probe PCI, %s", rte_strerror(-ret));
+//    if ((ret = rte_eal_pci_probe()) < 0)
+//        pktgen_log_panic("Cannot probe PCI, %s", rte_strerror(-ret));
 
     lua_newlib_add(_lua_openlib);
 

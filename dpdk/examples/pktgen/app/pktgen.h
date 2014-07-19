@@ -153,7 +153,7 @@
 #include "pktgen-log.h"
 
 
-#define PKTGEN_VERSION			"2.7.1"
+#define PKTGEN_VERSION			"2.7.2"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -266,7 +266,7 @@ typedef struct pktgen_s {
 	uint64_t				coremask;			/**< Coremask of lcores */
 
 	int32_t					socket_port;		/**< GUI port number */
-	uint32_t				enabled_port_mask;	/**< mask of enabled ports */
+//	uint32_t				enabled_port_mask;	/**< mask of enabled ports */
 	uint32_t				blinklist;			/**< Port list for blinking the led */
 	uint32_t				flags;				/**< Flag values */
 	uint16_t				ident;				/**< IPv4 ident value */
