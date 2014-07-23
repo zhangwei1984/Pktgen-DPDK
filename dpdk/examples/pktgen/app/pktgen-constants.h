@@ -73,8 +73,13 @@
 
 enum {
 	DEFAULT_PKT_BURST		= 16,		// Increasing this number consumes memory very fast
+#ifdef RTE_LIBRTE_VMXNET3_PMD
+	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 16 * 2),
+	DEFAULT_TX_DESC			= DEFAULT_RX_DESC,
+#else
 	DEFAULT_RX_DESC			= (DEFAULT_PKT_BURST * 16),
 	DEFAULT_TX_DESC			= DEFAULT_RX_DESC,
+#endif
 
 	MAX_MBUFS_PER_PORT		= (DEFAULT_TX_DESC * 8),	// number of buffers to support per port
 	MAX_SPECIAL_MBUFS		= 64,
