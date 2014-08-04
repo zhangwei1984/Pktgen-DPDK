@@ -115,7 +115,7 @@ enum {		// Per port flag bits
 	PROCESS_INPUT_PKTS		= 0x00000040,		/**< Process input packets */
 	SEND_PING4_REQUEST		= 0x00000080,		/**< Send a IPv4 Ping request */
 	SEND_PING6_REQUEST		= 0x00000100,		/**< Send a IPv6 Ping request */
-	SEND_SPECIAL_REQUEST	= (SEND_ARP_REQUEST | SEND_GRATUITOUS_ARP | SEND_PING4_REQUEST | SEND_PING6_REQUEST),
+	SEND_ARP_PING_REQUESTS	= (SEND_ARP_REQUEST | SEND_GRATUITOUS_ARP | SEND_PING4_REQUEST | SEND_PING6_REQUEST),
 	PROCESS_RX_TAP_PKTS		= 0x00000200,		/**< Handle RX TAP interface packets */
 	PROCESS_TX_TAP_PKTS		= 0x00000400,		/**< Handle TX TAP interface packets */
 	SEND_VLAN_ID			= 0x00000800,		/**< Send packets with VLAN ID */
@@ -136,8 +136,8 @@ typedef struct port_info_s {
 	uint8_t					tx_rate;			/**< Percentage rate for tx packets */
 	rte_atomic32_t			port_flags;			/**< Special send flags for ARP and other */
 
-	uint64_t				transmit_count;		/**< Packets to transmit loaded into current_tx_count */
-	uint64_t				current_tx_count;	/**< Current number of packets to send */
+	rte_atomic64_t			transmit_count;		/**< Packets to transmit loaded into current_tx_count */
+	rte_atomic64_t			current_tx_count;	/**< Current number of packets to send */
 	uint64_t				tx_cycles;			/**< Number cycles between TX bursts */
 	uint64_t				tx_pps;				/**< Transmit packets per seconds */
 	uint64_t				delta;				/**< Delta value for latency testing */
@@ -201,6 +201,31 @@ typedef struct port_info_s {
 
 
 extern void pktgen_config_ports(void);
+
+/**
+ * Atomically subtract a 64-bit value from the tx counter.
+ *
+ * @param v
+ *   A pointer to the atomic tx counter.
+ * @param burst
+ *   The value to be subtracted from the counter for tx burst size.
+ * @return
+ *   The number of packets to burst out
+ */
+static inline uint64_t
+pkt_atomic64_tx_count(rte_atomic64_t *v, int64_t burst)
+{
+	int success = 0;
+	uint64_t tmp1, tmp2;
+
+	while (success == 0) {
+		tmp1 = v->cnt;
+		tmp2 = (tmp1 > burst) ? burst : tmp1;
+		success = rte_atomic64_cmpset((volatile uint64_t *)&v->cnt,
+		                              tmp1, tmp1 - tmp2);
+	}
+	return tmp2;
+}
 
 
 #endif	// _PKTGEN_PORT_CFG_H_

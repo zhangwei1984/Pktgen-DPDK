@@ -327,23 +327,17 @@ pktgen_tx_cleanup(port_info_t * info, uint8_t qid)
 	// Flush any done transmit buffers and descriptors.
 	pktgen_send_burst(info, qid);
 
-	rte_delay_ms(500);
-
 	// Stop and start the device to flush TX and RX buffers from the device rings.
 	rte_eth_dev_stop(info->pid);
 
-	rte_delay_ms(250);
-
 	rte_eth_dev_start(info->pid);
-
-	rte_delay_ms(250);
 
 	pktgen_clr_q_flags(info, qid, DO_TX_CLEANUP);
 }
 
 /**************************************************************************//**
 *
-* pktgen_cleanup - Clean up the hyperscan data and other items
+* pktgen_exit_cleanup - Clean up the hyperscan data and other items
 *
 * DESCRIPTION
 * Clean up the hyperscan data.
@@ -354,7 +348,7 @@ pktgen_tx_cleanup(port_info_t * info, uint8_t qid)
 */
 
 static __inline__ void
-pktgen_cleanup(uint8_t lid)
+pktgen_exit_cleanup(uint8_t lid)
 {
 	port_info_t	* info;
 	uint8_t		idx, pid, qid;
@@ -760,21 +754,21 @@ pktgen_packet_classify_bulk(struct rte_mbuf ** pkts, int nb_rx, int pid )
 static void
 pktgen_send_special(port_info_t * info)
 {
-    uint32_t    flags = rte_atomic32_read(&info->port_flags);
+    uint32_t    flags;
     uint32_t    s;
 
-    if ( unlikely((flags & SEND_SPECIAL_REQUEST) == 0) )
+    flags = rte_atomic32_read(&info->port_flags);
+    if ( unlikely((flags & SEND_ARP_PING_REQUESTS) == 0) )
         return;
 
-    pktgen_clr_port_flags(info, SEND_SPECIAL_REQUEST);
-
-    for(s=0; s < info->seqCnt; s++) {
-        if ( unlikely(flags & SEND_GRATUITOUS_ARP) )
+    // Send packets attached to the sequence packets.
+    for(s = 0; s < info->seqCnt; s++) {
+        if ( flags & SEND_GRATUITOUS_ARP )
             pktgen_send_arp(info->pid, GRATUITOUS_ARP, s);
-        if ( likely(flags & SEND_ARP_REQUEST) )
+        if ( flags & SEND_ARP_REQUEST )
             pktgen_send_arp(info->pid, 0, s);
 
-        if ( likely(flags & SEND_PING4_REQUEST) )
+        if ( flags & SEND_PING4_REQUEST )
             pktgen_send_ping4(info->pid, s);
 #ifdef INCLUDE_PING6
         if ( flags & SEND_PING6_REQUEST )
@@ -782,17 +776,20 @@ pktgen_send_special(port_info_t * info)
 #endif
     }
 
-	if ( unlikely(flags & SEND_GRATUITOUS_ARP) )
+    // Send the requests from the Single packet setup.
+	if ( flags & SEND_GRATUITOUS_ARP )
 		pktgen_send_arp(info->pid, GRATUITOUS_ARP, SINGLE_PKT);
-	if ( likely(flags & SEND_ARP_REQUEST) )
+	if ( flags & SEND_ARP_REQUEST )
 		pktgen_send_arp(info->pid, 0, SINGLE_PKT);
 
-	if ( likely(flags & SEND_PING4_REQUEST) )
+	if ( flags & SEND_PING4_REQUEST )
 		pktgen_send_ping4(info->pid, SINGLE_PKT);
 #ifdef INCLUDE_PING6
 	if ( flags & SEND_PING6_REQUEST )
 		pktgen_send_ping6(info->pid, SINGLE_PKT);
 #endif
+
+	pktgen_clr_port_flags(info, SEND_ARP_PING_REQUESTS);
 }
 
 /**************************************************************************//**
@@ -898,23 +895,15 @@ pktgen_send_pkts(port_info_t * info, uint8_t qid, struct rte_mempool * mp)
 	if ( unlikely(rte_atomic32_read(&info->q[qid].flags) & CLEAR_FAST_ALLOC_FLAG) )
 		pktgen_setup_packets(info, mp, qid);
 
-	txCnt = info->current_tx_count;
-	if ( likely(txCnt == 0) || unlikely(txCnt > info->tx_burst) )
-		txCnt = info->tx_burst;
+	txCnt = pkt_atomic64_tx_count(&info->current_tx_count, info->tx_burst);
 
 	info->q[qid].tx_mbufs.len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, txCnt);
 
 	pktgen_send_burst(info, qid);
 
-	if ( unlikely(info->current_tx_count) ) {
-		if ( txCnt > info->current_tx_count )
-			info->current_tx_count = 0;
-		else
-			info->current_tx_count -= txCnt;
-        if ( unlikely(info->current_tx_count == 0) ) {
-			pktgen_clr_port_flags(info, SENDING_PACKETS);
-            pktgen_set_q_flags(info, qid, DO_TX_CLEANUP);
-        }
+	if ( unlikely(rte_atomic64_read(&info->current_tx_count) == 0) ) {
+		pktgen_clr_port_flags(info, SENDING_PACKETS);
+		pktgen_set_q_flags(info, qid, DO_TX_CLEANUP);
 	}
 }
 
@@ -938,15 +927,12 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 	flags = rte_atomic32_read(&info->port_flags);
 
 	/*
-	 * Transmit special packets if enabled
+	 * Transmit ARP/Ping packets if needed
 	 */
-	if ( unlikely(flags & SEND_SPECIAL_REQUEST) )
-		pktgen_send_special(info);
+	pktgen_send_special(info);
 
 	// When not transmitting on this port then continue.
-	if ( unlikely((rte_atomic32_read(&info->port_flags) & SENDING_PACKETS) == 0) )
-		info->current_tx_count = 0;
-	else {
+	if ( likely( (flags & SENDING_PACKETS) == SENDING_PACKETS ) ) {
 		struct rte_mempool * mp	= info->q[qid].tx_mp;
 
 		if ( unlikely(flags & (SEND_RANGE_PKTS|SEND_PCAP_PKTS|SEND_SEQ_PKTS)) ) {
@@ -959,14 +945,14 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 		}
 
 		pktgen_send_pkts(info, qid, mp);
-	}
 
-	flags = rte_atomic32_read(&info->q[qid].flags);
-	if ( unlikely(flags & (DO_TX_CLEANUP |  DO_TX_FLUSH)) ) {
-		if ( flags & DO_TX_CLEANUP )
-			pktgen_tx_cleanup(info, qid);
-		else if ( flags & DO_TX_FLUSH )
-			pktgen_tx_flush(info, qid);
+		flags = rte_atomic32_read(&info->q[qid].flags);
+		if ( unlikely(flags & (DO_TX_CLEANUP |  DO_TX_FLUSH)) ) {
+			if ( flags & DO_TX_CLEANUP )
+				pktgen_tx_cleanup(info, qid);
+			else if ( flags & DO_TX_FLUSH )
+				pktgen_tx_flush(info, qid);
+		}
 	}
 }
 
@@ -1086,7 +1072,8 @@ pktgen_main_rxtx_loop(uint8_t lid)
     } while ( wr_lcore_is_running(pktgen.l2p, lid) );
 
     pktgen_log_debug("Exit %d", lid);
-	pktgen_cleanup(lid);
+
+	pktgen_exit_cleanup(lid);
 }
 
 /**************************************************************************//**
@@ -1147,7 +1134,7 @@ pktgen_main_tx_loop(uint8_t lid)
 
     pktgen_log_debug("Exit %d", lid);
 
-	pktgen_cleanup(lid);
+	pktgen_exit_cleanup(lid);
 }
 
 /**************************************************************************//**
@@ -1195,7 +1182,8 @@ pktgen_main_rx_loop(uint8_t lid)
     } while( wr_lcore_is_running(pktgen.l2p, lid) );
 
     pktgen_log_debug("Exit %d", lid);
-    pktgen_cleanup(lid);
+
+    pktgen_exit_cleanup(lid);
 }
 
 /**************************************************************************//**

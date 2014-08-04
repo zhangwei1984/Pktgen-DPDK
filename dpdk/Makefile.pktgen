@@ -4,4 +4,4 @@
 
 all:
 	make install T=${RTE_TARGET}
-	make -C wr-examples/pktgen
+	make -C examples/pktgen

@@ -155,10 +155,10 @@ pktgen_save(char * path)
 			continue;
 
 		fprintf(fd, "######################### Port %2d ##################################\n", i);
-		if ( info->transmit_count == 0 )
+		if ( rte_atomic64_read(&info->transmit_count) == 0 )
 			strcpy(buff, "Forever");
 		else
-			snprintf(buff, sizeof(buff), "%ld", info->transmit_count);
+			snprintf(buff, sizeof(buff), "%ld", rte_atomic64_read(&info->transmit_count));
 		fprintf(fd, "#\n");
 		flags = rte_atomic32_read(&info->port_flags);
 		fprintf(fd, "# Port: %2d, Burst:%3d, Rate:%3d%%, Flags:%08x, TX Count:%s\n",
@@ -169,7 +169,7 @@ pktgen_save(char * path)
 		fprintf(fd, "Link: %s\n", buff);
 
 		fprintf(fd, "#\n# Set up the primary port information:\n");
-		fprintf(fd, "set %d count %ld\n", info->pid, info->transmit_count);
+		fprintf(fd, "set %d count %ld\n", info->pid, rte_atomic64_read(&info->transmit_count));
 		fprintf(fd, "set %d size %d\n", info->pid, pkt->pktSize+FCS_SIZE);
 		fprintf(fd, "set %d rate %d\n", info->pid, info->tx_rate);
 		fprintf(fd, "set %d burst %d\n", info->pid, info->tx_burst);
@@ -352,10 +352,10 @@ pktgen_transmit_count_rate(int port, char * buff, int len)
 {
 	port_info_t * info = &pktgen.info[port];
 
-    if ( info->transmit_count == 0 )
+    if ( rte_atomic64_read(&info->transmit_count) == 0 )
         snprintf(buff, len, "Forever/%d%%", info->tx_rate);
     else
-        snprintf(buff, len, "%ld/%d%%", info->transmit_count, info->tx_rate);
+        snprintf(buff, len, "%ld/%d%%", rte_atomic64_read(&info->transmit_count), info->tx_rate);
 
     return buff;
 }
@@ -839,7 +839,7 @@ pktgen_start_transmitting(port_info_t * info)
 	if ( !(rte_atomic32_read(&info->port_flags) & SENDING_PACKETS) ) {
 		for(q = 0; q < wr_get_port_txcnt(pktgen.l2p, info->pid); q++ )
 			pktgen_set_q_flags(info, q, CLEAR_FAST_ALLOC_FLAG);
-		info->current_tx_count	= info->transmit_count;
+		rte_atomic64_set(&info->current_tx_count, rte_atomic64_read(&info->transmit_count));
 		pktgen_set_port_flags(info, SENDING_PACKETS);
 	}
 }
@@ -886,7 +886,7 @@ pktgen_prime_ports(port_info_t * info)
 {
 	uint8_t		q;
 
-	info->current_tx_count = info->prime_cnt;
+	rte_atomic64_set(&info->current_tx_count, info->prime_cnt);
 	pktgen_set_port_flags(info, SENDING_PACKETS);
 	for(q = 0; q < wr_get_port_txcnt(pktgen.l2p, info->pid); q++ )
 		pktgen_set_q_flags(info, q, DO_TX_FLUSH);
@@ -1356,7 +1356,8 @@ void pktgen_port_defaults(uint32_t pid, uint8_t seq)
 	pkt->ethType			= ETHER_TYPE_IPv4;
 	pkt->vlanid				= DEFAULT_VLAN_ID;
 
-	info->transmit_count	= DEFAULT_TX_COUNT;
+	rte_atomic64_set(&info->transmit_count, DEFAULT_TX_COUNT);
+	rte_atomic64_init(&info->current_tx_count);
 	info->tx_rate			= DEFAULT_TX_RATE;
 	info->tx_burst			= DEFAULT_PKT_BURST;
 	info->vlanid			= DEFAULT_VLAN_ID;
@@ -1486,7 +1487,7 @@ void pktgen_reset(port_info_t * info)
 
 void pktgen_set_tx_count(port_info_t * info, uint32_t cnt)
 {
-	info->transmit_count = cnt;
+	rte_atomic64_set(&info->transmit_count, cnt);
 }
 
 /**************************************************************************//**
