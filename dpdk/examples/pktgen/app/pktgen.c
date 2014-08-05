@@ -327,6 +327,8 @@ pktgen_tx_cleanup(port_info_t * info, uint8_t qid)
 	// Flush any done transmit buffers and descriptors.
 	pktgen_send_burst(info, qid);
 
+	rte_delay_us(500);
+
 	// Stop and start the device to flush TX and RX buffers from the device rings.
 	rte_eth_dev_stop(info->pid);
 
@@ -890,18 +892,20 @@ pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp, uint8_t qid)
 static __inline__ void
 pktgen_send_pkts(port_info_t * info, uint8_t qid, struct rte_mempool * mp)
 {
-	int			txCnt;
+	int			txCnt = 0;
 
 	if ( unlikely(rte_atomic32_read(&info->q[qid].flags) & CLEAR_FAST_ALLOC_FLAG) )
 		pktgen_setup_packets(info, mp, qid);
 
-	txCnt = pkt_atomic64_tx_count(&info->current_tx_count, info->tx_burst);
-
-	info->q[qid].tx_mbufs.len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, txCnt);
-
+	if ( rte_atomic64_read(&info->current_tx_count) == 0 )
+		info->q[qid].tx_mbufs.len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, info->tx_burst);
+	else {
+		txCnt = pkt_atomic64_tx_count(&info->current_tx_count, info->tx_burst);
+		info->q[qid].tx_mbufs.len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, txCnt);
+	}
 	pktgen_send_burst(info, qid);
 
-	if ( unlikely(rte_atomic64_read(&info->current_tx_count) == 0) ) {
+	if ( (txCnt != 0) && (rte_atomic64_read(&info->current_tx_count) == 0) ) {
 		pktgen_clr_port_flags(info, SENDING_PACKETS);
 		pktgen_set_q_flags(info, qid, DO_TX_CLEANUP);
 	}
