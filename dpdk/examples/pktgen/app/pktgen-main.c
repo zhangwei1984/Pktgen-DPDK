@@ -401,9 +401,6 @@ main(int argc, char **argv)
 
     pktgen_init_screen((pktgen.flags & ENABLE_THEME_FLAG) ? THEME_ON : THEME_OFF);
 
-//    if ((ret = rte_eal_pci_probe()) < 0)
-//        pktgen_log_panic("Cannot probe PCI, %s", rte_strerror(-ret));
-
     lua_newlib_add(_lua_openlib);
 
     // Open the Lua script handler.

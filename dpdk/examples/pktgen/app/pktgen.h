@@ -177,6 +177,8 @@
 			if ( (_portlist & (1 << pid)) == 0 )		\
 				continue;								\
 			info = &pktgen.info[pid];					\
+			if ( info->seq_pkt == NULL )				\
+				continue;								\
 			_action;									\
 		}												\
 	} while((0))
