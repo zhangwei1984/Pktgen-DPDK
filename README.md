@@ -6,6 +6,8 @@ Pktgen version 2.7.1 using DPDK-1.7.0
 **Sounds like 'Packet-Gen'**
 
 **=== Modifications ===**
+ - 2.7.4   - Removed old printf_info() calls for printf_status() calls.
+ - 2.7.3   - Fixed race condition with updating the TX count value with a small count.
  - 2.7.1   - Add a command line option '-T' to enable themes and set themes off by default.
  - 2.7.0   - Update to DPDK 1.7.0, Note: DPDK 1.7.0 changed how ports are detected and blacklisted,
              which means the port index is now different. You will need to blacklist or whitelist ports
@@ -28,7 +30,7 @@ Pktgen version 2.7.1 using DPDK-1.7.0
  - 2.6.2   - Fixup GRE and ARP problems
  - 2.6.1   - Add random bits support and more cleanup
  - 2.6.0   - Split up the code for testing to be added later
- - 2.5.2   - Remove extra_ethertypes.h file.
+ - 2.5.2   - Remove extra ethertypes.h file.
  - 2.5.1   - Added the following updates.
            - Implement-Rx-packet-dump-functionality
            - Add-packet-capture-functionality
