@@ -436,15 +436,15 @@ main(int argc, char **argv)
 	wr_logo(3, 16, PKTGEN_APP_NAME);
 	wr_splash_screen(3, 16, PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
 
-    scrn_resume(pktgen.scrn);
+    scrn_resume();
 
     pktgen_redisplay(1);
 
     rte_timer_setup();
 
     if ( pktgen.flags & ENABLE_GUI_FLAG ) {
-        if ( !scrn_is_paused(pktgen.scrn) ) {
-            scrn_pause(pktgen.scrn);
+        if ( !scrn_is_paused() ) {
+            scrn_pause();
             scrn_cls();
             scrn_setw(1);
             scrn_pos(pktgen.scrn->nrows, 1);
@@ -458,7 +458,7 @@ main(int argc, char **argv)
     execute_lua_close(pktgen.L);
 	pktgen_stop_running();
 
-    scrn_pause(pktgen.scrn);
+    scrn_pause();
 
 	scrn_setw(1);
 	scrn_printf(100, 1, "\n");      // Put the cursor on the last row and do a newline.

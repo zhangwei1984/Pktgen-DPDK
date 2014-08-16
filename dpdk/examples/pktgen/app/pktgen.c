@@ -1261,7 +1261,7 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
     static unsigned int counter = 0;
 
     // Leave if the screen is paused
-    if ( scrn_is_paused(pktgen.scrn) )
+    if ( scrn_is_paused() )
         return;
 
     scrn_save();

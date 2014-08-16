@@ -368,10 +368,10 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 {
 	int		i, paused;
 
-	paused = scrn_is_paused(pktgen.scrn);
+	paused = scrn_is_paused();
 
 	if ( ! paused )
-		scrn_pause(pktgen.scrn);
+		scrn_pause();
 	scrn_setw(1);
 	scrn_cls();
 
@@ -394,7 +394,7 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 
 	if ( !paused ) {
 		scrn_setw(pktgen.last_row+1);
-		scrn_resume(pktgen.scrn);
+		scrn_resume();
 		pktgen_redisplay(1);
 	}
 }
@@ -2368,7 +2368,7 @@ static void cmd_set_load_parsed(void *parsed_result,
 
 	if ( pktgen_load_cmds(res->path) )
 		cmdline_printf(cl, "load command failed for %s\n", res->path);
-	if ( ! scrn_is_paused(pktgen.scrn) )
+	if ( ! scrn_is_paused() )
 		pktgen_redisplay(0);
 }
 

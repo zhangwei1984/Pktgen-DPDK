@@ -78,6 +78,8 @@
 #include <rte_spinlock.h>
 #include <rte_scrn.h>
 
+	rte_scrn_t	* __scrn;		/**< Global screen structure pointer */
+
 void
 scrn_center(int16_t r, int16_t ncols, const char * fmt, ...)
 {
@@ -123,6 +125,11 @@ scrn_init(int16_t nrows, int16_t ncols, int theme)
 {
 	rte_scrn_t *	scrn;
 
+	if ( __scrn != NULL ) {
+		free(__scrn);
+		__scrn = NULL;
+	}
+
 	scrn = malloc(sizeof(rte_scrn_t));
 	if ( scrn  ) {
 		rte_atomic32_set(&scrn->state, SCRN_ON);
@@ -135,5 +142,9 @@ scrn_init(int16_t nrows, int16_t ncols, int theme)
 
 		scrn_erase(nrows);
 	}
+
+	/* Save the global rte_scrn_t pointer */
+	__scrn = scrn;
+
 	return scrn;
 }

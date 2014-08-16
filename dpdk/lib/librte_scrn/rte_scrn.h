@@ -96,6 +96,8 @@ typedef struct rte_scrn_s {
 	uint16_t		pad0;		/**< alignment */
 } rte_scrn_t;
 
+extern rte_scrn_t	* __scrn;	/**< Global extern for rte_scrn_t pointer (their can be only one!) */
+
 /** Enable or disable the screen from being updated */
 enum { SCRN_ON = 0, SCRN_OFF = 1 };
 
@@ -158,39 +160,33 @@ static __inline__ void scrn_eol_pos(int r, int c) {
 }
 
 /** Turn off screen updates if async processes are writing to the screen */
-static __inline__ void scrn_off(rte_scrn_t * scrn) {
-	if ( scrn == NULL ) return;
-	rte_atomic32_set(&scrn->state, SCRN_OFF);
+static __inline__ void scrn_off(void) {
+	rte_atomic32_set(&__scrn->state, SCRN_OFF);
 }
 
 /** Turn on screen updates if being done. */
-static __inline__ void scrn_on(rte_scrn_t * scrn) {
-	if ( scrn == NULL ) return;
-	rte_atomic32_set(&scrn->state, SCRN_ON);
+static __inline__ void scrn_on(void) {
+	rte_atomic32_set(&__scrn->state, SCRN_ON);
 }
 
 /** Determine if the screen is currently off meaning no updates */
-static __inline__ int scrn_is_off(rte_scrn_t * scrn) {
-	if ( scrn == NULL ) return 0;
-	return (rte_atomic32_read(&scrn->state) == SCRN_OFF);
+static __inline__ int scrn_is_off(void) {
+	return (rte_atomic32_read(&__scrn->state) == SCRN_OFF);
 }
 
 /** Stop screen from updating until resumed later */
-static __inline__ void scrn_pause(rte_scrn_t * scrn) {
-	if ( scrn == NULL ) return;
-	rte_atomic32_set(&scrn->pause, 1);
+static __inline__ void scrn_pause(void) {
+	rte_atomic32_set(&__scrn->pause, 1);
 }
 
 /** Resume the screen from a pause */
-static __inline__ void scrn_resume(rte_scrn_t * scrn) {
-	if ( scrn == NULL ) return;
-	rte_atomic32_set(&scrn->pause, 0);
+static __inline__ void scrn_resume(void) {
+	rte_atomic32_set(&__scrn->pause, 0);
 }
 
 /* Is the screen in the paused state */
-static __inline__ int scrn_is_paused(rte_scrn_t * scrn) {
-	if ( scrn == NULL ) return 0;
-	return (rte_atomic32_read(&scrn->pause) == 1);
+static __inline__ int scrn_is_paused(void) {
+	return (rte_atomic32_read(&__scrn->pause) == 1);
 }
 
 /** Output a message of the current line centered */
