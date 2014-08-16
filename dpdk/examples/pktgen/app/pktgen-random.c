@@ -337,17 +337,17 @@ void pktgen_page_random_bitfields(uint32_t print_labels, uint16_t pid, rnd_bits_
 
 	display_topline("** Random bitfield Page **");
 
-	scrn_printf(1, 3, "Port %d", pid);
+	rte_scrn_printf(1, 3, "Port %d", pid);
 
 	row = PORT_STATE_ROW;
 
 	if (rnd_bits == NULL) {
-		scrn_center(10, pktgen.scrn->ncols, "** Port is not active - no random bitfields set **");
+		rte_scrn_center(10, pktgen.scrn->ncols, "** Port is not active - no random bitfields set **");
 		row = 28;
 		goto leave;
 	}
 	/* Header line */
-	scrn_printf(row++, 1, "%8s %8s %8s  %s",
+	rte_scrn_printf(row++, 1, "%8s %8s %8s  %s",
 			"Index", "Offset", "Act?",
 			"Mask [0 = 0 bit, 1 = 1 bit, X = random bit, . = ignore]");
 
@@ -367,7 +367,7 @@ void pktgen_page_random_bitfields(uint32_t print_labels, uint16_t pid, rnd_bits_
 							   : '.';
 		}
 
-		scrn_printf(row++, 1, "%8d %8d %7s   %s",
+		rte_scrn_printf(row++, 1, "%8d %8d %7s   %s",
 				bitmask_idx,
 				curr_spec->offset,
 				(rnd_bits->active_specs & (1 << bitmask_idx)) ? "YES" : "no",

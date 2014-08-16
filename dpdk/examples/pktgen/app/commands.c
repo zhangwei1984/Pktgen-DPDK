@@ -180,7 +180,7 @@ cmdline_pause(struct cmdline *cl, const char * msg)
 	if ( n < 0 )
 		return;
 	cmdline_printf(cl, "\r");
-	scrn_eol();
+	rte_scrn_eol();
 }
 
 /**********************************************************/
@@ -368,23 +368,23 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 {
 	int		i, paused;
 
-	paused = scrn_is_paused();
+	paused = rte_scrn_is_paused();
 
 	if ( ! paused )
-		scrn_pause();
-	scrn_setw(1);
-	scrn_cls();
+		rte_scrn_pause();
+	rte_scrn_setw(1);
+	rte_scrn_cls();
 
-	scrn_pos(0,0);
+	rte_scrn_pos(0,0);
 	cmdline_printf(cl, help_info[1], wr_copyright_msg());
-	scrn_pos(3,0);
+	rte_scrn_pos(3,0);
 	for(i=2; help_info[i] != NULL; i++ ) {
 		if ( strcmp(help_info[i], "<<PageBreak>>") == 0 ) {
 			cmdline_pause(cl, "   <More Help: Press Return to Continue>");
-			scrn_cls();
-			scrn_pos(0,0);
+			rte_scrn_cls();
+			rte_scrn_pos(0,0);
 			cmdline_printf(cl, help_info[1], wr_copyright_msg());
-			scrn_pos(3,0);
+			rte_scrn_pos(3,0);
 			continue;
 		}
 		cmdline_printf(cl, "%s\n", help_info[i]);
@@ -393,8 +393,8 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 	cmdline_pause(cl, "   <Press Return to Continue>");
 
 	if ( !paused ) {
-		scrn_setw(pktgen.last_row+1);
-		scrn_resume();
+		rte_scrn_setw(pktgen.last_row+1);
+		rte_scrn_resume();
 		pktgen_redisplay(1);
 	}
 }
@@ -2368,7 +2368,7 @@ static void cmd_set_load_parsed(void *parsed_result,
 
 	if ( pktgen_load_cmds(res->path) )
 		cmdline_printf(cl, "load command failed for %s\n", res->path);
-	if ( ! scrn_is_paused() )
+	if ( ! rte_scrn_is_paused() )
 		pktgen_redisplay(0);
 }
 

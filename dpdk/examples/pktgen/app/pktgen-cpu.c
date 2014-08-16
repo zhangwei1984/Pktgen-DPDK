@@ -134,22 +134,22 @@ pktgen_page_cpu(void)
     	return;
 
     row = 3;
-    scrn_printf(row++, 1, "Kernel: %s", pktgen.uname);
+    rte_scrn_printf(row++, 1, "Kernel: %s", pktgen.uname);
     row++;
-    scrn_printf(row++, 1, "Model Name: %s", pktgen.lscpu->model_name);
-    scrn_printf(row++, 1, "CPU Speed : %s", pktgen.lscpu->cpu_mhz);
-    scrn_printf(row++, 1, "Cache Size: %s", pktgen.lscpu->cache_size);
+    rte_scrn_printf(row++, 1, "Model Name: %s", pktgen.lscpu->model_name);
+    rte_scrn_printf(row++, 1, "CPU Speed : %s", pktgen.lscpu->cpu_mhz);
+    rte_scrn_printf(row++, 1, "Cache Size: %s", pktgen.lscpu->cache_size);
     row++;
-    scrn_printf(row++, 1, "CPU Flags : %s", pktgen.lscpu->cpu_flags);
+    rte_scrn_printf(row++, 1, "CPU Flags : %s", pktgen.lscpu->cpu_flags);
     row += 4;
 
-    scrn_printf(row++, 5, "%d sockets, %d cores per socket and %d threads per core.",
+    rte_scrn_printf(row++, 5, "%d sockets, %d cores per socket and %d threads per core.",
     	nb_sockets, nb_cores, nb_threads);
 
     sprintf(buff, "Socket   : ");
     for(i = 0; i< nb_sockets; i++)
         strncatf(buff, "%4d      ", i);
-    scrn_printf(row++, 3, "%s", buff);
+    rte_scrn_printf(row++, 3, "%s", buff);
 
     buff[0] = '\0';
 	for(i = 0; i< nb_cores; i++) {
@@ -162,7 +162,7 @@ pktgen_page_cpu(void)
 			strncatf(buff, "[%2d,%2d]   ", sct(3, i, 0), sct(3, i, 1));
 		strncatf(buff, "\n");
 	}
-	scrn_printf(row++, 1, "%s", buff);
+	rte_scrn_printf(row++, 1, "%s", buff);
 
 	wr_port_matrix_dump(pktgen.l2p);
 
@@ -171,8 +171,8 @@ pktgen_page_cpu(void)
 		pktgen.last_row = 36;
 	    display_dashline(pktgen.last_row);
 
-		scrn_setw(pktgen.last_row);
-		scrn_printf(100, 1, "");        // Put cursor on the last row.
+		rte_scrn_setw(pktgen.last_row);
+		rte_scrn_printf(100, 1, "");        // Put cursor on the last row.
 	}
     pktgen.flags &= ~PRINT_LABELS_FLAG;
 }

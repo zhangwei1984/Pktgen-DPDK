@@ -182,7 +182,7 @@ theme_color_map_t theme_color_map[] = {
 void
 pktgen_init_screen(int theme)
 {
-	pktgen.scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
+	pktgen.scrn = rte_scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
 }
 
 
@@ -190,11 +190,11 @@ pktgen_init_screen(int theme)
 void
 display_topline(const char * msg)
 {
-		scrn_printf(1, 20, "%s", msg);
+		rte_scrn_printf(1, 20, "%s", msg);
 		pktgen_display_set_color("top.copyright");
-		scrn_puts("  %s", wr_copyright_msg());
+		rte_scrn_puts("  %s", wr_copyright_msg());
 		pktgen_display_set_color("top.poweredby");
-		scrn_puts(" %s", wr_powered_by());
+		rte_scrn_puts(" %s", wr_powered_by());
 		pktgen_display_set_color(NULL);
 }
 
@@ -205,14 +205,14 @@ display_dashline(int last_row)
 {
 	int i;
 
-	scrn_setw(last_row);
+	rte_scrn_setw(last_row);
 	last_row--;
-	scrn_pos(last_row, 1);
+	rte_scrn_pos(last_row, 1);
 	pktgen_display_set_color("sep.dash");
 	for(i=0; i<(scrn->ncols-15); i++)
-		scrn_fprintf(0, 0, stdout, "-");
+		rte_scrn_fprintf(0, 0, stdout, "-");
 	pktgen_display_set_color("sep.text");
-	scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
+	rte_scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
 	pktgen_display_set_color(NULL);
 }
 
@@ -274,7 +274,7 @@ pktgen_display_set_color(const char *elem) {
 		return;
 	}
 
-	scrn_color(theme_color->fg_color, theme_color->bg_color, theme_color->attr);
+	rte_scrn_color(theme_color->fg_color, theme_color->bg_color, theme_color->attr);
 }
 
 

@@ -431,23 +431,23 @@ main(int argc, char **argv)
 	// Disable printing log messages of level info and below to screen,
     // erase the screen and start updating the screen again.
     pktgen_log_set_screen_level(LOG_LEVEL_WARNING);
-	scrn_erase(pktgen.scrn->nrows);
+	rte_scrn_erase(pktgen.scrn->nrows);
 
 	wr_logo(3, 16, PKTGEN_APP_NAME);
 	wr_splash_screen(3, 16, PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
 
-    scrn_resume();
+    rte_scrn_resume();
 
     pktgen_redisplay(1);
 
     rte_timer_setup();
 
     if ( pktgen.flags & ENABLE_GUI_FLAG ) {
-        if ( !scrn_is_paused() ) {
-            scrn_pause();
-            scrn_cls();
-            scrn_setw(1);
-            scrn_pos(pktgen.scrn->nrows, 1);
+        if ( !rte_scrn_is_paused() ) {
+            rte_scrn_pause();
+            rte_scrn_cls();
+            rte_scrn_setw(1);
+            rte_scrn_pos(pktgen.scrn->nrows, 1);
         }
 
 		lua_init_socket(pktgen.L, &pktgen.thread, pktgen.hostname, pktgen.socket_port);
@@ -458,10 +458,10 @@ main(int argc, char **argv)
     execute_lua_close(pktgen.L);
 	pktgen_stop_running();
 
-    scrn_pause();
+    rte_scrn_pause();
 
-	scrn_setw(1);
-	scrn_printf(100, 1, "\n");      // Put the cursor on the last row and do a newline.
+	rte_scrn_setw(1);
+	rte_scrn_printf(100, 1, "\n");      // Put the cursor on the last row and do a newline.
 
     // Wait for all of the cores to stop running and exit.
     rte_eal_mp_wait_lcore();

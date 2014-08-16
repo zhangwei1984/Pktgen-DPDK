@@ -103,8 +103,8 @@ pktgen_page_seq(uint32_t pid)
 
     row = PORT_STATE_ROW;
     col = 1;
-    scrn_printf(row++, col, "Port: %2d, Sequence Count: %2d of %2d  ", pid, info->seqCnt, NUM_SEQ_PKTS);
-    scrn_printf(row++, col, "%*s %*s%*s%*s%*s%*s%*s%*s",
+    rte_scrn_printf(row++, col, "Port: %2d, Sequence Count: %2d of %2d  ", pid, info->seqCnt, NUM_SEQ_PKTS);
+    rte_scrn_printf(row++, col, "%*s %*s%*s%*s%*s%*s%*s%*s",
             6, "Seq:",
             COLUMN_WIDTH_0, "Dst MAC",
             COLUMN_WIDTH_0, "Src MAC",
@@ -118,32 +118,32 @@ pktgen_page_seq(uint32_t pid)
         pkt = &info->seq_pkt[i];
 
         if ( i >= info->seqCnt ) {
-        	scrn_eol_pos(row++, col);
+        	rte_scrn_eol_pos(row++, col);
         	continue;
         }
 
-        scrn_printf(row, col, "%5d:", i);
+        rte_scrn_printf(row, col, "%5d:", i);
         col += 7;
-        scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &pkt->eth_dst_addr));
+        rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &pkt->eth_dst_addr));
         col += COLUMN_WIDTH_1;
-        scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &pkt->eth_src_addr));
+        rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &pkt->eth_src_addr));
         col += COLUMN_WIDTH_1;
-        scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), htonl(pkt->ip_dst_addr), 0xFFFFFFFF));
+        rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), htonl(pkt->ip_dst_addr), 0xFFFFFFFF));
         col += COLUMN_WIDTH_1;
-        scrn_printf(row, col, "%*s", COLUMN_WIDTH_1+2, inet_ntop4(buff, sizeof(buff), htonl(pkt->ip_src_addr), pkt->ip_mask));
+        rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1+2, inet_ntop4(buff, sizeof(buff), htonl(pkt->ip_src_addr), pkt->ip_mask));
         col += COLUMN_WIDTH_1+2;
 
         snprintf(buff, sizeof(buff), "%d/%d", pkt->sport, pkt->dport);
-        scrn_printf(row, col, "%*s", 12, buff);
+        rte_scrn_printf(row, col, "%*s", 12, buff);
         col += 12;
         snprintf(buff, sizeof(buff), "%s/%s:%04x", (pkt->ethType == ETHER_TYPE_IPv4)? "IPv4" :
                                                       (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" : "Other",
                                                       (pkt->ipProto == PG_IPPROTO_TCP)? "TCP" :
                                                       (pkt->ipProto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                     		  pkt->vlanid);
-        scrn_printf(row, col, "%*s", 15, buff);
+        rte_scrn_printf(row, col, "%*s", 15, buff);
         col += 15;
-        scrn_printf(row, col, "%5d", pkt->pktSize+FCS_SIZE);
+        rte_scrn_printf(row, col, "%5d", pkt->pktSize+FCS_SIZE);
         row++;
     }
 

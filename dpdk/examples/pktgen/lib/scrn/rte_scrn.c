@@ -81,23 +81,23 @@
 
 	rte_scrn_t * scrn;
 
-void scrn_center(int16_t r, const char * fmt, ...) {
+void rte_scrn_center(int16_t r, const char * fmt, ...) {
 	va_list	vaList;
 	char	str[256];
 
 	va_start(vaList, fmt);
 	vsnprintf(str, sizeof(str), fmt, vaList);
 	va_end(vaList);
-	scrn_pos(r, scrn_center_col(str));
+	rte_scrn_pos(r, rte_scrn_center_col(str));
 	printf("%s", str);
 	fflush(stdout);
 }
 
-void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) {
+void rte_scrn_printf(int16_t r, int16_t c, const char * fmt, ...) {
 	va_list	vaList;
 	
 	if ( (r != 0) && (c != 0) )
-		scrn_pos(r, c);
+		rte_scrn_pos(r, c);
 	va_start(vaList, fmt);
 	vprintf(fmt, vaList);
 	va_end(vaList);
@@ -113,18 +113,18 @@ void scrn_snprintf(char * buff, int16_t len, const char * fmt, ...) {
 	fflush(stdout);
 }
 
-void scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...) {
+void rte_scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...) {
 	va_list	vaList;
 
 	if ( (r != 0) && (c != 0) )
-		scrn_pos(r, c);
+		rte_scrn_pos(r, c);
 	va_start(vaList, fmt);
 	vfprintf(f, fmt, vaList);
 	va_end(vaList);
 	fflush(f);
 }
 
-rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols, int theme)
+rte_scrn_t * rte_scrn_init(int16_t nrows, int16_t ncols, int theme)
 {
 	scrn = malloc(sizeof(rte_scrn_t));
 	if ( scrn == NULL )
@@ -136,9 +136,9 @@ rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols, int theme)
 	scrn->nrows		= nrows;
 	scrn->ncols		= ncols;
 	scrn->theme		= theme;
-	scrn_color(DEFAULT_FG, DEFAULT_BG, OFF);
+	rte_scrn_color(DEFAULT_FG, DEFAULT_BG, OFF);
 
-	scrn_erase();
+	rte_scrn_erase();
 
 	return scrn;
 }

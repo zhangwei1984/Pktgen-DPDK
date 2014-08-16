@@ -17,7 +17,7 @@ pktgen_t pktgen;
 
 
 /* rte_scrn.h function stub */
-void scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...) { return; }
+void rte_scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...) { return; }
 
 
 /* Mock data structures */

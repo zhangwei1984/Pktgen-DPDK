@@ -10,8 +10,8 @@
 
 /* rte_scrn.h fake functions */
 #include <rte_scrn.h>
-void scrn_center(int16_t r, const char * fmt, ...) { return; }
-void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+void rte_scrn_center(int16_t r, const char * fmt, ...) { return; }
+void rte_scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
 rte_scrn_t *scrn = NULL;
 
 

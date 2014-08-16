@@ -97,51 +97,51 @@ pktgen_print_static_data(void)
     display_topline("** Main Page **");
 
 	pktgen_display_set_color("top.ports");
-    scrn_printf(1, 3, "Ports %d-%d of %d", pktgen.starting_port, (pktgen.ending_port - 1), pktgen.nb_ports);
+    rte_scrn_printf(1, 3, "Ports %d-%d of %d", pktgen.starting_port, (pktgen.ending_port - 1), pktgen.nb_ports);
 
     row = PORT_STATE_ROW;
 	pktgen_display_set_color("stats.port.label");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  Flags:Port");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  Flags:Port");
 
 	/* Labels for dynamic fields (update every second) */
 	pktgen_display_set_color("stats.dyn.label");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Link State");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Pkts/s  Rx");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "        Tx");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "MBits/s Rx/Tx");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Link State");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Pkts/s  Rx");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "        Tx");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "MBits/s Rx/Tx");
 
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Broadcast");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Multicast");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  64 Bytes");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  65-127");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  128-255");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  256-511");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  512-1023");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  1024-1518");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Runts/Jumbos");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Broadcast");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Multicast");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  64 Bytes");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  65-127");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  128-255");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  256-511");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  512-1023");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "  1024-1518");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Runts/Jumbos");
 
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Errors Rx/Tx");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Total Rx Pkts");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "      Tx Pkts");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "      Rx MBs ");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "      Tx MBs ");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "ARP/ICMP Pkts");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Errors Rx/Tx");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Total Rx Pkts");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "      Tx Pkts");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "      Rx MBs ");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "      Tx MBs ");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "ARP/ICMP Pkts");
 	if ( pktgen.flags & TX_DEBUG_FLAG ) {
-		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Tx Overrun");
-		scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Cycles per Tx");
+		rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Tx Overrun");
+		rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Cycles per Tx");
 	}
 
 	/* Labels for static fields */
 	pktgen_display_set_color("stats.stat.label");
     ip_row = ++row;
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Tx Count/% Rate");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "PktSize/Tx Burst");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Src/Dest Port");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Pkt Type:VLAN ID");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Dst  IP Address");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Src  IP Address");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Dst MAC Address");
-    scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Src MAC Address");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Tx Count/% Rate");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "PktSize/Tx Burst");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Src/Dest Port");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Pkt Type:VLAN ID");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Dst  IP Address");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Src  IP Address");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Dst MAC Address");
+    rte_scrn_printf(row++, 1, "%-*s", COLUMN_WIDTH_0, "Src MAC Address");
 
     // Get the last location to use for the window starting row.
     pktgen.last_row = ++row;
@@ -150,7 +150,7 @@ pktgen_print_static_data(void)
     // Display the colon after the row label.
 	pktgen_display_set_color("stats.colon");
     for(row = PORT_STATE_ROW; row < ((ip_row + IP_ADDR_ROWS) - 2); row++)
-        scrn_printf(row, COLUMN_WIDTH_0-1, ":");
+        rte_scrn_printf(row, COLUMN_WIDTH_0-1, ":");
 
 
 	pktgen_display_set_color("stats.stat.values");
@@ -168,30 +168,30 @@ pktgen_print_static_data(void)
         row = ip_row;
 
         pktgen_transmit_count_rate(pid, buff, sizeof(buff));
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 
         snprintf(buff, sizeof(buff), "%d/%d", pkt->pktSize + FCS_SIZE, info->tx_burst);
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
         snprintf(buff, sizeof(buff), "%d/%d", pkt->sport, pkt->dport);
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
         snprintf(buff, sizeof(buff), "%s/%s:%04x", (pkt->ethType == ETHER_TYPE_IPv4)? "IPv4" :
                                               (pkt->ethType == ETHER_TYPE_IPv6)? "IPv6" :
 											  (pkt->ethType == ETHER_TYPE_ARP)? "ARP" : "Other",
                                               (pkt->ipProto == PG_IPPROTO_TCP)? "TCP" :
                                               (pkt->ipProto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                pkt->vlanid);
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), htonl(pkt->ip_dst_addr), 0xFFFFFFFF));
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), htonl(pkt->ip_src_addr), pkt->ip_mask));
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &pkt->eth_dst_addr));
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &pkt->eth_src_addr));
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), htonl(pkt->ip_dst_addr), 0xFFFFFFFF));
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), htonl(pkt->ip_src_addr), pkt->ip_mask));
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &pkt->eth_dst_addr));
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &pkt->eth_src_addr));
     }
 
     // Display the string for total pkts/s rate of all ports
     col = (COLUMN_WIDTH_1 * pktgen.nb_ports_per_page) + COLUMN_WIDTH_0;
 	pktgen_display_set_color("stats.total.label");
-    scrn_printf(LINK_STATE_ROW, col, "%*s", COLUMN_WIDTH_1, "---TotalRate---"); scrn_eol();
+    rte_scrn_printf(LINK_STATE_ROW, col, "%*s", COLUMN_WIDTH_1, "---TotalRate---"); rte_scrn_eol();
 	pktgen_display_set_color(NULL);
 
     pktgen.flags &= ~PRINT_LABELS_FLAG;
@@ -267,7 +267,7 @@ pktgen_page_stats(void)
         // Display the port number for the column
         snprintf(buff, sizeof(buff), "%s:%d", pktgen_flags_string(info), pid+sp);
 		pktgen_display_set_color("stats.port.flags");
-        scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
 		pktgen_display_set_color(NULL);
 
         row = LINK_STATE_ROW;
@@ -277,17 +277,17 @@ pktgen_page_stats(void)
 
         pktgen_link_state(pid, buff, sizeof(buff));
 		pktgen_display_set_color("stats.port.status");
-        scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, buff);
 		pktgen_display_set_color(NULL);
 
         // Rx/Tx pkts/s rate
         row = LINK_STATE_ROW + 1;
-        scrn_printf(row++,  col, "%*llu", COLUMN_WIDTH_1, info->rate_stats.ipackets);
-        scrn_printf(row++,  col, "%*llu", COLUMN_WIDTH_1, info->rate_stats.opackets);
+        rte_scrn_printf(row++,  col, "%*llu", COLUMN_WIDTH_1, info->rate_stats.ipackets);
+        rte_scrn_printf(row++,  col, "%*llu", COLUMN_WIDTH_1, info->rate_stats.opackets);
 
         snprintf(buff, sizeof(buff), "%lu/%lu",
         		iBitsTotal(info->rate_stats)/Million, oBitsTotal(info->rate_stats)/Million);
-        scrn_printf(row++,  col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row++,  col, "%*s", COLUMN_WIDTH_1, buff);
 
         pktgen.cumm_rate_totals.ipackets += info->rate_stats.ipackets;
         pktgen.cumm_rate_totals.opackets += info->rate_stats.opackets;
@@ -298,49 +298,49 @@ pktgen_page_stats(void)
 
         // Packets Sizes
         row = PKT_SIZE_ROW;
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes.broadcast);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes.multicast);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._64);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._65_127);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._128_255);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._256_511);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._512_1023);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._1024_1518);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes.broadcast);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes.multicast);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._64);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._65_127);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._128_255);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._256_511);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._512_1023);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._1024_1518);
         snprintf(buff, sizeof(buff), "%lu/%lu", info->sizes.runt, info->sizes.jumbo);
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 
         // Rx/Tx Errors
         row = PKT_TOTALS_ROW;
         snprintf(buff, sizeof(buff), "%lu/%lu", info->port_stats.ierrors, info->port_stats.oerrors);
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 
         // Total Rx/Tx
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->port_stats.ipackets);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->port_stats.opackets);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->port_stats.ipackets);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->port_stats.opackets);
 
         // Total Rx/Tx mbits
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, iBitsTotal(info->port_stats)/Million);
-        scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, oBitsTotal(info->port_stats)/Million);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, iBitsTotal(info->port_stats)/Million);
+        rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, oBitsTotal(info->port_stats)/Million);
 
         snprintf(buff, sizeof(buff), "%lu/%lu", info->stats.arp_pkts, info->stats.echo_pkts);
-        scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+        rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 
 		if ( pktgen.flags & TX_DEBUG_FLAG ) {
 			snprintf(buff, sizeof(buff), "%lu", info->stats.tx_failed);
-			scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+			rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 			snprintf(buff, sizeof(buff), "%lu/%lu", info->tx_pps, info->tx_cycles);
-			scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
+			rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 		}
     }
 
     // Display the total pkts/s for all ports
     col = (COLUMN_WIDTH_1 * pktgen.nb_ports_per_page) + COLUMN_WIDTH_0;
     row = LINK_STATE_ROW + 1;
-    scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, pktgen.cumm_rate_totals.ipackets); scrn_eol();
-    scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, pktgen.cumm_rate_totals.opackets); scrn_eol();
+    rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, pktgen.cumm_rate_totals.ipackets); rte_scrn_eol();
+    rte_scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, pktgen.cumm_rate_totals.opackets); rte_scrn_eol();
     snprintf(buff, sizeof(buff), "%lu/%lu",
     	    iBitsTotal(pktgen.cumm_rate_totals)/Million, oBitsTotal(pktgen.cumm_rate_totals)/Million);
-    scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff); scrn_eol();
+    rte_scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff); rte_scrn_eol();
 }
 
 /**************************************************************************//**

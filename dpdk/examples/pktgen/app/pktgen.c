@@ -1239,7 +1239,7 @@ pktgen_page_config(void)
 {
 	display_topline("** Configure Page **");
 
-    scrn_center(20, pktgen.scrn->ncols, "Need to add the configuration stuff here");
+    rte_scrn_center(20, pktgen.scrn->ncols, "Need to add the configuration stuff here");
     display_dashline(22);
 }
 
@@ -1261,13 +1261,13 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
     static unsigned int counter = 0;
 
     // Leave if the screen is paused
-    if ( scrn_is_paused() )
+    if ( rte_scrn_is_paused() )
         return;
 
-    scrn_save();
+    rte_scrn_save();
 
 	pktgen_display_set_color("top.spinner");
-    scrn_printf(1,1, "%c", "-\\|/"[(counter++ & 3)]);
+    rte_scrn_printf(1,1, "%c", "-\\|/"[(counter++ & 3)]);
 	pktgen_display_set_color(NULL);
 
     if ( pktgen.flags & CPU_PAGE_FLAG )
@@ -1287,7 +1287,7 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
     else
         pktgen_page_stats();
 
-    scrn_restore();
+    rte_scrn_restore();
 
     pktgen_print_packet_dump();
 

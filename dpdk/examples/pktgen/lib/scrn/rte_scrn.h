@@ -95,75 +95,75 @@ typedef uint8_t		rgb_t;
 
 extern rte_scrn_t * scrn;
 
-#define	scrn_puts(...)	{ printf(__VA_ARGS__); fflush(stdout); }
+#define	rte_scrn_puts(...)	{ printf(__VA_ARGS__); fflush(stdout); }
 
-static __inline__ void scrn_pos(int r, int c)	scrn_puts("\033[%d;%dH", r, c)
-static __inline__ void scrn_top(void)			scrn_puts("\033H")
-static __inline__ void scrn_home(void)			scrn_puts("\033H")
-static __inline__ void scrn_coff(void)			scrn_puts("\033[?25l")
-static __inline__ void scrn_con(void)			scrn_puts("\033[?25h")
-static __inline__ void scrn_save(void)			scrn_puts("\0337")
-static __inline__ void scrn_restore(void)		scrn_puts("\0338")
-static __inline__ void scrn_cls(void)			scrn_puts("\033[2J")
-static __inline__ void scrn_eol(void)			scrn_puts("\033[K")
-static __inline__ void scrn_cel(void)			scrn_puts("\033[2K")
-static __inline__ void scrn_clw(void)			scrn_puts("\033[J")
-static __inline__ void scrn_reverse(void)		scrn_puts("\033[7m")
-static __inline__ void scrn_normal(void)		scrn_puts("\033[0m")
-static __inline__ void scrn_scroll(int r)		scrn_puts("\033[%d;r",r)
-static __inline__ void scrn_scroll_up(int r)	scrn_puts("\033[%dS",r)
-static __inline__ void scrn_scroll_down(int r)	scrn_puts("\033[%dT",r)
-static __inline__ void scrn_nlines(int r)		scrn_puts("\033[%dE",r)
-static __inline__ void scrn_turn_on(void)		scrn_puts("\033[?25h")
-static __inline__ void scrn_turn_off(void)		scrn_puts("\033[?25l")
-static __inline__ void scrn_setw(int t)			scrn_puts("\033[%d;r", t)
-static __inline__ void scrn_cpos(void)			scrn_puts("\0336n")
+static __inline__ void rte_scrn_pos(int r, int c)	rte_scrn_puts("\033[%d;%dH", r, c)
+static __inline__ void rte_scrn_top(void)			rte_scrn_puts("\033H")
+static __inline__ void rte_scrn_home(void)			rte_scrn_puts("\033H")
+static __inline__ void rte_scrn_coff(void)			rte_scrn_puts("\033[?25l")
+static __inline__ void rte_scrn_con(void)			rte_scrn_puts("\033[?25h")
+static __inline__ void rte_scrn_save(void)			rte_scrn_puts("\0337")
+static __inline__ void rte_scrn_restore(void)		rte_scrn_puts("\0338")
+static __inline__ void rte_scrn_cls(void)			rte_scrn_puts("\033[2J")
+static __inline__ void rte_scrn_eol(void)			rte_scrn_puts("\033[K")
+static __inline__ void rte_scrn_cel(void)			rte_scrn_puts("\033[2K")
+static __inline__ void rte_scrn_clw(void)			rte_scrn_puts("\033[J")
+static __inline__ void rte_scrn_reverse(void)		rte_scrn_puts("\033[7m")
+static __inline__ void rte_scrn_normal(void)		rte_scrn_puts("\033[0m")
+static __inline__ void rte_scrn_scroll(int r)		rte_scrn_puts("\033[%d;r",r)
+static __inline__ void rte_scrn_scroll_up(int r)	rte_scrn_puts("\033[%dS",r)
+static __inline__ void rte_scrn_scroll_down(int r)	rte_scrn_puts("\033[%dT",r)
+static __inline__ void rte_scrn_nlines(int r)		rte_scrn_puts("\033[%dE",r)
+static __inline__ void rte_scrn_turn_on(void)		rte_scrn_puts("\033[?25h")
+static __inline__ void rte_scrn_turn_off(void)		rte_scrn_puts("\033[?25l")
+static __inline__ void rte_scrn_setw(int t)			rte_scrn_puts("\033[%d;r", t)
+static __inline__ void rte_scrn_cpos(void)			rte_scrn_puts("\0336n")
 
-static __inline__ const char * scrn_version(void) {
+static __inline__ const char * rte_scrn_version(void) {
 	return SCRN_VERSION;
 }
 
-static __inline__ void scrn_clr_line(int r)	{
-	scrn_pos(r, 0);
-	scrn_cel();
+static __inline__ void rte_scrn_clr_line(int r)	{
+	rte_scrn_pos(r, 0);
+	rte_scrn_cel();
 }
 
-static __inline__ void scrn_eol_pos(int r, int c) {
-	scrn_pos(r, c);
-	scrn_eol();
+static __inline__ void rte_scrn_eol_pos(int r, int c) {
+	rte_scrn_pos(r, c);
+	rte_scrn_eol();
 }
 
-static __inline__ void scrn_off(void) {
+static __inline__ void rte_scrn_off(void) {
 	if ( scrn == NULL ) return;
 	rte_atomic32_set(&scrn->state, SCRN_OFF);
 }
 
-static __inline__ void scrn_on(void) {
+static __inline__ void rte_scrn_on(void) {
 	if ( scrn == NULL ) return;
 	rte_atomic32_set(&scrn->state, SCRN_ON);
 }
 
-static __inline__ int scrn_is_off(void) {
+static __inline__ int rte_scrn_is_off(void) {
 	if ( scrn == NULL ) return 0;
 	return (rte_atomic32_read(&scrn->state) == SCRN_OFF);
 }
 
-static __inline__ void scrn_pause(void) {
+static __inline__ void rte_scrn_pause(void) {
 	if ( scrn == NULL ) return;
 	rte_atomic32_set(&scrn->pause, 1);
 }
 
-static __inline__ void scrn_resume(void) {
+static __inline__ void rte_scrn_resume(void) {
 	if ( scrn == NULL ) return;
 	rte_atomic32_set(&scrn->pause, 0);
 }
 
-static __inline__ int scrn_is_paused(void) {
+static __inline__ int rte_scrn_is_paused(void) {
 	if ( scrn == NULL ) return 0;
 	return (rte_atomic32_read(&scrn->pause) == 1);
 }
 
-static __inline__ int scrn_center_col(const char * msg) {
+static __inline__ int rte_scrn_center_col(const char * msg) {
 	int16_t		s;
 
 	if ( scrn == NULL ) return 0;
@@ -171,11 +171,11 @@ static __inline__ int scrn_center_col(const char * msg) {
 	return (s <= 0)? 1 : s;
 }
 
-static __inline__ void scrn_erase(void) {
+static __inline__ void rte_scrn_erase(void) {
 	int		i;
 
-	scrn_setw(1);				// Clear the window to full screen.
-	scrn_pos(100, 1);			// Put cursor on the last row.
+	rte_scrn_setw(1);				// Clear the window to full screen.
+	rte_scrn_pos(100, 1);			// Put cursor on the last row.
 
 	// Scroll the screen to clear the screen and keep the previous information.
 	for(i = 0; i < ((scrn->nrows+5)/6); i++)
@@ -183,58 +183,58 @@ static __inline__ void scrn_erase(void) {
 	fflush(stdout);
 }
 
-static __inline__ void scrn_repeat(int16_t r, int16_t c, const char * str, int cnt) {
+static __inline__ void rte_scrn_repeat(int16_t r, int16_t c, const char * str, int cnt) {
 	int		i;
 
-	scrn_pos(r, c);
+	rte_scrn_pos(r, c);
 	for(i=0; i<cnt; i++)
 		printf("%s", str);
 
 	fflush(stdout);
 }
 
-static __inline__ void scrn_col_repeat(int16_t r, int16_t c, const char * str, int cnt) {
+static __inline__ void rte_scrn_col_repeat(int16_t r, int16_t c, const char * str, int cnt) {
 	int		i;
 
 	for(i=0; i<cnt; i++) {
-		scrn_pos(r++, c);
+		rte_scrn_pos(r++, c);
 		printf("%s", str);
 	}
 }
 
-static __inline__ void scrn_fgcolor( color_e color, attr_e attr ) {
-    scrn_puts("\033[%d;%dm", attr, color + 30);
+static __inline__ void rte_scrn_fgcolor( color_e color, attr_e attr ) {
+    rte_scrn_puts("\033[%d;%dm", attr, color + 30);
 }
 
-static __inline__ void scrn_bgcolor( color_e color, attr_e attr ) {
-    scrn_puts("\033[%d;%dm", attr, color + 40);
+static __inline__ void rte_scrn_bgcolor( color_e color, attr_e attr ) {
+    rte_scrn_puts("\033[%d;%dm", attr, color + 40);
 }
 
-static __inline__ void scrn_fgbgcolor( color_e fg, color_e bg, attr_e attr ) {
-		scrn_puts("\033[%d;%d;%dm", attr, fg + 30, bg + 40);
+static __inline__ void rte_scrn_fgbgcolor( color_e fg, color_e bg, attr_e attr ) {
+		rte_scrn_puts("\033[%d;%d;%dm", attr, fg + 30, bg + 40);
 }
 
-static __inline__ void scrn_color(color_e fg, color_e bg, attr_e attr) {
+static __inline__ void rte_scrn_color(color_e fg, color_e bg, attr_e attr) {
 
 	if ( (fg != NO_CHANGE) && (bg != NO_CHANGE) )
-		scrn_fgbgcolor(fg, bg, attr);
+		rte_scrn_fgbgcolor(fg, bg, attr);
 	else if ( fg == NO_CHANGE )
-		scrn_bgcolor(bg, attr);
+		rte_scrn_bgcolor(bg, attr);
 	else if ( bg == NO_CHANGE )
-		scrn_fgcolor(fg, attr);
+		rte_scrn_fgcolor(fg, attr);
 }
 
 // Setup for 256 RGB color methods
-static __inline__ void scrn_rgb(uint8_t fg_bg, rgb_t r, rgb_t g, rgb_t b) {
-	scrn_puts("\033[%d;2;%d;%d;%dm", fg_bg, r, g, b);
+static __inline__ void rte_scrn_rgb(uint8_t fg_bg, rgb_t r, rgb_t g, rgb_t b) {
+	rte_scrn_puts("\033[%d;2;%d;%d;%dm", fg_bg, r, g, b);
 }
 
-extern void scrn_center(int16_t r, const char * fmt, ...);
-extern void scrn_printf(int16_t r, int16_t c, const char * fmt, ...);
-extern void scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...);
+extern void rte_scrn_center(int16_t r, const char * fmt, ...);
+extern void rte_scrn_printf(int16_t r, int16_t c, const char * fmt, ...);
+extern void rte_scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...);
 extern void scrn_snprintf(char * buff, int16_t len, const char * fmt, ...);
-extern rte_scrn_t * scrn_init(int16_t nrows, int16_t ncols, int theme);
+extern rte_scrn_t * rte_scrn_init(int16_t nrows, int16_t ncols, int theme);
 
-#define printf_status(...)	scrn_fprintf(0, 0, stdout, __VA_ARGS__)
+#define rte_printf_status(...)	rte_scrn_fprintf(0, 0, stdout, __VA_ARGS__)
 
 #endif

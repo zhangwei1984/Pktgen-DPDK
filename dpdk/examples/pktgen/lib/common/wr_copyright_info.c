@@ -171,19 +171,19 @@ wr_print_copyright(char * appname, char * created_by)
 {
 	int		i;
 
-	printf_status("-----------------------\n");
+	rte_printf_status("-----------------------\n");
 	for(i=0; intel_copyright[i] != NULL; i++)
-		printf_status("  %s\n", intel_copyright[i]);
-	printf_status("-----------------------\n");
+		rte_printf_status("  %s\n", intel_copyright[i]);
+	rte_printf_status("-----------------------\n");
 
-	printf_status("    %s\n\n", COPYRIGHT_MSG);
+	rte_printf_status("    %s\n\n", COPYRIGHT_MSG);
 	for(i=0; wr_copyright[i] != NULL; i++)
-		printf_status("  %s\n", wr_copyright[i]);
+		rte_printf_status("  %s\n", wr_copyright[i]);
 
-	scrn_color(YELLOW, NO_CHANGE, OFF);
-	printf_status("  %s created by: %s -- >>> %s <<<\n", appname, created_by, POWERED_BY_DPDK);
-	scrn_color(BLUE, NO_CHANGE, OFF);
-	printf_status("-----------------------\n");
+	rte_scrn_color(YELLOW, NO_CHANGE, OFF);
+	rte_printf_status("  %s created by: %s -- >>> %s <<<\n", appname, created_by, POWERED_BY_DPDK);
+	rte_scrn_color(BLUE, NO_CHANGE, OFF);
+	rte_printf_status("-----------------------\n");
 }
 
 void
@@ -217,22 +217,22 @@ wr_logo(int row, int col, char * appname)
 		NULL
 	};
 
-	scrn_cls();
-	scrn_color(GREEN, NO_CHANGE, BOLD);
+	rte_scrn_cls();
+	rte_scrn_color(GREEN, NO_CHANGE, BOLD);
 	for(i=0, row++; logo[i] != NULL; i++)
-		scrn_printf(row++, 7, "%s", logo[i]);
+		rte_scrn_printf(row++, 7, "%s", logo[i]);
 
-	scrn_color(MAGENTA, NO_CHANGE, OFF);
-	scrn_printf(++row, col, "%s", COPYRIGHT_MSG);
-	scrn_color(BLUE, NO_CHANGE, BOLD);
-	scrn_printf(++row, col+6, ">>> %s is %s <<<", appname, POWERED_BY_DPDK);
-	scrn_color(BLACK, NO_CHANGE, OFF);
-	scrn_pos(++row, 1);
+	rte_scrn_color(MAGENTA, NO_CHANGE, OFF);
+	rte_scrn_printf(++row, col, "%s", COPYRIGHT_MSG);
+	rte_scrn_color(BLUE, NO_CHANGE, BOLD);
+	rte_scrn_printf(++row, col+6, ">>> %s is %s <<<", appname, POWERED_BY_DPDK);
+	rte_scrn_color(BLACK, NO_CHANGE, OFF);
+	rte_scrn_pos(++row, 1);
 
 	rte_delay_ms(1500);
 
-    scrn_cls();
-    scrn_pos(100, 1);
+    rte_scrn_cls();
+    rte_scrn_pos(100, 1);
 }
 
 void
@@ -241,20 +241,20 @@ wr_splash_screen(int row, int col, char * appname, char * created_by)
 	int		i;
 
 	row = 3;
-	scrn_color(BLUE, NO_CHANGE, OFF);
-	scrn_printf(row++, col, "%s", COPYRIGHT_MSG);
-	scrn_color(GREEN, NO_CHANGE, BOLD);
+	rte_scrn_color(BLUE, NO_CHANGE, OFF);
+	rte_scrn_printf(row++, col, "%s", COPYRIGHT_MSG);
+	rte_scrn_color(GREEN, NO_CHANGE, BOLD);
 	for(i=0, row++; wr_copyright[i] != NULL; i++)
-		scrn_printf(row++, 7, "%s", wr_copyright[i]);
-	scrn_color(BLUE, NO_CHANGE, BOLD);
-	scrn_printf(row++, col, "%s created by %s -- >>> %s <<<", appname, created_by, POWERED_BY_DPDK);
-	scrn_color(BLACK, NO_CHANGE, OFF);
-	scrn_pos(++row, 1);
+		rte_scrn_printf(row++, 7, "%s", wr_copyright[i]);
+	rte_scrn_color(BLUE, NO_CHANGE, BOLD);
+	rte_scrn_printf(row++, col, "%s created by %s -- >>> %s <<<", appname, created_by, POWERED_BY_DPDK);
+	rte_scrn_color(BLACK, NO_CHANGE, OFF);
+	rte_scrn_pos(++row, 1);
 
 	rte_delay_ms(1500);
 
-    scrn_cls();
-    scrn_pos(100, 1);
+    rte_scrn_cls();
+    rte_scrn_pos(100, 1);
 }
 
 /**
