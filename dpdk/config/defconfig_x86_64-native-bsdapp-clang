@@ -28,21 +28,14 @@
 #   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 #   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 
-include $(RTE_SDK)/mk/rte.vars.mk
+#include "common_bsdapp"
 
-# library name
-LIB = librte_ring.a
+CONFIG_RTE_MACHINE="native"
 
-CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3
+CONFIG_RTE_ARCH="x86_64"
+CONFIG_RTE_ARCH_X86_64=y
 
-# all source are stored in SRCS-y
-SRCS-$(CONFIG_RTE_LIBRTE_RING) := rte_ring.c
-
-# install includes
-SYMLINK-$(CONFIG_RTE_LIBRTE_RING)-include := rte_ring.h
-
-# this lib needs eal and rte_malloc
-DEPDIRS-$(CONFIG_RTE_LIBRTE_RING) += lib/librte_eal lib/librte_malloc
-
-include $(RTE_SDK)/mk/rte.lib.mk
+CONFIG_RTE_TOOLCHAIN="clang"
+CONFIG_RTE_TOOLCHAIN_CLANG=y

@@ -29,20 +29,15 @@
 #   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include $(RTE_SDK)/mk/rte.vars.mk
+#
+# CPUID-related options
+#
+# This was added to support compiler versions which might not support all the
+# flags we need
+#
 
-# library name
-LIB = librte_ring.a
+# find out CLANG version
 
-CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3
+CLANG_MAJOR_VERSION = $(shell $(CC) -dumpversion | cut -f1 -d.)
 
-# all source are stored in SRCS-y
-SRCS-$(CONFIG_RTE_LIBRTE_RING) := rte_ring.c
-
-# install includes
-SYMLINK-$(CONFIG_RTE_LIBRTE_RING)-include := rte_ring.h
-
-# this lib needs eal and rte_malloc
-DEPDIRS-$(CONFIG_RTE_LIBRTE_RING) += lib/librte_eal lib/librte_malloc
-
-include $(RTE_SDK)/mk/rte.lib.mk
+CLANG_MINOR_VERSION = $(shell $(CC) -dumpversion | cut -f2 -d.)

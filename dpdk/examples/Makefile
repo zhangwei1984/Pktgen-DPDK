@@ -43,6 +43,7 @@ DIRS-y += dpdk_qat
 endif
 DIRS-y += exception_path
 DIRS-y += helloworld
+DIRS-y += ip_pipeline
 DIRS-y += ip_reassembly
 DIRS-$(CONFIG_RTE_MBUF_SCATTER_GATHER) += ip_fragmentation
 DIRS-$(CONFIG_RTE_MBUF_SCATTER_GATHER) += ipv4_multicast
@@ -65,6 +66,5 @@ DIRS-y += vhost
 DIRS-$(CONFIG_RTE_LIBRTE_XEN_DOM0) += vhost_xen
 DIRS-y += vmdq
 DIRS-y += vmdq_dcb
-DIRS-$(CONFIG_WR_PKTGEN) += pktgen
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk

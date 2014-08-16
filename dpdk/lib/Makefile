@@ -63,6 +63,7 @@ DIRS-$(CONFIG_RTE_LIBRTE_DISTRIBUTOR) += librte_distributor
 DIRS-$(CONFIG_RTE_LIBRTE_PORT) += librte_port
 DIRS-$(CONFIG_RTE_LIBRTE_TABLE) += librte_table
 DIRS-$(CONFIG_RTE_LIBRTE_PIPELINE) += librte_pipeline
+DIRS-$(CONFIG_RTE_LIBRTE_SCRN) += librte_scrn
 
 ifeq ($(CONFIG_RTE_EXEC_ENV_LINUXAPP),y)
 DIRS-$(CONFIG_RTE_LIBRTE_KNI) += librte_kni

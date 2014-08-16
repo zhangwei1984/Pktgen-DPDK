@@ -142,7 +142,6 @@
 #include <wr_cksum.h>
 
 #include <wr_cycles.h>
-#include <wr_mempool.h>
 #include <wr_mbuf.h>
 #include <wr_coremap.h>
 #include <wr_lscpu.h>

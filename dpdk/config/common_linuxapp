@@ -63,7 +63,7 @@ CONFIG_RTE_EXEC_ENV_LINUXAPP=y
 #
 ##
 ## The compiler we use.
-## Can be gcc or icc.
+## Can be gcc, icc or clang.
 ##
 #CONFIG_RTE_TOOLCHAIN="gcc"
 #CONFIG_RTE_TOOLCHAIN_GCC=y
@@ -410,3 +410,9 @@ CONFIG_RTE_APP_TEST=y
 CONFIG_RTE_TEST_PMD=y
 CONFIG_RTE_TEST_PMD_RECORD_CORE_CYCLES=n
 CONFIG_RTE_TEST_PMD_RECORD_BURST_STATS=n
+
+#
+# Simple cursor and color support.
+#
+CONFIG_RTE_LIBRTE_SCRN=y
+

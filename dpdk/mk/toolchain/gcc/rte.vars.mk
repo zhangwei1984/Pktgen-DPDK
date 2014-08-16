@@ -37,8 +37,6 @@
 #   - define TOOLCHAIN_LDFLAGS variable (overriden by cmdline value)
 #   - define TOOLCHAIN_ASFLAGS variable (overriden by cmdline value)
 #
-# examples for RTE_TOOLCHAIN: gcc, icc
-#
 
 CC        = $(CROSS)gcc
 CPP       = $(CROSS)cpp

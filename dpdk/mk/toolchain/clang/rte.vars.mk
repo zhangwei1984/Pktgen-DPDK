@@ -29,20 +29,51 @@
 #   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include $(RTE_SDK)/mk/rte.vars.mk
+#
+# toolchain:
+#
+#   - define CC, LD, AR, AS, ... (overriden by cmdline value)
+#   - define TOOLCHAIN_CFLAGS variable (overriden by cmdline value)
+#   - define TOOLCHAIN_LDFLAGS variable (overriden by cmdline value)
+#   - define TOOLCHAIN_ASFLAGS variable (overriden by cmdline value)
+#
 
-# library name
-LIB = librte_ring.a
+ifeq ($(KERNELRELEASE),)
+CC        = $(CROSS)clang
+else
+CC        = $(CROSS)gcc
+endif
+CPP       = $(CROSS)cpp
+# for now, we don't use as but nasm.
+# AS      = $(CROSS)as
+AS        = nasm
+AR        = $(CROSS)ar
+LD        = $(CROSS)ld
+OBJCOPY   = $(CROSS)objcopy
+OBJDUMP   = $(CROSS)objdump
+STRIP     = $(CROSS)strip
+READELF   = $(CROSS)readelf
+GCOV      = $(CROSS)gcov
 
-CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3
+ifeq ("$(origin CC)", "command line")
+HOSTCC    = $(CC)
+else
+HOSTCC    = clang
+endif
+HOSTAS    = as
 
-# all source are stored in SRCS-y
-SRCS-$(CONFIG_RTE_LIBRTE_RING) := rte_ring.c
+TOOLCHAIN_ASFLAGS =
+TOOLCHAIN_CFLAGS =
+TOOLCHAIN_LDFLAGS =
 
-# install includes
-SYMLINK-$(CONFIG_RTE_LIBRTE_RING)-include := rte_ring.h
+WERROR_FLAGS := -W -Wall -Werror -Wstrict-prototypes -Wmissing-prototypes
+WERROR_FLAGS += -Wmissing-declarations -Wold-style-definition -Wpointer-arith
+WERROR_FLAGS += -Wnested-externs -Wcast-qual
+WERROR_FLAGS += -Wformat-nonliteral -Wformat-security
+WERROR_FLAGS += -Wundef -Wwrite-strings
 
-# this lib needs eal and rte_malloc
-DEPDIRS-$(CONFIG_RTE_LIBRTE_RING) += lib/librte_eal lib/librte_malloc
+# process cpu flags
+include $(RTE_SDK)/mk/toolchain/$(RTE_TOOLCHAIN)/rte.toolchain-compat.mk
 
-include $(RTE_SDK)/mk/rte.lib.mk
+export CC AS AR LD OBJCOPY OBJDUMP STRIP READELF
+export TOOLCHAIN_CFLAGS TOOLCHAIN_LDFLAGS TOOLCHAIN_ASFLAGS

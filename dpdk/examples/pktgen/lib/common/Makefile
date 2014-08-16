@@ -39,11 +39,11 @@ CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3 -I../scrn
 
 # install includes
 SYMLINK-$(CONFIG_WR_PKTGEN)-include := wr_copyright_info.h wr_port_config.h \
-	wr_core_info.h wr_lscpu.h wr_utils.h wr_coremap.h wr_mempool.h wr_mbuf.h \
+	wr_core_info.h wr_lscpu.h wr_utils.h wr_coremap.h wr_mbuf.h \
 	wr_cycles.h wr_pcap.h wr_inet.h wr_cksum.h wr_l2p.h
 
 # all source are stored in SRCS-y
 SRCS-$(CONFIG_WR_PKTGEN) := wr_copyright_info.c wr_port_config.c wr_core_info.c \
-	wr_lscpu.c wr_utils.c wr_coremap.c wr_mempool.c wr_pcap.c wr_cksum.c wr_l2p.c
+	wr_lscpu.c wr_utils.c wr_coremap.c wr_pcap.c wr_cksum.c wr_l2p.c
 
 include $(RTE_SDK)/mk/rte.lib.mk

@@ -98,7 +98,6 @@
 
 #include "wr_inet.h"
 #include "wr_cycles.h"
-#include "wr_mempool.h"
 #include "wr_mbuf.h"
 #include "wr_cksum.h"
 
