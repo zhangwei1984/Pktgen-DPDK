@@ -342,7 +342,7 @@ void pktgen_page_random_bitfields(uint32_t print_labels, uint16_t pid, rnd_bits_
 	row = PORT_STATE_ROW;
 
 	if (rnd_bits == NULL) {
-		scrn_center(10, "** Port is not active - no random bitfields set **");
+		scrn_center(10, pktgen.scrn->ncols, "** Port is not active - no random bitfields set **");
 		row = 28;
 		goto leave;
 	}

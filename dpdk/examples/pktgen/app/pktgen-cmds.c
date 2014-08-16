@@ -483,16 +483,16 @@ pktgen_flags_string( port_info_t * info )
 void
 pktgen_redisplay( int cls_flag )
 {
-	if ( scrn_is_paused() )
+	if ( scrn_is_paused(pktgen.scrn) )
 		return;
 
-	scrn_pause();
+	scrn_pause(pktgen.scrn);
 	if ( cls_flag ) {
 		scrn_cls();
 		scrn_pos(100, 1);
 	}
 	pktgen.flags |= PRINT_LABELS_FLAG;
-	scrn_resume();
+	scrn_resume(pktgen.scrn);
 
 	pktgen_page_display(NULL, NULL);
 }
@@ -558,8 +558,8 @@ pktgen_screen(const char * onOff)
 	pktgen_display_get_geometry(&rows, NULL);
 
 	if ( parseState(onOff) == DISABLE_STATE ) {
-		if ( !scrn_is_paused() ) {
-			scrn_pause();
+		if ( !scrn_is_paused(pktgen.scrn) ) {
+			scrn_pause(pktgen.scrn);
 			scrn_cls();
 			scrn_setw(1);
 			scrn_pos(100, 1);
@@ -568,7 +568,7 @@ pktgen_screen(const char * onOff)
 		scrn_cls();
 		scrn_pos(100,1);
 		scrn_setw(pktgen.last_row+1);
-		scrn_resume();
+		scrn_resume(pktgen.scrn);
 		pktgen_redisplay(1);
 	}
 }
@@ -1307,7 +1307,7 @@ void pktgen_clear_stats(port_info_t * info)
 
 void pktgen_cls(void)
 {
-	if ( scrn_is_paused() ) {
+	if ( scrn_is_paused(pktgen.scrn) ) {
 		scrn_cls();
 		scrn_pos(100, 1);
 	} else	// Update the display quickly.

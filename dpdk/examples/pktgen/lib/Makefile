@@ -31,6 +31,6 @@
 
 include $(RTE_SDK)/mk/rte.extvars.mk
 
-DIRS-$(CONFIG_WR_PKTGEN) += scrn lua common
+DIRS-$(CONFIG_WR_PKTGEN) += lua common
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk

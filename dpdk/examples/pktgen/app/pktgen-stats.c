@@ -306,12 +306,12 @@ pktgen_page_stats(void)
         scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._256_511);
         scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._512_1023);
         scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, info->sizes._1024_1518);
-        scrn_snprintf(buff, sizeof(buff), "%llu/%llu", info->sizes.runt, info->sizes.jumbo);
+        snprintf(buff, sizeof(buff), "%lu/%lu", info->sizes.runt, info->sizes.jumbo);
         scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 
         // Rx/Tx Errors
         row = PKT_TOTALS_ROW;
-        scrn_snprintf(buff, sizeof(buff), "%llu/%llu", info->port_stats.ierrors, info->port_stats.oerrors);
+        snprintf(buff, sizeof(buff), "%lu/%lu", info->port_stats.ierrors, info->port_stats.oerrors);
         scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 
         // Total Rx/Tx
@@ -322,13 +322,13 @@ pktgen_page_stats(void)
         scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, iBitsTotal(info->port_stats)/Million);
         scrn_printf(row++, col, "%*llu", COLUMN_WIDTH_1, oBitsTotal(info->port_stats)/Million);
 
-        scrn_snprintf(buff, sizeof(buff), "%llu/%llu", info->stats.arp_pkts, info->stats.echo_pkts);
+        snprintf(buff, sizeof(buff), "%lu/%lu", info->stats.arp_pkts, info->stats.echo_pkts);
         scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 
 		if ( pktgen.flags & TX_DEBUG_FLAG ) {
-			scrn_snprintf(buff, sizeof(buff), "%llu", info->stats.tx_failed);
+			snprintf(buff, sizeof(buff), "%lu", info->stats.tx_failed);
 			scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
-			scrn_snprintf(buff, sizeof(buff), "%llu/%llu", info->tx_pps, info->tx_cycles);
+			snprintf(buff, sizeof(buff), "%lu/%lu", info->tx_pps, info->tx_cycles);
 			scrn_printf(row++, col, "%*s", COLUMN_WIDTH_1, buff);
 		}
     }

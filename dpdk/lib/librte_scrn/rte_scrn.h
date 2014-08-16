@@ -280,7 +280,6 @@ extern void scrn_printf(int16_t r, int16_t c, const char * fmt, ...);
 extern void scrn_fprintf(int16_t r, int16_t c, FILE * f, const char * fmt, ...);
 
 #define printf_status(...)	scrn_fprintf(0, 0, stdout, __VA_ARGS__)
-#define printf_info(...)	scrn_fprintf(0, 0, stdout, __VA_ARGS__)
 
 #ifdef __cplusplus
 }

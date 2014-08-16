@@ -121,6 +121,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <rte_scrn.h>
 
 #include <wr_copyright_info.h>
 #include <wr_l2p.h>
@@ -264,10 +265,10 @@ typedef struct pktgen_s {
 	char				  * cmd_filename;		/**< Command file path and name */
 	void				  * L;					/**< Lua State pointer */
 	char				  * hostname;			/**< GUI hostname */
+	rte_scrn_t			  * scrn;				/**< Screen structure pointer */
 	uint64_t				coremask;			/**< Coremask of lcores */
 
 	int32_t					socket_port;		/**< GUI port number */
-//	uint32_t				enabled_port_mask;	/**< mask of enabled ports */
 	uint32_t				blinklist;			/**< Port list for blinking the led */
 	uint32_t				flags;				/**< Flag values */
 	uint16_t				ident;				/**< IPv4 ident value */

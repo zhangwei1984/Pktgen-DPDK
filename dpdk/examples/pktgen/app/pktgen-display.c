@@ -182,7 +182,7 @@ theme_color_map_t theme_color_map[] = {
 void
 pktgen_init_screen(int theme)
 {
-	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
+	pktgen.scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
 }
 
 

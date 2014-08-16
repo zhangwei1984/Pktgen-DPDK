@@ -1239,7 +1239,7 @@ pktgen_page_config(void)
 {
 	display_topline("** Configure Page **");
 
-    scrn_center(20, "Need to add the configuration stuff here");
+    scrn_center(20, pktgen.scrn->ncols, "Need to add the configuration stuff here");
     display_dashline(22);
 }
 
@@ -1261,7 +1261,7 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
     static unsigned int counter = 0;
 
     // Leave if the screen is paused
-    if ( scrn_is_paused() )
+    if ( scrn_is_paused(pktgen.scrn) )
         return;
 
     scrn_save();
