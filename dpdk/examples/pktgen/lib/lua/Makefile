@@ -46,6 +46,7 @@ WERROR_FLAGS := -W -Wall
 WERROR_FLAGS += -Wpointer-arith
 WERROR_FLAGS += -Wcast-align
 WERROR_FLAGS += -Wnested-externs
+WERROR_FLAGS += -Wno-cast-align
 
 CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3 -g -fno-stack-protector
 

@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -121,7 +121,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
-#include <rte_scrn.h>
+#include <wr_scrn.h>
 
 #include <wr_copyright_info.h>
 #include <wr_l2p.h>
@@ -265,7 +265,7 @@ typedef struct pktgen_s {
 	char				  * cmd_filename;		/**< Command file path and name */
 	void				  * L;					/**< Lua State pointer */
 	char				  * hostname;			/**< GUI hostname */
-	rte_scrn_t			  * scrn;				/**< Screen structure pointer */
+	wr_scrn_t			  * scrn;				/**< Screen structure pointer */
 	uint64_t				coremask;			/**< Coremask of lcores */
 
 	int32_t					socket_port;		/**< GUI port number */

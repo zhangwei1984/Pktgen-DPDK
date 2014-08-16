@@ -60,7 +60,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -104,6 +104,7 @@
 #include <cmdline_parse_string.h>
 #include <cmdline.h>
 #include <rte_atomic.h>
+#include <rte_devargs.h>
 
 #include "wr_copyright_info.h"
 #include "pktgen-cmds.h"
@@ -180,7 +181,7 @@ cmdline_pause(struct cmdline *cl, const char * msg)
 	if ( n < 0 )
 		return;
 	cmdline_printf(cl, "\r");
-	rte_scrn_eol();
+	wr_scrn_eol();
 }
 
 /**********************************************************/
@@ -368,23 +369,23 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 {
 	int		i, paused;
 
-	paused = rte_scrn_is_paused();
+	paused = wr_scrn_is_paused();
 
 	if ( ! paused )
-		rte_scrn_pause();
-	rte_scrn_setw(1);
-	rte_scrn_cls();
+		wr_scrn_pause();
+	wr_scrn_setw(1);
+	wr_scrn_cls();
 
-	rte_scrn_pos(0,0);
+	wr_scrn_pos(0,0);
 	cmdline_printf(cl, help_info[1], wr_copyright_msg());
-	rte_scrn_pos(3,0);
+	wr_scrn_pos(3,0);
 	for(i=2; help_info[i] != NULL; i++ ) {
 		if ( strcmp(help_info[i], "<<PageBreak>>") == 0 ) {
 			cmdline_pause(cl, "   <More Help: Press Return to Continue>");
-			rte_scrn_cls();
-			rte_scrn_pos(0,0);
+			wr_scrn_cls();
+			wr_scrn_pos(0,0);
 			cmdline_printf(cl, help_info[1], wr_copyright_msg());
-			rte_scrn_pos(3,0);
+			wr_scrn_pos(3,0);
 			continue;
 		}
 		cmdline_printf(cl, "%s\n", help_info[i]);
@@ -393,8 +394,8 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 	cmdline_pause(cl, "   <Press Return to Continue>");
 
 	if ( !paused ) {
-		rte_scrn_setw(pktgen.last_row+1);
-		rte_scrn_resume();
+		wr_scrn_setw(pktgen.last_row+1);
+		wr_scrn_resume();
 		pktgen_redisplay(1);
 	}
 }
@@ -2368,7 +2369,7 @@ static void cmd_set_load_parsed(void *parsed_result,
 
 	if ( pktgen_load_cmds(res->path) )
 		cmdline_printf(cl, "load command failed for %s\n", res->path);
-	if ( ! rte_scrn_is_paused() )
+	if ( ! wr_scrn_is_paused() )
 		pktgen_redisplay(0);
 }
 

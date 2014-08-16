@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -483,16 +483,16 @@ pktgen_flags_string( port_info_t * info )
 void
 pktgen_redisplay( int cls_flag )
 {
-	if ( rte_scrn_is_paused() )
+	if ( wr_scrn_is_paused() )
 		return;
 
-	rte_scrn_pause();
+	wr_scrn_pause();
 	if ( cls_flag ) {
-		rte_scrn_cls();
-		rte_scrn_pos(100, 1);
+		wr_scrn_cls();
+		wr_scrn_pos(100, 1);
 	}
 	pktgen.flags |= PRINT_LABELS_FLAG;
-	rte_scrn_resume();
+	wr_scrn_resume();
 
 	pktgen_page_display(NULL, NULL);
 }
@@ -558,17 +558,17 @@ pktgen_screen(const char * onOff)
 	pktgen_display_get_geometry(&rows, NULL);
 
 	if ( parseState(onOff) == DISABLE_STATE ) {
-		if ( !rte_scrn_is_paused() ) {
-			rte_scrn_pause();
-			rte_scrn_cls();
-			rte_scrn_setw(1);
-			rte_scrn_pos(100, 1);
+		if ( !wr_scrn_is_paused() ) {
+			wr_scrn_pause();
+			wr_scrn_cls();
+			wr_scrn_setw(1);
+			wr_scrn_pos(100, 1);
 		}
 	} else {
-		rte_scrn_cls();
-		rte_scrn_pos(100,1);
-		rte_scrn_setw(pktgen.last_row+1);
-		rte_scrn_resume();
+		wr_scrn_cls();
+		wr_scrn_pos(100,1);
+		wr_scrn_setw(pktgen.last_row+1);
+		wr_scrn_resume();
 		pktgen_redisplay(1);
 	}
 }
@@ -1307,9 +1307,9 @@ void pktgen_clear_stats(port_info_t * info)
 
 void pktgen_cls(void)
 {
-	if ( rte_scrn_is_paused() ) {
-		rte_scrn_cls();
-		rte_scrn_pos(100, 1);
+	if ( wr_scrn_is_paused() ) {
+		wr_scrn_cls();
+		wr_scrn_pos(100, 1);
 	} else	// Update the display quickly.
 		pktgen_redisplay(1);
 }

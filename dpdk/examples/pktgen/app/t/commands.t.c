@@ -13,8 +13,8 @@
 #include "lpktgenlib.h"
 
 
-#include <rte_scrn.h>
-rte_scrn_t *scrn = NULL;
+#include <wr_scrn.h>
+wr_scrn_t *scrn = NULL;
 
 
 pktgen_t pktgen;

@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -178,7 +178,7 @@ theme_color_map_t theme_color_map[] = {
 void
 pktgen_init_screen(int theme)
 {
-	pktgen.scrn = rte_scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
+	pktgen.scrn = wr_scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
 }
 
 
@@ -186,11 +186,11 @@ pktgen_init_screen(int theme)
 void
 display_topline(const char * msg)
 {
-		rte_scrn_printf(1, 20, "%s", msg);
+		wr_scrn_printf(1, 20, "%s", msg);
 		pktgen_display_set_color("top.copyright");
-		rte_scrn_puts("  %s", wr_copyright_msg());
+		wr_scrn_puts("  %s", wr_copyright_msg());
 		pktgen_display_set_color("top.poweredby");
-		rte_scrn_puts(" %s", wr_powered_by());
+		wr_scrn_puts(" %s", wr_powered_by());
 		pktgen_display_set_color(NULL);
 }
 
@@ -201,14 +201,14 @@ display_dashline(int last_row)
 {
 	int i;
 
-	rte_scrn_setw(last_row);
+	wr_scrn_setw(last_row);
 	last_row--;
-	rte_scrn_pos(last_row, 1);
+	wr_scrn_pos(last_row, 1);
 	pktgen_display_set_color("sep.dash");
 	for(i=0; i<(__scrn->ncols-15); i++)
-		rte_scrn_fprintf(0, 0, stdout, "-");
+		wr_scrn_fprintf(0, 0, stdout, "-");
 	pktgen_display_set_color("sep.text");
-	rte_scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
+	wr_scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
 	pktgen_display_set_color(NULL);
 }
 
@@ -270,7 +270,7 @@ pktgen_display_set_color(const char *elem) {
 		return;
 	}
 
-	rte_scrn_color(theme_color->fg_color, theme_color->bg_color, theme_color->attr);
+	wr_scrn_color(theme_color->fg_color, theme_color->bg_color, theme_color->attr);
 }
 
 

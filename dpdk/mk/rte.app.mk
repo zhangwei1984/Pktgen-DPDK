@@ -149,10 +149,6 @@ ifeq ($(CONFIG_RTE_LIBRTE_RING),y)
 LDLIBS += -lrte_ring
 endif
 
-ifeq ($(CONFIG_RTE_LIBRTE_SCRN),y)
-LDLIBS += -lrte_scrn
-endif
-
 ifeq ($(CONFIG_RTE_LIBC),y)
 LDLIBS += -lc
 LDLIBS += -lm

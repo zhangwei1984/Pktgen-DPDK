@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -99,7 +99,7 @@ pktgen_print_pcap(uint16_t pid)
     char pkt_buff[2048];
 
     display_topline("** PCAP Page **");
-    rte_scrn_printf(1, 3, "Port %d of %d", pid, pktgen.nb_ports);
+    wr_scrn_printf(1, 3, "Port %d of %d", pid, pktgen.nb_ports);
 
     info = &pktgen.info[pid];
     pcap = info->pcap;
@@ -107,15 +107,15 @@ pktgen_print_pcap(uint16_t pid)
     row = PORT_STATE_ROW;
     col = 1;
     if ( pcap == NULL ) {
-    	rte_scrn_center(10, pktgen.scrn->ncols, "** Port does not have a PCAP file assigned **");
+    	wr_scrn_center(10, pktgen.scrn->ncols, "** Port does not have a PCAP file assigned **");
     	row = 28;
     	goto leave;
     }
 
-    rte_scrn_eol_pos(row, col);
-    rte_scrn_printf(row++, col, "Port: %d, PCAP Count: %d of %d",
+    wr_scrn_eol_pos(row, col);
+    wr_scrn_printf(row++, col, "Port: %d, PCAP Count: %d of %d",
     		pid, pcap->pkt_idx, pcap->pkt_count);
-    rte_scrn_printf(row++, col, "%*s %*s%*s%*s%*s%*s%*s%*s",
+    wr_scrn_printf(row++, col, "%*s %*s%*s%*s%*s%*s%*s%*s",
             5, "Seq",
             COLUMN_WIDTH_0, "Dst MAC",
             COLUMN_WIDTH_0, "Src MAC",
@@ -154,13 +154,13 @@ pktgen_print_pcap(uint16_t pid)
 
         hdr = (pkt_hdr_t *)&pkt_buff[0];
 
-       	rte_scrn_eol_pos(row, col);
+       	wr_scrn_eol_pos(row, col);
 
-        rte_scrn_printf(row, col, "%5d:", i);
+        wr_scrn_printf(row, col, "%5d:", i);
         col += 7;
-        rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &hdr->eth.d_addr));
+        wr_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &hdr->eth.d_addr));
         col += COLUMN_WIDTH_1;
-        rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &hdr->eth.s_addr));
+        wr_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &hdr->eth.s_addr));
         col += COLUMN_WIDTH_1;
 
         type = ntohs(hdr->eth.ether_type);
@@ -172,14 +172,14 @@ pktgen_print_pcap(uint16_t pid)
         	proto = ((ipHdr_t *)((char *)&hdr->u.ipv4 + 4))->proto;
         }
 
-        if ( (type == ETHER_TYPE_IPv4) ) {
-			rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), hdr->u.ipv4.dst, 0xFFFFFFFF));
+        if ( type == ETHER_TYPE_IPv4 ) {
+			wr_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), hdr->u.ipv4.dst, 0xFFFFFFFF));
 			col += COLUMN_WIDTH_1;
-			rte_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1+2, inet_ntop4(buff, sizeof(buff), hdr->u.ipv4.src, 0xFFFFFFFF));
+			wr_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1+2, inet_ntop4(buff, sizeof(buff), hdr->u.ipv4.src, 0xFFFFFFFF));
 			col += COLUMN_WIDTH_1+2;
 
 	        snprintf(buff, sizeof(buff), "%d/%d", ntohs(hdr->u.uip.udp.sport), ntohs(hdr->u.uip.udp.dport));
-	        rte_scrn_printf(row, col, "%*s", 12, buff);
+	        wr_scrn_printf(row, col, "%*s", 12, buff);
 	        col += 12;
         } else {
         	skip++;
@@ -190,14 +190,14 @@ pktgen_print_pcap(uint16_t pid)
                                                    (type == PG_IPPROTO_TCP)? "TCP" :
                                                    (proto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                    (vlan & 0xFFF));
-        rte_scrn_printf(row, col, "%*s", 15, buff);
+        wr_scrn_printf(row, col, "%*s", 15, buff);
         col += 15;
-        rte_scrn_printf(row, col, "%5d", len);
+        wr_scrn_printf(row, col, "%5d", len);
 
         if ( skip && (type < ETHER_TYPE_IPv4) )
-        	rte_scrn_printf(row, col+7, "<<< Skip %04x", type);
+        	wr_scrn_printf(row, col+7, "<<< Skip %04x", type);
         else if ( skip && (type != ETHER_TYPE_IPv4) )
-        	rte_scrn_printf(row, col+7, " EthType %04x", type);
+        	wr_scrn_printf(row, col+7, " EthType %04x", type);
         row++;
     }
 leave:

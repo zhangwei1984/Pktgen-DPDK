@@ -1,5 +1,5 @@
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -88,7 +88,6 @@
 #include <rte_mbuf.h>
 #include <rte_lpm.h>
 #include <rte_string_fns.h>
-#include <rte_scrn.h>
 #include <rte_byteorder.h>
 #include <rte_spinlock.h>
 #include <rte_errno.h>
@@ -96,6 +95,7 @@
 #include "wr_copyright_info.h"
 #include "wr_port_config.h"
 
+#include "wr_scrn.h"
 #include "wr_inet.h"
 #include "wr_cycles.h"
 #include "wr_mbuf.h"
