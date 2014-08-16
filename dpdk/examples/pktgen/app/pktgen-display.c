@@ -68,10 +68,6 @@
 #include "pktgen-display.h"
 #include "pktgen-cmds.h"
 
-
-/* Screen data structure */
-rte_scrn_t *scrn;
-
 #define MAX_COLOR_NAME_SIZE		64
 #define MAX_PROMPT_STRING_SIZE	64
 
@@ -209,7 +205,7 @@ display_dashline(int last_row)
 	last_row--;
 	rte_scrn_pos(last_row, 1);
 	pktgen_display_set_color("sep.dash");
-	for(i=0; i<(scrn->ncols-15); i++)
+	for(i=0; i<(__scrn->ncols-15); i++)
 		rte_scrn_fprintf(0, 0, stdout, "-");
 	pktgen_display_set_color("sep.text");
 	rte_scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
@@ -220,8 +216,8 @@ display_dashline(int last_row)
 void
 pktgen_display_set_geometry(uint16_t rows, uint16_t cols)
 {
-	scrn->nrows = rows;
-	scrn->ncols = cols;
+	__scrn->nrows = rows;
+	__scrn->ncols = cols;
 }
 
 /* Get the display geometry */
@@ -229,10 +225,10 @@ void
 pktgen_display_get_geometry(uint16_t *rows, uint16_t *cols)
 {
 	if (rows != NULL)
-		*rows = scrn->nrows;
+		*rows = __scrn->nrows;
 
 	if (cols != NULL)
-		*cols = scrn->ncols;
+		*cols = __scrn->ncols;
 }
 
 
@@ -265,7 +261,7 @@ void
 pktgen_display_set_color(const char *elem) {
 	theme_color_map_t *theme_color;
 
-	if ( scrn->theme == THEME_OFF )
+	if ( __scrn->theme == THEME_OFF )
 		return;
 
 	theme_color = lookup_item(elem);
@@ -287,7 +283,7 @@ pktgen_get_prompt(void)
 	// Set default return value.
 	snprintf(prompt_str, sizeof(prompt_str), "%s> ", PKTGEN_APP_NAME);
 
-	if ( scrn->theme == THEME_ON ) {
+	if ( __scrn->theme == THEME_ON ) {
 		// Look up the default and prompt values
 		def    = lookup_item(NULL);
 		prompt = lookup_item("pktgen.prompt");
@@ -358,7 +354,7 @@ pktgen_theme_show(void)
 {
 	int		i;
 
-	printf("*** Theme Color Map Names (%s) ***\n", scrn->theme ? "Enabled" : "Disabled");
+	printf("*** Theme Color Map Names (%s) ***\n", __scrn->theme ? "Enabled" : "Disabled");
 	printf("   %-30s %-10s %-10s %s\n", "name", "FG Color", "BG Color", "Attribute");
 	for(i=0; theme_color_map[i].name; i++) {
 		printf("   %-32s %-10s %-10s %-6s",
@@ -379,9 +375,9 @@ void
 pktgen_theme_state(const char * state)
 {
 	if ( parseState(state) == DISABLE_STATE )
-		scrn->theme = THEME_OFF;
+		__scrn->theme = THEME_OFF;
 	else
-		scrn->theme = THEME_ON;
+		__scrn->theme = THEME_ON;
 	cmdline_set_prompt(pktgen.cl, pktgen_get_prompt());
 }
 

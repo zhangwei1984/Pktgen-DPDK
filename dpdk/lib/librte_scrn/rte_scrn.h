@@ -84,7 +84,7 @@ extern "C" {
 #include <rte_atomic.h>
 
 /** scrn version number */
-#define SCRN_VERSION	"1.2.0"
+#define SCRN_VERSION	"1.3.0"
 
 /** Structure to hold information about the screen and control access. */
 typedef struct rte_scrn_s {
