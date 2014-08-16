@@ -139,7 +139,7 @@ pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 #endif
         // We do not handle IP options, which will effect the IP header size.
         if ( cksum(icmp, (m->pkt.data_len - sizeof(struct ether_hdr) - sizeof(ipHdr_t)), 0) ) {
-            printf_info("ICMP checksum failed\n");
+            printf_status("ICMP checksum failed\n");
             goto leave:
         }
 
@@ -147,9 +147,9 @@ pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
             // Toss all broadcast addresses and requests not for this port
             if ( (ip->dst == INADDR_BROADCAST) || (ip->dst != info->ip_src_addr) ) {
                 char        buff[24];
-                printf_info("IP address %s != ",
+                printf_status("IP address %s != ",
                         inet_ntop4(buff, sizeof(buff), ip->dst, INADDR_BROADCAST));
-                printf_info("%s\n",
+                printf_status("%s\n",
                         inet_ntop4(buff, sizeof(buff), htonl(info->ip_src_addr), INADDR_BROADCAST));
                 goto leave;
             }

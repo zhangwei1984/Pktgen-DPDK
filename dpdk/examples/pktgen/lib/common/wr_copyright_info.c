@@ -171,19 +171,19 @@ wr_print_copyright(char * appname, char * created_by)
 {
 	int		i;
 
-	printf_info("-----------------------\n");
+	printf_status("-----------------------\n");
 	for(i=0; intel_copyright[i] != NULL; i++)
-		printf_info("  %s\n", intel_copyright[i]);
-	printf_info("-----------------------\n");
+		printf_status("  %s\n", intel_copyright[i]);
+	printf_status("-----------------------\n");
 
-	printf_info("    %s\n\n", COPYRIGHT_MSG);
+	printf_status("    %s\n\n", COPYRIGHT_MSG);
 	for(i=0; wr_copyright[i] != NULL; i++)
-		printf_info("  %s\n", wr_copyright[i]);
+		printf_status("  %s\n", wr_copyright[i]);
 
 	scrn_color(YELLOW, NO_CHANGE, OFF);
-	printf_info("  %s created by: %s -- >>> %s <<<\n", appname, created_by, POWERED_BY_DPDK);
+	printf_status("  %s created by: %s -- >>> %s <<<\n", appname, created_by, POWERED_BY_DPDK);
 	scrn_color(BLUE, NO_CHANGE, OFF);
-	printf_info("-----------------------\n");
+	printf_status("-----------------------\n");
 }
 
 void
