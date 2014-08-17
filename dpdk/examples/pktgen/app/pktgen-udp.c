@@ -67,8 +67,7 @@
 
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
+#include "pktgen-udp.h"
 
 /**************************************************************************//**
 *

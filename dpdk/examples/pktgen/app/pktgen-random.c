@@ -196,7 +196,7 @@ pktgen_set_random_bitfield(rnd_bits_t * rnd_bits, uint8_t idx, uint8_t offset, c
 	 */
 	BITFIELD_T mask0 = 0, mask1 = 0, maskRnd = 0;
 
-	int i;
+	uint32_t i;
 	for (i = 0; i < mask_len; ++i) {
 		mask0   <<= 1;
 		mask1   <<= 1;

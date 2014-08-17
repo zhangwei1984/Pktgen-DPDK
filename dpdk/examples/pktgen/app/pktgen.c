@@ -980,7 +980,7 @@ pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbu
 {
 	uint32_t nb_rx, pid, qid;
 	capture_t *capture;
-	int i;
+	uint32_t i;
 
 	pid = info->pid;
 	qid = wr_get_rxque(pktgen.l2p, lid, idx);

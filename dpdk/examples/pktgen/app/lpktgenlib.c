@@ -128,6 +128,7 @@ setf_string(lua_State * L, const char * name, char * value) {
 	lua_setfield(L, -2, name);
 }
 
+#if 0
 /**************************************************************************//**
 *
 * setf_stringLen - Helper routine to set Lua variables.
@@ -163,16 +164,17 @@ setf_udata(lua_State * L, const char * name, void * value) {
 	lua_pushlightuserdata(L, value);
 	lua_setfield(L, -2, name);
 }
+#endif
 
 static __inline__ void
-getf_etheraddr(lua_State * L, char * field, void * value) {
+getf_etheraddr(lua_State * L, const char * field, void * value) {
 	lua_getfield(L, 3, field);
 	cmdline_parse_etheraddr(NULL, luaL_checkstring(L, -1), value);
 	lua_pop(L, 1);
 }
 
 static __inline__ void
-getf_ipaddr(lua_State * L, char * field, void * value, uint32_t flags) {
+getf_ipaddr(lua_State * L, const char * field, void * value, uint32_t flags) {
 	cmdline_parse_token_ipaddr_t tk;
 
 	lua_getfield(L, 3, field);
@@ -183,7 +185,7 @@ getf_ipaddr(lua_State * L, char * field, void * value, uint32_t flags) {
 }
 
 static __inline__ uint32_t
-getf_integer(lua_State * L, char * field) {
+getf_integer(lua_State * L, const char * field) {
 	uint32_t	value;
 
 	lua_getfield(L, 3, field);
@@ -194,7 +196,7 @@ getf_integer(lua_State * L, char * field) {
 }
 
 static __inline__ char *
-getf_string(lua_State * L, char * field) {
+getf_string(lua_State * L, const char * field) {
 	char	  * value;
 
 	lua_getfield(L, 3, field);
@@ -956,7 +958,7 @@ static int pktgen_continue (lua_State *L) {
 
 static int pktgen_input (lua_State *L) {
 	char	buf[256], c, * str;
-	int		n, idx;
+	uint32_t	n, idx;
 
 	switch( lua_gettop(L) ) {
 	default: return luaL_error(L, "input, wrong number of arguments");
@@ -1099,7 +1101,7 @@ static int pktgen_clear (lua_State *L) {
 * SEE ALSO:
 */
 
-static int pktgen_clear_all (lua_State *L) {
+static int pktgen_clear_all (__attribute__ ((unused)) lua_State *L) {
 
 	uint64_t	portlist = -1;
 
@@ -1121,7 +1123,7 @@ static int pktgen_clear_all (lua_State *L) {
 * SEE ALSO:
 */
 
-static int pktgen_cls_screen (lua_State *L) {
+static int pktgen_cls_screen (__attribute__ ((unused)) lua_State *L) {
 
 	pktgen_cls();
 
@@ -1140,7 +1142,7 @@ static int pktgen_cls_screen (lua_State *L) {
 * SEE ALSO:
 */
 
-static int pktgen_update_screen (lua_State *L) {
+static int pktgen_update_screen (__attribute__ ((unused)) lua_State *L) {
 
 	pktgen_update();
 
@@ -2235,13 +2237,13 @@ static void decompile_pkt(lua_State * L, port_info_t * info, uint32_t seqnum) {
 	setf_integer(L, "dport", p->dport);
 	setf_integer(L, "sport", p->sport);
 	setf_integer(L, "vlanid", p->vlanid);
-	setf_string(L, "ethType",
+	setf_string(L, "ethType", (char *)(
 			(p->ethType == ETHER_TYPE_IPv4)? "ipv4" :
 			(p->ethType == ETHER_TYPE_IPv6)? "ipv6" :
-			(p->ethType == ETHER_TYPE_VLAN)? "vlan" : "unknown");
-	setf_string(L, "ipProto",
+			(p->ethType == ETHER_TYPE_VLAN)? "vlan" : "unknown"));
+	setf_string(L, "ipProto", (char *)(
 			(p->ipProto == PG_IPPROTO_TCP)? "tcp" :
-			(p->ipProto == PG_IPPROTO_ICMP)? "icmp" : "udp");
+			(p->ipProto == PG_IPPROTO_ICMP)? "icmp" : "udp"));
 
 	setf_integer(L, "pktSize", p->pktSize+FCS_SIZE);
 	setf_integer(L, "tlen", p->tlen);
@@ -2378,7 +2380,7 @@ static int pktgen_run (lua_State *L) {
 	return 0;
 }
 
-static char * lua_help_info[] = {
+static const char * lua_help_info[] = {
 	"Pktgen Lua functions and values using pktgen.XXX to access\n",
 	"set            - Set a number of options\n",
 	"set_mac        - Set the MAC address for a port\n",
@@ -2627,16 +2629,16 @@ LUALIB_API int luaopen_pktgen (lua_State *L) {
 	lua_pushstring(L, "info");			// Push the table index name
 	lua_newtable(L);					// Create the structure table for information
 
-	setf_string(L, "Lua_Version", LUA_VERSION);
-	setf_string(L, "Lua_Release", LUA_RELEASE);
-	setf_string(L, "Lua_Copyright", LUA_COPYRIGHT);
-	setf_string(L, "Lua_Authors", LUA_AUTHORS);
+	setf_string(L, "Lua_Version", (char *)LUA_VERSION);
+	setf_string(L, "Lua_Release", (char *)LUA_RELEASE);
+	setf_string(L, "Lua_Copyright", (char *)LUA_COPYRIGHT);
+	setf_string(L, "Lua_Authors", (char *)LUA_AUTHORS);
 
-  	setf_string(L, "Pktgen_Version", PKTGEN_VERSION);
+  	setf_string(L, "Pktgen_Version", (char *)PKTGEN_VERSION);
   	setf_string(L, "Pktgen_Copyright", (char *)wr_copyright_msg());
-  	setf_string(L, "Pktgen_Authors", "Keith Wiles @ Wind River Systems");
+  	setf_string(L, "Pktgen_Authors", (char *)"Keith Wiles @ Wind River Systems");
   	setf_string(L, "DPDK_Version",
-  			"DPDK-"RTE_STR(RTE_VER_MAJOR)"."RTE_STR(RTE_VER_MINOR)"."RTE_STR(RTE_VER_PATCH_LEVEL));
+  			(char *)("DPDK-"RTE_STR(RTE_VER_MAJOR)"."RTE_STR(RTE_VER_MINOR)"."RTE_STR(RTE_VER_PATCH_LEVEL)));
   	setf_string(L, "DPDK_Copyright", (char *)wr_powered_by());
 
   	setf_integer(L, "startSeqIdx", FIRST_SEQ_PKT);

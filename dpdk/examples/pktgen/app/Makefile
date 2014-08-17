@@ -35,22 +35,30 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
+# Default target, can be overriden by command line or environment
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
+
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
 APP = pktgen
 
 # all source are stored in SRCS-y
-SRCS-y := commands.c lpktgenlib.c pktgen-cmds.c pktgen.c \
+SRCS-y := \
+	commands.c lpktgenlib.c pktgen-cmds.c pktgen.c \
 	pktgen-main.c pktgen-pcap.c pktgen-range.c pktgen-cpu.c \
 	pktgen-seq.c pktgen-dump.c pktgen-capture.c pktgen-stats.c \
 	pktgen-port-cfg.c pktgen-ipv6.c pktgen-ipv4.c pktgen-arp.c \
 	pktgen-gre.c pktgen-ether.c pktgen-tcp.c pktgen-udp.c pktgen-vlan.c \
 	pktgen-random.c pktgen-display.c pktgen-log.c
 
-CFLAGS += -O3 -g -fno-stack-protector -I../lib/common -I../lib/lua
-LDFLAGS += -g -lpcap -L../lib/common/ -L../lib/lua -llua -lcommon
+CFLAGS += -O3 -g $(WERROR_FLAGS) -fno-stack-protector
+CFLAGS += -I$(SRCDIR) -I$(SRCDIR)/../lib/common -I$(SRCDIR)/../lib/lua
+LDFLAGS += -g -lpcap -L$(SRCDIR)/../lib/common/ -L$(SRCDIR)/../lib/lua -llua -lcommon
 
-DEP_$(APP) += ../lib/common/libcommon.a ../lib/lua/liblua.a
+CFLAGS_commands.o := -Wno-format-nonliteral
+CFLAGS_pktgen-log.o := -Wno-format-nonliteral
 
-include $(RTE_SDK)/mk/rte.app.mk
+DEP_$(APP) += $(SRCDIR)/../lib/common/libcommon.a $(SRCDIR)/../lib/lua/liblua.a
+
+include $(RTE_SDK)/mk/rte.extapp.mk

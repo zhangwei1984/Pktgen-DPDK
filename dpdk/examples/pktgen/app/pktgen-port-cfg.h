@@ -216,7 +216,7 @@ static inline uint64_t
 pkt_atomic64_tx_count(rte_atomic64_t *v, int64_t burst)
 {
 	int success = 0;
-	uint64_t tmp1, tmp2;
+	int64_t tmp1, tmp2;
 
 	while (success == 0) {
 		tmp1 = v->cnt;

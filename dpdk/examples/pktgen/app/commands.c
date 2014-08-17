@@ -532,7 +532,7 @@ struct cmd_theme_show_result {
 * SEE ALSO:
 */
 
-static void cmd_theme_show_parsed(void *parsed_result,
+static void cmd_theme_show_parsed(__attribute__((unused)) void *parsed_result,
 			   __attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
@@ -1690,7 +1690,7 @@ struct cmd_pcap_show_result {
 * SEE ALSO:
 */
 
-static void cmd_pcap_show_parsed(void *parsed_result,
+static void cmd_pcap_show_parsed(__attribute__((unused)) void *parsed_result,
 			   __attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
@@ -1742,7 +1742,7 @@ static void cmd_pcap_index_parsed(void *parsed_result,
 
 	if ( pcap ) {
 		if ( res->value >= max_cnt )
-			pcap->pkt_idx = max_cnt - RTE_MIN(PCAP_PAGE_SIZE, max_cnt) ;
+			pcap->pkt_idx = max_cnt - RTE_MIN(PCAP_PAGE_SIZE, (int)max_cnt) ;
 		else
 			pcap->pkt_idx = res->value;
 		pktgen.flags |= PRINT_LABELS_FLAG;
@@ -3423,13 +3423,12 @@ struct cmd_mac_from_arp_result {
 */
 
 static void cmd_mac_from_arp_parsed(void *parsed_result,
-			   struct cmdline *cl,
-			   __attribute__((unused)) void *data)
+		__attribute__((unused)) struct cmdline *cl,
+		__attribute__((unused)) void *data)
 {
 	struct cmd_mac_from_arp_result *res = parsed_result;
 	uint32_t		onOff = parseState(res->onOff);
 
-	//cmdline_printf(cl, "%s ARP MAC configuration\n", (onOff)? "Enable":"Disable");
 	pktgen_mac_from_arp(onOff);
 }
 

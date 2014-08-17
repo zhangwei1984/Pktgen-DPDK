@@ -75,8 +75,8 @@ static char prompt_str[MAX_PROMPT_STRING_SIZE] = { 0 };
 
 /* String to color value mapping */
 typedef struct string_color_map_s {
-	char	  * name;	/**< Color name */
-	color_e		color;	/**< Color value for scrn_{fg,bg}color() */
+	const char	  * name;	/**< Color name */
+	color_e		color;		/**< Color value for scrn_{fg,bg}color() */
 } string_color_map_t;
 
 string_color_map_t string_color_map[] = {
@@ -95,12 +95,12 @@ string_color_map_t string_color_map[] = {
 	{ "none",		NO_CHANGE	},
 	{ "default_fg",	NO_CHANGE	},
 	{ "default_bg",	NO_CHANGE	},
-	NULL
+	{ NULL, 0 }
 };
 
 /* String to attribute mapping */
 typedef struct string_attr_map_s {
-	char	  * name;	/**< Attribute name */
+	const char	  * name;	/**< Attribute name */
 	attr_e		attr;	/**< Attribute value for scrn_{fg,bg}color_attr() */
 } string_attr_map_t;
 
@@ -114,12 +114,12 @@ string_attr_map_t string_attr_map[] = {
 	{ "blink",		BLINK		},
 	{ "reverse",	REVERSE		},
 	{ "concealed",	CONCEALED	},
-	NULL
+	{ NULL, 0 }
 };
 
 /* Element to color mapping */
 typedef struct theme_color_map_s {
-	char		  * name;		/**< Display element name */
+	const char		  * name;		/**< Display element name */
 	color_e			fg_color;
 	color_e			bg_color;
 	attr_e			attr;
@@ -170,7 +170,7 @@ theme_color_map_t theme_color_map[] = {
 	 * Misc.
 	 */
 	{ "pktgen.prompt",		GREEN,		NO_CHANGE,	OFF		},
-	NULL
+	{ NULL, 0, 0, 0 }
 };
 
 
@@ -308,7 +308,7 @@ get_name_by_color(color_e color)
 
 	for(i = 0; string_color_map[i].name; i++)
 		if ( color == string_color_map[i].color )
-			return string_color_map[i].name;
+			return (char *)string_color_map[i].name;
 	return NULL;
 }
 
@@ -320,7 +320,7 @@ get_name_by_attr(attr_e attr)
 
 	for(i = 0; string_attr_map[i].name; i++)
 		if ( attr == string_attr_map[i].attr )
-			return string_attr_map[i].name;
+			return (char *)string_attr_map[i].name;
 	return NULL;
 }
 

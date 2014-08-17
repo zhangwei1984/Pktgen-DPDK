@@ -35,17 +35,12 @@ include $(RTE_SDK)/mk/rte.vars.mk
 # library name
 LIB = libcommon.a
 
-CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3
+CFLAGS += -O3 -g $(WERROR_FLAGS) -I$(SRCDIR)
 
 CFLAGS_wr_scrn.o := -Wno-format-nonliteral
 
-# install includes
-SYMLINK-$(CONFIG_WR_PKTGEN)-include := wr_copyright_info.h wr_port_config.h \
-	wr_core_info.h wr_lscpu.h wr_utils.h wr_coremap.h wr_mbuf.h \
-	wr_cycles.h wr_pcap.h wr_inet.h wr_cksum.h wr_l2p.h wr_scrn.h
-
 # all source are stored in SRCS-y
-SRCS-$(CONFIG_WR_PKTGEN) := wr_copyright_info.c wr_port_config.c wr_core_info.c \
+SRCS-y := wr_copyright_info.c wr_port_config.c wr_core_info.c \
 	wr_lscpu.c wr_utils.c wr_coremap.c wr_pcap.c wr_cksum.c wr_l2p.c wr_scrn.c
 
 include $(RTE_SDK)/mk/rte.lib.mk

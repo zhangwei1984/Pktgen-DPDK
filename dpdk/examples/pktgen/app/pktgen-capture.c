@@ -177,7 +177,7 @@ found_rx_lid:
 		cap->lcore	= lid;
 		cap->port	= info->pid;
 		cap->tail	= (cap_hdr_t *)cap->mz->addr;
-		cap->end	= (cap_hdr_t *)(cap->mz->addr + (cap->mz->len - sizeof(cap_hdr_t)));
+		cap->end	= (cap_hdr_t *)((char *)cap->mz->addr + (cap->mz->len - sizeof(cap_hdr_t)));
 
 		// Write end-of-data sentinel to start of capture memory. This
 		// effectively clears previously captured data.
@@ -308,9 +308,9 @@ found_rx_lid:
 */
 
 void
-pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, int nb_dump, capture_t * cap )
+pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, uint32_t nb_dump, capture_t * cap )
 {
-	unsigned int plen, i;
+	uint32_t plen, i;
 	struct rte_mbuf *pkt;
 
 	/* Don't capture if buffer is full */

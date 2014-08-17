@@ -633,7 +633,7 @@ pktgen_set_rx_tap(port_info_t * info, uint32_t onOff)
 	if ( onOff == ENABLE_STATE ) {
 		struct ifreq	ifr;
 		int sockfd, i;
-		static char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
+		static const char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
 
 		for(i = 0; tapdevs[i]; i++) {
 			if ( (info->rx_tapfd = open(tapdevs[i], O_RDWR)) >= 0 ) {
@@ -695,7 +695,7 @@ pktgen_set_tx_tap(port_info_t * info, uint32_t onOff)
 	if ( onOff == ENABLE_STATE ) {
 		struct ifreq	ifr;
 		int sockfd, i;
-		static char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
+		static const char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
 
 		for(i = 0; tapdevs[i]; i++) {
 			if ( (info->tx_tapfd = open(tapdevs[i], O_RDWR)) >= 0 ) {
@@ -1754,7 +1754,7 @@ pktgen_range_enable_disable(port_info_t * info, char * str)
 */
 
 void
-pktgen_set_dest_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
+pktgen_set_dest_mac(port_info_t * info, const char * what, cmdline_etheraddr_t * mac)
 {
 	if ( !strcmp(what, "min") )
 		inet_mtoh64((struct ether_addr *)mac, &info->range.dst_mac_min);
@@ -1779,7 +1779,7 @@ pktgen_set_dest_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
 */
 
 void
-pktgen_set_src_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
+pktgen_set_src_mac(port_info_t * info, const char * what, cmdline_etheraddr_t * mac)
 {
 	if ( !strcmp(what, "min") )
 		inet_mtoh64((struct ether_addr *)mac, &info->range.src_mac_min);
@@ -2174,7 +2174,7 @@ void pktgen_send_pkt(port_info_t * info, uint32_t seqnum)
 * SEE ALSO:
 */
 
-void pktgen_recv_pkt(port_info_t * info)
+void pktgen_recv_pkt(__attribute__ ((unused)) port_info_t * info)
 {
 	pktgen_log_warning("Not working yet!");
 }

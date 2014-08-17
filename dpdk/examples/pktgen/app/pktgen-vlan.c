@@ -69,7 +69,7 @@
 #include "pktgen-arp.h"
 #include "pktgen-ipv4.h"
 #include "pktgen-ipv6.h"
-
+#include "pktgen-vlan.h"
 
 /**************************************************************************//**
 *
