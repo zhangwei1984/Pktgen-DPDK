@@ -4,5 +4,5 @@
 
 all:
 	make -C ${RTE_SDK} install T=${RTE_TARGET}
-	make -C examples/pktgen V=1
+	make -C examples/pktgen #V=1
 

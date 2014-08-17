@@ -63,7 +63,7 @@ Pktgen version 2.7.5 using DPDK-1.7.0
  
 **=====================**
 
-Please look at the product eval PDF and the 3rd party PDF for license information.
+Please look at the 3rd party PDF for license information.
 
 ---
 **Copyright &copy; \<2010-2014\>, Intel Corporation All rights reserved.**
@@ -139,7 +139,7 @@ Please look at the product eval PDF and the 3rd party PDF for license informatio
 README for setting up Pktgen with DPDK on Ubuntu 10.04 to 13.10 desktop, it
 should work on most Linux systems as long as the kernel has hugeTLB page support.
 
-*** Note: Tested with Ubuntu 13.10 kernel version
+*** Note: Tested with Ubuntu 13.10 and up to 14.04 kernel version
     Linux 3.5.0-25-generic #39-Ubuntu SMP Mon Feb 25 18:26:58 UTC 2013 x86_64
 
 I am using Ubuntu 13.10 x86_64 (64 bit support) for running pktgen/DPDK on a
@@ -177,11 +177,18 @@ make sure hyper-threading is enabled.
   very slow, but you can configure pktgen via the '-p' option to exclude those
   ports from pktgen and everything will be fine.
 
-Get the DPDK and pktgen source code from the WR internal git repo via:
+Get the DPDK and pktgen source code from github.com or dpdk.org repo via:
 ```
 # cd <InstallDir>
 # git clone git://github.com/Pktgen/Pktgen-DPDK.git
 ```
+```
+# cd <InstallDir>
+# git clone git://dpdk.org/pktgen
+```
+** Note **
+  The site dpdk.org you must also pull down DPDK repo as well. git://dpdk.org/dpdk
+
 Will create a directory called Pktgen-DPDK in the current directory location. Using
 this clone command you will get DPDK and pktgen source files.
 
