@@ -71,9 +71,6 @@
 
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
 static int
 save_uname(char * line, __attribute__ ((unused))int i) {
 	pktgen.uname = wr_strdupf(pktgen.uname, line);

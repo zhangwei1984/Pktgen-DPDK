@@ -69,9 +69,6 @@
 #include "pktgen-log.h"
 
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
 /**************************************************************************//**
 *
 * pktgen_packet_dump - Dump the contents of a packet

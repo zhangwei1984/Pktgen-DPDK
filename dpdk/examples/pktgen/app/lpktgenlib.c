@@ -82,6 +82,7 @@
 #include "pktgen-cmds.h"
 #include "commands.h"
 
+extern const char * help_info[];
 
 #ifndef __INTEL_COMPILER
 #pragma GCC diagnostic ignored "-Wcast-qual"
@@ -1847,8 +1848,6 @@ static int pktgen_blink (lua_State *L) {
 
 static void isSending(lua_State * L, port_info_t * info)
 {
-	int pktgen_port_transmitting(int);
-
 	lua_pushinteger(L, info->pid);		// Push the table index
 	lua_pushinteger(L, pktgen_port_transmitting(info->pid));
 
@@ -1904,7 +1903,6 @@ static int pktgen_isSending (lua_State *L) {
 static void link_state(lua_State * L, port_info_t * info)
 {
 	char buff[32];
-	char * pktgen_link_state(int, char * , int);
 	
 	lua_pushinteger(L, info->pid);		// Push the table index
 	lua_pushstring(L, pktgen_link_state(info->pid, buff, sizeof(buff)));
@@ -2168,7 +2166,6 @@ static int pktgen_portStats (lua_State *L) {
 
 static int pktgen_help (lua_State *L) {
 	int		i;
-	extern char * help_info[];
 	
 	lua_concat(L, 0);
 	for(i=1; help_info[i] != NULL; i++ ) {

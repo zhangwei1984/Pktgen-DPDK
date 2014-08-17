@@ -70,9 +70,6 @@
 
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
 /**************************************************************************//**
 *
 * pktgen_print_static_data - Display the static data on the screen.

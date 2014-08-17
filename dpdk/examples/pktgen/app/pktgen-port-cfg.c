@@ -95,6 +95,7 @@ const struct rte_eth_conf port_conf = {
         .jumbo_frame    = 0, /**< Jumbo Frame Support disabled */
     },
     .txmode = {
+    	.mq_mode = ETH_MQ_TX_NONE,
     },
 };
 

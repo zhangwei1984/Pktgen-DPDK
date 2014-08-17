@@ -81,7 +81,7 @@ extern void pktgen_l2p_dump(void);
 
 extern void pktgen_interact(struct cmdline *cl);
 
-extern void * pktgen_get_lua();
+extern void * pktgen_get_lua(void);
 
 extern void pktgen_stop_running(void);
 

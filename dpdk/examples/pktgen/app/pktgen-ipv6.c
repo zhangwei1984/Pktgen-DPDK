@@ -69,10 +69,6 @@
 
 #include "pktgen-ipv6.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
-
 /**************************************************************************//**
 *
 * pktgen_ipv6_ctor - IPv6 packet header constructor routine.

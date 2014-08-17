@@ -70,9 +70,6 @@
 
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
 /**************************************************************************//**
 *
 * pktgen_print_pcap - Display the pcap data page.

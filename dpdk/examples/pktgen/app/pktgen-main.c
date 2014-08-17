@@ -161,7 +161,7 @@ pktgen_interact(struct cmdline *cl)
 * SEE ALSO:
 */
 
-void * pktgen_get_lua()
+void * pktgen_get_lua(void)
 {
 	return pktgen.L;
 }
@@ -252,7 +252,7 @@ pktgen_parse_args(int argc, char **argv)
 
     argvopt = argv;
 
-	pktgen.hostname		= (char *)strdupf(pktgen.hostname, (char *)"localhost");
+	pktgen.hostname		= (char *)strdupf(pktgen.hostname, "localhost");
 	pktgen.socket_port	= 0x5606;
 
     pktgen.argc = argc;
@@ -374,7 +374,7 @@ main(int argc, char **argv)
     pktgen.nb_txd           = DEFAULT_TX_DESC;
     pktgen.nb_ports_per_page= DEFAULT_PORTS_PER_PAGE;
 
-    wr_print_copyright((char *)PKTGEN_APP_NAME, (char *)PKTGEN_CREATED_BY);
+    wr_print_copyright(PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
 
     if ( (pktgen.l2p = wr_l2p_create()) == NULL )
 		pktgen_log_panic("Unable to create l2p");
@@ -435,8 +435,8 @@ main(int argc, char **argv)
     pktgen_log_set_screen_level(LOG_LEVEL_WARNING);
 	wr_scrn_erase(pktgen.scrn->nrows);
 
-	wr_logo(3, 16, (char *)PKTGEN_APP_NAME);
-	wr_splash_screen(3, 16, (char *)PKTGEN_APP_NAME, (char *)PKTGEN_CREATED_BY);
+	wr_logo(3, 16, PKTGEN_APP_NAME);
+	wr_splash_screen(3, 16, PKTGEN_APP_NAME, PKTGEN_CREATED_BY);
 
     wr_scrn_resume();
 

@@ -167,7 +167,7 @@ static const char * wr_copyright[] = {
 */
 
 void
-wr_print_copyright(char * appname, char * created_by)
+wr_print_copyright(const char * appname, const char * created_by)
 {
 	int		i;
 
@@ -187,7 +187,7 @@ wr_print_copyright(char * appname, char * created_by)
 }
 
 void
-wr_logo(int row, int col, char * appname)
+wr_logo(int row, int col, const char * appname)
 {
 	int		i;
 	static const char * logo[] = {
@@ -236,7 +236,7 @@ wr_logo(int row, int col, char * appname)
 }
 
 void
-wr_splash_screen(int row, int col, char * appname, char * created_by)
+wr_splash_screen(int row, int col, const char * appname, const char * created_by)
 {
 	int		i;
 

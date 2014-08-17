@@ -301,26 +301,26 @@ pktgen_get_prompt(void)
 }
 
 
-static char *
+static const char *
 get_name_by_color(color_e color)
 {
 	int		i;
 
 	for(i = 0; string_color_map[i].name; i++)
 		if ( color == string_color_map[i].color )
-			return (char *)string_color_map[i].name;
+			return string_color_map[i].name;
 	return NULL;
 }
 
 
-static char *
+static const char *
 get_name_by_attr(attr_e attr)
 {
 	int		i;
 
 	for(i = 0; string_attr_map[i].name; i++)
 		if ( attr == string_attr_map[i].attr )
-			return (char *)string_attr_map[i].name;
+			return string_attr_map[i].name;
 	return NULL;
 }
 

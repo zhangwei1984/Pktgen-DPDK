@@ -374,7 +374,7 @@ pktgen_set_port_flags(port_info_t * info, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->port_flags);
-    } while( rte_atomic32_cmpset((uint32_t *)&info->port_flags.cnt, val, (val | flags)) == 0 );
+    } while( rte_atomic32_cmpset((volatile uint32_t *)&info->port_flags.cnt, val, (val | flags)) == 0 );
 }
 
 static __inline__ void
@@ -383,7 +383,7 @@ pktgen_clr_port_flags(port_info_t * info, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->port_flags);
-    } while( rte_atomic32_cmpset((uint32_t *)&info->port_flags.cnt, val, (val & ~flags)) == 0 );
+    } while( rte_atomic32_cmpset((volatile uint32_t *)&info->port_flags.cnt, val, (val & ~flags)) == 0 );
 }
 
 static __inline__ void
@@ -392,7 +392,7 @@ pktgen_set_q_flags(port_info_t * info, uint8_t q, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->q[q].flags);
-    } while( rte_atomic32_cmpset((uint32_t *)&info->q[q].flags.cnt, val, (val | flags)) == 0 );
+    } while( rte_atomic32_cmpset((volatile uint32_t *)&info->q[q].flags.cnt, val, (val | flags)) == 0 );
 }
 
 static __inline__ void
@@ -401,7 +401,7 @@ pktgen_clr_q_flags(port_info_t * info, uint8_t q, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->q[q].flags);
-    } while( rte_atomic32_cmpset((uint32_t *)&info->q[q].flags.cnt, val, (val & ~flags)) == 0 );
+    } while( rte_atomic32_cmpset((volatile uint32_t *)&info->q[q].flags.cnt, val, (val & ~flags)) == 0 );
 }
 
 /**
@@ -418,7 +418,7 @@ pktgen_version(void) {
 }
 
 static __inline__ char *
-strdupf(char * str, char * new) {
+strdupf(char * str, const char * new) {
 	if ( str ) free(str);
 	return (new == NULL) ? NULL : strdup(new);
 }

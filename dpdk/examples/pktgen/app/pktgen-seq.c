@@ -68,9 +68,6 @@
 #include "pktgen-display.h"
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
 void
 pktgen_send_seq_pkt(port_info_t * info, uint32_t seq_idx)
 {

@@ -68,9 +68,6 @@
 #include "pktgen-gre.h"
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
 /**************************************************************************//**
 *
 * pktgen_gre_hdr_ctor - IPv4/GRE header construction routine.

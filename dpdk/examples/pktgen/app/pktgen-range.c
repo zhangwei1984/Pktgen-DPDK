@@ -69,9 +69,6 @@
 #include "pktgen-log.h"
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
 /**************************************************************************//**
 *
 * pktgen_range_ctor - Construct a range packet in buffer provided.
@@ -236,9 +233,9 @@ pktgen_print_range(void)
 {
 	port_info_t * info;
 	range_info_t * range;
-	unsigned int pid, col, sp;
+	uint32_t pid, col, sp;
 	char buff[32];
-	unsigned int row;
+	int32_t row;
 	struct ether_addr eaddr;
 	char	str[64];
 
