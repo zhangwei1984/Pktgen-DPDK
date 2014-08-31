@@ -95,7 +95,7 @@ wr_strtrimset( char * str, const char * set)
 	if ( (len == 0) || (len & 1) )
 		return NULL;
 
-	for(len = 0; set && (set[0] != '\0'); set += 2 ) {
+	for( ;set && (set[0] != '\0'); set += 2 ) {
 		if ( *str != *set )
 			continue;
 

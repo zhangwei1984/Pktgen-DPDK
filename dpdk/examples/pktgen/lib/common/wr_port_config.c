@@ -192,25 +192,22 @@ wr_create_blacklist(uint64_t portmask, struct rte_pci_addr * portlist, uint32_t 
     uint32_t i, idx;
     char pci_addr_str[32];
 
-    if ( (portmask == 0) || (portlist == NULL) || (port_cnt == 0) )
+    if ( (portmask == 0) || (portlist == NULL) || (port_cnt == 0) || (desc == NULL) )
     	return 0;
 
-	if ( desc )
-		fprintf(stdout, "Ports: Port Mask: %016lx blacklisted = --, not-blacklisted = ++\n", portmask);
+	fprintf(stdout, "Ports: Port Mask: %016lx blacklisted = --, not-blacklisted = ++\n", portmask);
 	idx = 0;
     for(i = 0; i < port_cnt; i++) {
 		memset(pci_addr_str, 0, sizeof(pci_addr_str));
 		if ( (portmask & (1ULL << i)) == 0 ) {
-			if ( desc )
-				fprintf(stdout, "-- %s\n", desc[i]);
+			fprintf(stdout, "-- %s\n", desc[i]);
 			strncpy(pci_addr_str, (void *)desc[i], 12);
 			rte_eal_devargs_add(RTE_DEVTYPE_BLACKLISTED_PCI, pci_addr_str);
 			idx++;
 		} else {
 			strncpy(pci_addr_str, (void *)desc[i], 12);
 			rte_eal_devargs_add(RTE_DEVTYPE_WHITELISTED_PCI, pci_addr_str);
-			if ( desc )
-				fprintf(stdout, "++ %s\n", desc[i]);
+			fprintf(stdout, "++ %s\n", desc[i]);
 		}
 	}
     if ( desc )

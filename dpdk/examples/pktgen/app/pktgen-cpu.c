@@ -117,8 +117,6 @@ pktgen_page_cpu(void)
 
     display_topline("** CPU Information Page **");
 
-    row = PORT_STATE_ROW;
-
 	if ( (pktgen.core_cnt == 0) || (pktgen.lscpu == NULL) )
 		pktgen_cpu_init();
 
