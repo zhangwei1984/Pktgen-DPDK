@@ -7,10 +7,10 @@
  */
 
 
-#include <rte_scrn.h>
-rte_scrn_t *scrn = NULL;
-/* rte_scrn.h function stub */
-void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+#include <wr_scrn.h>
+wr_scrn_t *scrn = NULL;
+/* wr_scrn.h function stub */
+void wr_scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
 
 
 #include "pktgen.h"

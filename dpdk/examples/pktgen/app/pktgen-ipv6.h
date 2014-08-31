@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -70,7 +70,20 @@
 
 #include "pktgen.h"
 
+/**************************************************************************//**
+*
+* pktgen_ipv6_ctor - IPv6 packet header constructor routine.
+*
+* DESCRIPTION
+* Construct the IPv6 header constructor routine.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
 extern void pktgen_ipv6_ctor(pkt_seq_t * pkt, ipv6Hdr_t * ip);
+
 extern void pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan );
 
 

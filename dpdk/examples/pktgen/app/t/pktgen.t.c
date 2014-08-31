@@ -8,11 +8,11 @@
  */
 
 
-/* rte_scrn.h fake functions */
-#include <rte_scrn.h>
-void scrn_center(int16_t r, const char * fmt, ...) { return; }
-void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
-rte_scrn_t *scrn = NULL;
+/* wr_scrn.h fake functions */
+#include <wr_scrn.h>
+void wr_scrn_center(int16_t r, const char * fmt, ...) { return; }
+void wr_scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+wr_scrn_t *scrn = NULL;
 
 
 /*

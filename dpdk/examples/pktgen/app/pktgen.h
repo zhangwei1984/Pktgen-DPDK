@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -121,6 +121,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <wr_scrn.h>
 
 #include <wr_copyright_info.h>
 #include <wr_l2p.h>
@@ -142,7 +143,6 @@
 #include <wr_cksum.h>
 
 #include <wr_cycles.h>
-#include <wr_mempool.h>
 #include <wr_mbuf.h>
 #include <wr_coremap.h>
 #include <wr_lscpu.h>
@@ -153,7 +153,7 @@
 #include "pktgen-log.h"
 
 
-#define PKTGEN_VERSION			"2.7.4"
+#define PKTGEN_VERSION			"2.7.5"
 #define PKTGEN_APP_NAME			"Pktgen"
 #define PKTGEN_CREATED_BY		"Keith Wiles"
 
@@ -265,10 +265,10 @@ typedef struct pktgen_s {
 	char				  * cmd_filename;		/**< Command file path and name */
 	void				  * L;					/**< Lua State pointer */
 	char				  * hostname;			/**< GUI hostname */
+	wr_scrn_t			  * scrn;				/**< Screen structure pointer */
 	uint64_t				coremask;			/**< Coremask of lcores */
 
 	int32_t					socket_port;		/**< GUI port number */
-//	uint32_t				enabled_port_mask;	/**< mask of enabled ports */
 	uint32_t				blinklist;			/**< Port list for blinking the led */
 	uint32_t				flags;				/**< Flag values */
 	uint16_t				ident;				/**< IPv4 ident value */
@@ -374,7 +374,7 @@ pktgen_set_port_flags(port_info_t * info, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->port_flags);
-    } while( rte_atomic32_cmpset((uint32_t *)&info->port_flags.cnt, val, (val | flags)) == 0 );
+    } while( rte_atomic32_cmpset((volatile uint32_t *)&info->port_flags.cnt, val, (val | flags)) == 0 );
 }
 
 static __inline__ void
@@ -383,7 +383,7 @@ pktgen_clr_port_flags(port_info_t * info, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->port_flags);
-    } while( rte_atomic32_cmpset((uint32_t *)&info->port_flags.cnt, val, (val & ~flags)) == 0 );
+    } while( rte_atomic32_cmpset((volatile uint32_t *)&info->port_flags.cnt, val, (val & ~flags)) == 0 );
 }
 
 static __inline__ void
@@ -392,7 +392,7 @@ pktgen_set_q_flags(port_info_t * info, uint8_t q, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->q[q].flags);
-    } while( rte_atomic32_cmpset((uint32_t *)&info->q[q].flags.cnt, val, (val | flags)) == 0 );
+    } while( rte_atomic32_cmpset((volatile uint32_t *)&info->q[q].flags.cnt, val, (val | flags)) == 0 );
 }
 
 static __inline__ void
@@ -401,7 +401,7 @@ pktgen_clr_q_flags(port_info_t * info, uint8_t q, uint32_t flags) {
 
     do {
     	val = rte_atomic32_read(&info->q[q].flags);
-    } while( rte_atomic32_cmpset((uint32_t *)&info->q[q].flags.cnt, val, (val & ~flags)) == 0 );
+    } while( rte_atomic32_cmpset((volatile uint32_t *)&info->q[q].flags.cnt, val, (val & ~flags)) == 0 );
 }
 
 /**
@@ -418,7 +418,7 @@ pktgen_version(void) {
 }
 
 static __inline__ char *
-strdupf(char * str, char * new) {
+strdupf(char * str, const char * new) {
 	if ( str ) free(str);
 	return (new == NULL) ? NULL : strdup(new);
 }

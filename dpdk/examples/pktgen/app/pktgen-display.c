@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -68,10 +68,6 @@
 #include "pktgen-display.h"
 #include "pktgen-cmds.h"
 
-
-/* Screen data structure */
-rte_scrn_t *scrn;
-
 #define MAX_COLOR_NAME_SIZE		64
 #define MAX_PROMPT_STRING_SIZE	64
 
@@ -79,8 +75,8 @@ static char prompt_str[MAX_PROMPT_STRING_SIZE] = { 0 };
 
 /* String to color value mapping */
 typedef struct string_color_map_s {
-	char	  * name;	/**< Color name */
-	color_e		color;	/**< Color value for scrn_{fg,bg}color() */
+	const char	  * name;	/**< Color name */
+	color_e		color;		/**< Color value for scrn_{fg,bg}color() */
 } string_color_map_t;
 
 string_color_map_t string_color_map[] = {
@@ -99,12 +95,12 @@ string_color_map_t string_color_map[] = {
 	{ "none",		NO_CHANGE	},
 	{ "default_fg",	NO_CHANGE	},
 	{ "default_bg",	NO_CHANGE	},
-	NULL
+	{ NULL, 0 }
 };
 
 /* String to attribute mapping */
 typedef struct string_attr_map_s {
-	char	  * name;	/**< Attribute name */
+	const char	  * name;	/**< Attribute name */
 	attr_e		attr;	/**< Attribute value for scrn_{fg,bg}color_attr() */
 } string_attr_map_t;
 
@@ -118,12 +114,12 @@ string_attr_map_t string_attr_map[] = {
 	{ "blink",		BLINK		},
 	{ "reverse",	REVERSE		},
 	{ "concealed",	CONCEALED	},
-	NULL
+	{ NULL, 0 }
 };
 
 /* Element to color mapping */
 typedef struct theme_color_map_s {
-	char		  * name;		/**< Display element name */
+	const char		  * name;		/**< Display element name */
 	color_e			fg_color;
 	color_e			bg_color;
 	attr_e			attr;
@@ -174,7 +170,7 @@ theme_color_map_t theme_color_map[] = {
 	 * Misc.
 	 */
 	{ "pktgen.prompt",		GREEN,		NO_CHANGE,	OFF		},
-	NULL
+	{ NULL, 0, 0, 0 }
 };
 
 
@@ -182,7 +178,7 @@ theme_color_map_t theme_color_map[] = {
 void
 pktgen_init_screen(int theme)
 {
-	scrn = scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
+	pktgen.scrn = wr_scrn_init(MAX_SCRN_ROWS, MAX_SCRN_COLS, theme);
 }
 
 
@@ -190,11 +186,11 @@ pktgen_init_screen(int theme)
 void
 display_topline(const char * msg)
 {
-		scrn_printf(1, 20, "%s", msg);
+		wr_scrn_printf(1, 20, "%s", msg);
 		pktgen_display_set_color("top.copyright");
-		scrn_puts("  %s", wr_copyright_msg());
+		wr_scrn_puts("  %s", wr_copyright_msg());
 		pktgen_display_set_color("top.poweredby");
-		scrn_puts(" %s", wr_powered_by());
+		wr_scrn_puts(" %s", wr_powered_by());
 		pktgen_display_set_color(NULL);
 }
 
@@ -205,14 +201,14 @@ display_dashline(int last_row)
 {
 	int i;
 
-	scrn_setw(last_row);
+	wr_scrn_setw(last_row);
 	last_row--;
-	scrn_pos(last_row, 1);
+	wr_scrn_pos(last_row, 1);
 	pktgen_display_set_color("sep.dash");
-	for(i=0; i<(scrn->ncols-15); i++)
-		scrn_fprintf(0, 0, stdout, "-");
+	for(i=0; i<(__scrn->ncols-15); i++)
+		wr_scrn_fprintf(0, 0, stdout, "-");
 	pktgen_display_set_color("sep.text");
-	scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
+	wr_scrn_printf(last_row, 3, " Pktgen %s ", pktgen_version());
 	pktgen_display_set_color(NULL);
 }
 
@@ -220,8 +216,8 @@ display_dashline(int last_row)
 void
 pktgen_display_set_geometry(uint16_t rows, uint16_t cols)
 {
-	scrn->nrows = rows;
-	scrn->ncols = cols;
+	__scrn->nrows = rows;
+	__scrn->ncols = cols;
 }
 
 /* Get the display geometry */
@@ -229,10 +225,10 @@ void
 pktgen_display_get_geometry(uint16_t *rows, uint16_t *cols)
 {
 	if (rows != NULL)
-		*rows = scrn->nrows;
+		*rows = __scrn->nrows;
 
 	if (cols != NULL)
-		*cols = scrn->ncols;
+		*cols = __scrn->ncols;
 }
 
 
@@ -265,7 +261,7 @@ void
 pktgen_display_set_color(const char *elem) {
 	theme_color_map_t *theme_color;
 
-	if ( scrn->theme == THEME_OFF )
+	if ( __scrn->theme == THEME_OFF )
 		return;
 
 	theme_color = lookup_item(elem);
@@ -274,7 +270,7 @@ pktgen_display_set_color(const char *elem) {
 		return;
 	}
 
-	scrn_color(theme_color->fg_color, theme_color->bg_color, theme_color->attr);
+	wr_scrn_color(theme_color->fg_color, theme_color->bg_color, theme_color->attr);
 }
 
 
@@ -287,7 +283,7 @@ pktgen_get_prompt(void)
 	// Set default return value.
 	snprintf(prompt_str, sizeof(prompt_str), "%s> ", PKTGEN_APP_NAME);
 
-	if ( scrn->theme == THEME_ON ) {
+	if ( __scrn->theme == THEME_ON ) {
 		// Look up the default and prompt values
 		def    = lookup_item(NULL);
 		prompt = lookup_item("pktgen.prompt");
@@ -305,7 +301,7 @@ pktgen_get_prompt(void)
 }
 
 
-static char *
+static const char *
 get_name_by_color(color_e color)
 {
 	int		i;
@@ -317,7 +313,7 @@ get_name_by_color(color_e color)
 }
 
 
-static char *
+static const char *
 get_name_by_attr(attr_e attr)
 {
 	int		i;
@@ -358,7 +354,7 @@ pktgen_theme_show(void)
 {
 	int		i;
 
-	printf("*** Theme Color Map Names (%s) ***\n", scrn->theme ? "Enabled" : "Disabled");
+	printf("*** Theme Color Map Names (%s) ***\n", __scrn->theme ? "Enabled" : "Disabled");
 	printf("   %-30s %-10s %-10s %s\n", "name", "FG Color", "BG Color", "Attribute");
 	for(i=0; theme_color_map[i].name; i++) {
 		printf("   %-32s %-10s %-10s %-6s",
@@ -379,9 +375,9 @@ void
 pktgen_theme_state(const char * state)
 {
 	if ( parseState(state) == DISABLE_STATE )
-		scrn->theme = THEME_OFF;
+		__scrn->theme = THEME_OFF;
 	else
-		scrn->theme = THEME_ON;
+		__scrn->theme = THEME_ON;
 	cmdline_set_prompt(pktgen.cl, pktgen_get_prompt());
 }
 

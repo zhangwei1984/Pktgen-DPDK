@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -483,16 +483,16 @@ pktgen_flags_string( port_info_t * info )
 void
 pktgen_redisplay( int cls_flag )
 {
-	if ( scrn_is_paused() )
+	if ( wr_scrn_is_paused() )
 		return;
 
-	scrn_pause();
+	wr_scrn_pause();
 	if ( cls_flag ) {
-		scrn_cls();
-		scrn_pos(100, 1);
+		wr_scrn_cls();
+		wr_scrn_pos(100, 1);
 	}
 	pktgen.flags |= PRINT_LABELS_FLAG;
-	scrn_resume();
+	wr_scrn_resume();
 
 	pktgen_page_display(NULL, NULL);
 }
@@ -558,17 +558,17 @@ pktgen_screen(const char * onOff)
 	pktgen_display_get_geometry(&rows, NULL);
 
 	if ( parseState(onOff) == DISABLE_STATE ) {
-		if ( !scrn_is_paused() ) {
-			scrn_pause();
-			scrn_cls();
-			scrn_setw(1);
-			scrn_pos(100, 1);
+		if ( !wr_scrn_is_paused() ) {
+			wr_scrn_pause();
+			wr_scrn_cls();
+			wr_scrn_setw(1);
+			wr_scrn_pos(100, 1);
 		}
 	} else {
-		scrn_cls();
-		scrn_pos(100,1);
-		scrn_setw(pktgen.last_row+1);
-		scrn_resume();
+		wr_scrn_cls();
+		wr_scrn_pos(100,1);
+		wr_scrn_setw(pktgen.last_row+1);
+		wr_scrn_resume();
 		pktgen_redisplay(1);
 	}
 }
@@ -633,7 +633,7 @@ pktgen_set_rx_tap(port_info_t * info, uint32_t onOff)
 	if ( onOff == ENABLE_STATE ) {
 		struct ifreq	ifr;
 		int sockfd, i;
-		static char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
+		static const char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
 
 		for(i = 0; tapdevs[i]; i++) {
 			if ( (info->rx_tapfd = open(tapdevs[i], O_RDWR)) >= 0 ) {
@@ -695,7 +695,7 @@ pktgen_set_tx_tap(port_info_t * info, uint32_t onOff)
 	if ( onOff == ENABLE_STATE ) {
 		struct ifreq	ifr;
 		int sockfd, i;
-		static char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
+		static const char * tapdevs[] = { "/dev/net/tun", "/dev/tun", NULL };
 
 		for(i = 0; tapdevs[i]; i++) {
 			if ( (info->tx_tapfd = open(tapdevs[i], O_RDWR)) >= 0 ) {
@@ -1307,9 +1307,9 @@ void pktgen_clear_stats(port_info_t * info)
 
 void pktgen_cls(void)
 {
-	if ( scrn_is_paused() ) {
-		scrn_cls();
-		scrn_pos(100, 1);
+	if ( wr_scrn_is_paused() ) {
+		wr_scrn_cls();
+		wr_scrn_pos(100, 1);
 	} else	// Update the display quickly.
 		pktgen_redisplay(1);
 }
@@ -1754,7 +1754,7 @@ pktgen_range_enable_disable(port_info_t * info, char * str)
 */
 
 void
-pktgen_set_dest_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
+pktgen_set_dest_mac(port_info_t * info, const char * what, cmdline_etheraddr_t * mac)
 {
 	if ( !strcmp(what, "min") )
 		inet_mtoh64((struct ether_addr *)mac, &info->range.dst_mac_min);
@@ -1779,7 +1779,7 @@ pktgen_set_dest_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
 */
 
 void
-pktgen_set_src_mac(port_info_t * info, char * what, cmdline_etheraddr_t * mac)
+pktgen_set_src_mac(port_info_t * info, const char * what, cmdline_etheraddr_t * mac)
 {
 	if ( !strcmp(what, "min") )
 		inet_mtoh64((struct ether_addr *)mac, &info->range.src_mac_min);
@@ -2174,7 +2174,7 @@ void pktgen_send_pkt(port_info_t * info, uint32_t seqnum)
 * SEE ALSO:
 */
 
-void pktgen_recv_pkt(port_info_t * info)
+void pktgen_recv_pkt(__attribute__ ((unused)) port_info_t * info)
 {
 	pktgen_log_warning("Not working yet!");
 }

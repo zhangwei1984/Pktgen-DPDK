@@ -8,8 +8,8 @@
 
 #include "pktgen.h"
 
-#include <rte_scrn.h>
-rte_scrn_t *scrn;
+#include <wr_scrn.h>
+wr_scrn_t *scrn;
 
 pktgen_t pktgen;
 

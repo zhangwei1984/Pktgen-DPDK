@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -435,7 +435,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 
 			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(tcpHdr_t);
 
-		} else if ( (pkt->ipProto == PG_IPPROTO_UDP) ) {
+		} else if ( pkt->ipProto == PG_IPPROTO_UDP ) {
 			udpip_t	  * udp;
 
 			// Construct the Ethernet header
@@ -450,7 +450,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 
 			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + sizeof(udpHdr_t);
 
-		} else if ( (pkt->ipProto == PG_IPPROTO_ICMP) ) {
+		} else if ( pkt->ipProto == PG_IPPROTO_ICMP ) {
 			udpip_t           * uip;
 			icmpv4Hdr_t       * icmp;
 
@@ -491,7 +491,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			pkt->tlen = pkt->ether_hdr_size + sizeof(ipHdr_t) + ICMP4_TIMESTAMP_SIZE;
 		}
     } else if ( pkt->ethType == ETHER_TYPE_IPv6 ) {
-		if ( (pkt->ipProto == PG_IPPROTO_TCP) ) {
+		if ( pkt->ipProto == PG_IPPROTO_TCP ) {
 			uint32_t            addr;
 			tcpipv6_t         * tip;
 
@@ -527,7 +527,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 			if ( unlikely(pkt->pktSize < pkt->tlen) )
 				pkt->pktSize = pkt->tlen;
 
-		} else if ( (pkt->ipProto == PG_IPPROTO_UDP) ) {
+		} else if ( pkt->ipProto == PG_IPPROTO_UDP ) {
 			uint32_t            addr;
 			udpipv6_t         * uip;
 
@@ -980,7 +980,7 @@ pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbu
 {
 	uint32_t nb_rx, pid, qid;
 	capture_t *capture;
-	int i;
+	uint32_t i;
 
 	pid = info->pid;
 	qid = wr_get_rxque(pktgen.l2p, lid, idx);
@@ -1239,7 +1239,7 @@ pktgen_page_config(void)
 {
 	display_topline("** Configure Page **");
 
-    scrn_center(20, "Need to add the configuration stuff here");
+    wr_scrn_center(20, pktgen.scrn->ncols, "Need to add the configuration stuff here");
     display_dashline(22);
 }
 
@@ -1261,13 +1261,13 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
     static unsigned int counter = 0;
 
     // Leave if the screen is paused
-    if ( scrn_is_paused() )
+    if ( wr_scrn_is_paused() )
         return;
 
-    scrn_save();
+    wr_scrn_save();
 
 	pktgen_display_set_color("top.spinner");
-    scrn_printf(1,1, "%c", "-\\|/"[(counter++ & 3)]);
+    wr_scrn_printf(1,1, "%c", "-\\|/"[(counter++ & 3)]);
 	pktgen_display_set_color(NULL);
 
     if ( pktgen.flags & CPU_PAGE_FLAG )
@@ -1287,7 +1287,7 @@ pktgen_page_display(__attribute__((unused)) struct rte_timer *tim, __attribute__
     else
         pktgen_page_stats();
 
-    scrn_restore();
+    wr_scrn_restore();
 
     pktgen_print_packet_dump();
 

@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -67,9 +67,7 @@
 
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
+#include "pktgen-ipv6.h"
 
 /**************************************************************************//**
 *
@@ -118,7 +116,8 @@ pktgen_ipv6_ctor(pkt_seq_t * pkt, ipv6Hdr_t * ip)
 */
 
 void
-pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
+pktgen_process_ping6( __attribute__ ((unused)) struct rte_mbuf * m,
+__attribute__ ((unused)) uint32_t pid, __attribute__ ((unused)) uint32_t vlan )
 {
 #if 0 /* Broken needs to be updated to do IPv6 packets */
     port_info_t     * info = &pktgen.info[pid];
@@ -139,7 +138,7 @@ pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
 #endif
         // We do not handle IP options, which will effect the IP header size.
         if ( cksum(icmp, (m->pkt.data_len - sizeof(struct ether_hdr) - sizeof(ipHdr_t)), 0) ) {
-            printf_status("ICMP checksum failed\n");
+            rte_printf_status("ICMP checksum failed\n");
             goto leave:
         }
 
@@ -147,9 +146,9 @@ pktgen_process_ping6( struct rte_mbuf * m, uint32_t pid, uint32_t vlan )
             // Toss all broadcast addresses and requests not for this port
             if ( (ip->dst == INADDR_BROADCAST) || (ip->dst != info->ip_src_addr) ) {
                 char        buff[24];
-                printf_status("IP address %s != ",
+                rte_printf_status("IP address %s != ",
                         inet_ntop4(buff, sizeof(buff), ip->dst, INADDR_BROADCAST));
-                printf_status("%s\n",
+                rte_printf_status("%s\n",
                         inet_ntop4(buff, sizeof(buff), htonl(info->ip_src_addr), INADDR_BROADCAST));
                 goto leave;
             }

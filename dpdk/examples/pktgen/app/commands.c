@@ -60,7 +60,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -104,6 +104,7 @@
 #include <cmdline_parse_string.h>
 #include <cmdline.h>
 #include <rte_atomic.h>
+#include <rte_devargs.h>
 
 #include "wr_copyright_info.h"
 #include "pktgen-cmds.h"
@@ -180,7 +181,7 @@ cmdline_pause(struct cmdline *cl, const char * msg)
 	if ( n < 0 )
 		return;
 	cmdline_printf(cl, "\r");
-	scrn_eol();
+	wr_scrn_eol();
 }
 
 /**********************************************************/
@@ -368,23 +369,23 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 {
 	int		i, paused;
 
-	paused = scrn_is_paused();
+	paused = wr_scrn_is_paused();
 
 	if ( ! paused )
-		scrn_pause();
-	scrn_setw(1);
-	scrn_cls();
+		wr_scrn_pause();
+	wr_scrn_setw(1);
+	wr_scrn_cls();
 
-	scrn_pos(0,0);
+	wr_scrn_pos(0,0);
 	cmdline_printf(cl, help_info[1], wr_copyright_msg());
-	scrn_pos(3,0);
+	wr_scrn_pos(3,0);
 	for(i=2; help_info[i] != NULL; i++ ) {
 		if ( strcmp(help_info[i], "<<PageBreak>>") == 0 ) {
 			cmdline_pause(cl, "   <More Help: Press Return to Continue>");
-			scrn_cls();
-			scrn_pos(0,0);
+			wr_scrn_cls();
+			wr_scrn_pos(0,0);
 			cmdline_printf(cl, help_info[1], wr_copyright_msg());
-			scrn_pos(3,0);
+			wr_scrn_pos(3,0);
 			continue;
 		}
 		cmdline_printf(cl, "%s\n", help_info[i]);
@@ -393,8 +394,8 @@ static void cmd_help_parsed(__attribute__((unused)) void *parsed_result,
 	cmdline_pause(cl, "   <Press Return to Continue>");
 
 	if ( !paused ) {
-		scrn_setw(pktgen.last_row+1);
-		scrn_resume();
+		wr_scrn_setw(pktgen.last_row+1);
+		wr_scrn_resume();
 		pktgen_redisplay(1);
 	}
 }
@@ -531,7 +532,7 @@ struct cmd_theme_show_result {
 * SEE ALSO:
 */
 
-static void cmd_theme_show_parsed(void *parsed_result,
+static void cmd_theme_show_parsed(__attribute__((unused)) void *parsed_result,
 			   __attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
@@ -1689,7 +1690,7 @@ struct cmd_pcap_show_result {
 * SEE ALSO:
 */
 
-static void cmd_pcap_show_parsed(void *parsed_result,
+static void cmd_pcap_show_parsed(__attribute__((unused)) void *parsed_result,
 			   __attribute__((unused)) struct cmdline *cl,
 			   __attribute__((unused)) void *data)
 {
@@ -1741,7 +1742,7 @@ static void cmd_pcap_index_parsed(void *parsed_result,
 
 	if ( pcap ) {
 		if ( res->value >= max_cnt )
-			pcap->pkt_idx = max_cnt - RTE_MIN(PCAP_PAGE_SIZE, max_cnt) ;
+			pcap->pkt_idx = max_cnt - RTE_MIN(PCAP_PAGE_SIZE, (int)max_cnt) ;
 		else
 			pcap->pkt_idx = res->value;
 		pktgen.flags |= PRINT_LABELS_FLAG;
@@ -2368,7 +2369,7 @@ static void cmd_set_load_parsed(void *parsed_result,
 
 	if ( pktgen_load_cmds(res->path) )
 		cmdline_printf(cl, "load command failed for %s\n", res->path);
-	if ( ! scrn_is_paused() )
+	if ( ! wr_scrn_is_paused() )
 		pktgen_redisplay(0);
 }
 
@@ -3422,13 +3423,12 @@ struct cmd_mac_from_arp_result {
 */
 
 static void cmd_mac_from_arp_parsed(void *parsed_result,
-			   struct cmdline *cl,
-			   __attribute__((unused)) void *data)
+		__attribute__((unused)) struct cmdline *cl,
+		__attribute__((unused)) void *data)
 {
 	struct cmd_mac_from_arp_result *res = parsed_result;
 	uint32_t		onOff = parseState(res->onOff);
 
-	//cmdline_printf(cl, "%s ARP MAC configuration\n", (onOff)? "Enable":"Disable");
 	pktgen_mac_from_arp(onOff);
 }
 

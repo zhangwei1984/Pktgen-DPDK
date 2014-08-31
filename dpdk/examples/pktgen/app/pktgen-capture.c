@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -177,7 +177,7 @@ found_rx_lid:
 		cap->lcore	= lid;
 		cap->port	= info->pid;
 		cap->tail	= (cap_hdr_t *)cap->mz->addr;
-		cap->end	= (cap_hdr_t *)(cap->mz->addr + (cap->mz->len - sizeof(cap_hdr_t)));
+		cap->end	= (cap_hdr_t *)((char *)cap->mz->addr + (cap->mz->len - sizeof(cap_hdr_t)));
 
 		// Write end-of-data sentinel to start of capture memory. This
 		// effectively clears previously captured data.
@@ -234,7 +234,7 @@ found_rx_lid:
 			char status[256];
 			sprintf(status, "\r    Dumping ~%.2fMB of captured data to disk: 0%%",
 					(double)cap->used / (1024 * 1024));
-			printf_status("\n%s", status);
+			rte_printf_status("\n%s", status);
 
 			pcap = pcap_open_dead(DLT_EN10MB, 65535);
 
@@ -268,11 +268,11 @@ found_rx_lid:
 					else if (pct % 2 == 0)
 						strncatf(status, ".");
 
-					printf_status("%s", status);
+					rte_printf_status("%s", status);
 				}
 			}
-			printf_status("\r");
-			printf_status("\n");	// Clean of the screen a bit
+			rte_printf_status("\r");
+			rte_printf_status("\n");	// Clean of the screen a bit
 
 			pcap_dump_close(pcap_dumper);
 			pcap_close(pcap);
@@ -308,9 +308,9 @@ found_rx_lid:
 */
 
 void
-pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, int nb_dump, capture_t * cap )
+pktgen_packet_capture_bulk(struct rte_mbuf ** pkts, uint32_t nb_dump, capture_t * cap )
 {
-	unsigned int plen, i;
+	uint32_t plen, i;
 	struct rte_mbuf *pkt;
 
 	/* Don't capture if buffer is full */

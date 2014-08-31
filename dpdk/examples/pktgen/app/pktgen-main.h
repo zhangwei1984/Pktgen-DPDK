@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -81,8 +81,22 @@ extern void pktgen_l2p_dump(void);
 
 extern void pktgen_interact(struct cmdline *cl);
 
-extern void * pktgen_get_lua();
+extern void * pktgen_get_lua(void);
 
 extern void pktgen_stop_running(void);
+
+/**************************************************************************//**
+*
+* pktgen_get_lua - Get Lua state pointer.
+*
+* DESCRIPTION
+* Get the Lua state pointer value.
+*
+* RETURNS: Lua pointer
+*
+* SEE ALSO:
+*/
+
+extern void * pktgen_get_lua(void);
 
 #endif	// _PKTGEN_MAIN_H_

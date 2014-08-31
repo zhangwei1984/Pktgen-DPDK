@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -196,7 +196,7 @@ pktgen_set_random_bitfield(rnd_bits_t * rnd_bits, uint8_t idx, uint8_t offset, c
 	 */
 	BITFIELD_T mask0 = 0, mask1 = 0, maskRnd = 0;
 
-	int i;
+	uint32_t i;
 	for (i = 0; i < mask_len; ++i) {
 		mask0   <<= 1;
 		mask1   <<= 1;
@@ -337,17 +337,17 @@ void pktgen_page_random_bitfields(uint32_t print_labels, uint16_t pid, rnd_bits_
 
 	display_topline("** Random bitfield Page **");
 
-	scrn_printf(1, 3, "Port %d", pid);
+	wr_scrn_printf(1, 3, "Port %d", pid);
 
 	row = PORT_STATE_ROW;
 
 	if (rnd_bits == NULL) {
-		scrn_center(10, "** Port is not active - no random bitfields set **");
+		wr_scrn_center(10, pktgen.scrn->ncols, "** Port is not active - no random bitfields set **");
 		row = 28;
 		goto leave;
 	}
 	/* Header line */
-	scrn_printf(row++, 1, "%8s %8s %8s  %s",
+	wr_scrn_printf(row++, 1, "%8s %8s %8s  %s",
 			"Index", "Offset", "Act?",
 			"Mask [0 = 0 bit, 1 = 1 bit, X = random bit, . = ignore]");
 
@@ -367,7 +367,7 @@ void pktgen_page_random_bitfields(uint32_t print_labels, uint16_t pid, rnd_bits_
 							   : '.';
 		}
 
-		scrn_printf(row++, 1, "%8d %8d %7s   %s",
+		wr_scrn_printf(row++, 1, "%8d %8d %7s   %s",
 				bitmask_idx,
 				curr_spec->offset,
 				(rnd_bits->active_specs & (1 << bitmask_idx)) ? "YES" : "no",

@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -227,7 +227,7 @@ pktgen_page_log(uint32_t print_labels)
 	row = 2;
 
 	/* Header line */
-	scrn_printf(row++, 1, "%1s %8s %-32s %s",
+	wr_scrn_printf(row++, 1, "%1s %8s %-32s %s",
 			"L", "Time", "Function", "Message");
 
 	curr_line = output_lines = 0;
@@ -258,7 +258,7 @@ pktgen_page_log(uint32_t print_labels)
 	 * curr_line points 1 beyond the last entry in lines[].
 	 */
 	for (--curr_line; curr_line >= 0; --curr_line) {
-		scrn_printf(row++, 1, "%s", lines[curr_line]);
+		wr_scrn_printf(row++, 1, "%s", lines[curr_line]);
 
 		/* Increase row for each embedded \n */
 		for (curr_char = 0; lines[curr_line][curr_char] != '\0'; ++curr_char)

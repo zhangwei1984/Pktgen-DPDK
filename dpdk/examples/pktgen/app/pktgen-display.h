@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -69,7 +69,7 @@
 #define _PKTGEN_DISPLAY_H_
 
 /* TODO create pktgen_display_*() abstractions and remove this #include */
-#include <rte_scrn.h>
+#include <wr_scrn.h>
 
 #include <wr_copyright_info.h>
 
@@ -203,6 +203,32 @@ extern void pktgen_set_theme_item( char * item, char * fg_color, char * bg_color
 */
 extern void pktgen_theme_save(char * filename);
 
-#endif	// _PKTGEN_DISPLAY_H_
+/**************************************************************************//**
+*
+* pktgen_theme_state - Set the current theme state.
+*
+* DESCRIPTION
+* Set the current theme state.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern void pktgen_theme_state(const char * state);
+
+/**************************************************************************//**
+*
+* pktgen_theme_show - Show the current theme state.
+*
+* DESCRIPTION
+* Show the current theme state.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+extern void pktgen_theme_show(void);
+
+#endif	/* _PKTGEN_DISPLAY_H_ */
 
 

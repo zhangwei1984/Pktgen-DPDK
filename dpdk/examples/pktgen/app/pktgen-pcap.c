@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -70,9 +70,6 @@
 
 #include "pktgen.h"
 
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
-
 /**************************************************************************//**
 *
 * pktgen_print_pcap - Display the pcap data page.
@@ -99,7 +96,7 @@ pktgen_print_pcap(uint16_t pid)
     char pkt_buff[2048];
 
     display_topline("** PCAP Page **");
-    scrn_printf(1, 3, "Port %d of %d", pid, pktgen.nb_ports);
+    wr_scrn_printf(1, 3, "Port %d of %d", pid, pktgen.nb_ports);
 
     info = &pktgen.info[pid];
     pcap = info->pcap;
@@ -107,15 +104,15 @@ pktgen_print_pcap(uint16_t pid)
     row = PORT_STATE_ROW;
     col = 1;
     if ( pcap == NULL ) {
-    	scrn_center(10, "** Port does not have a PCAP file assigned **");
+    	wr_scrn_center(10, pktgen.scrn->ncols, "** Port does not have a PCAP file assigned **");
     	row = 28;
     	goto leave;
     }
 
-    scrn_eol_pos(row, col);
-    scrn_printf(row++, col, "Port: %d, PCAP Count: %d of %d",
+    wr_scrn_eol_pos(row, col);
+    wr_scrn_printf(row++, col, "Port: %d, PCAP Count: %d of %d",
     		pid, pcap->pkt_idx, pcap->pkt_count);
-    scrn_printf(row++, col, "%*s %*s%*s%*s%*s%*s%*s%*s",
+    wr_scrn_printf(row++, col, "%*s %*s%*s%*s%*s%*s%*s%*s",
             5, "Seq",
             COLUMN_WIDTH_0, "Dst MAC",
             COLUMN_WIDTH_0, "Src MAC",
@@ -154,13 +151,13 @@ pktgen_print_pcap(uint16_t pid)
 
         hdr = (pkt_hdr_t *)&pkt_buff[0];
 
-       	scrn_eol_pos(row, col);
+       	wr_scrn_eol_pos(row, col);
 
-        scrn_printf(row, col, "%5d:", i);
+        wr_scrn_printf(row, col, "%5d:", i);
         col += 7;
-        scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &hdr->eth.d_addr));
+        wr_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &hdr->eth.d_addr));
         col += COLUMN_WIDTH_1;
-        scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &hdr->eth.s_addr));
+        wr_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_mtoa(buff, sizeof(buff), &hdr->eth.s_addr));
         col += COLUMN_WIDTH_1;
 
         type = ntohs(hdr->eth.ether_type);
@@ -172,14 +169,14 @@ pktgen_print_pcap(uint16_t pid)
         	proto = ((ipHdr_t *)((char *)&hdr->u.ipv4 + 4))->proto;
         }
 
-        if ( (type == ETHER_TYPE_IPv4) ) {
-			scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), hdr->u.ipv4.dst, 0xFFFFFFFF));
+        if ( type == ETHER_TYPE_IPv4 ) {
+			wr_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1, inet_ntop4(buff, sizeof(buff), hdr->u.ipv4.dst, 0xFFFFFFFF));
 			col += COLUMN_WIDTH_1;
-			scrn_printf(row, col, "%*s", COLUMN_WIDTH_1+2, inet_ntop4(buff, sizeof(buff), hdr->u.ipv4.src, 0xFFFFFFFF));
+			wr_scrn_printf(row, col, "%*s", COLUMN_WIDTH_1+2, inet_ntop4(buff, sizeof(buff), hdr->u.ipv4.src, 0xFFFFFFFF));
 			col += COLUMN_WIDTH_1+2;
 
 	        snprintf(buff, sizeof(buff), "%d/%d", ntohs(hdr->u.uip.udp.sport), ntohs(hdr->u.uip.udp.dport));
-	        scrn_printf(row, col, "%*s", 12, buff);
+	        wr_scrn_printf(row, col, "%*s", 12, buff);
 	        col += 12;
         } else {
         	skip++;
@@ -190,14 +187,14 @@ pktgen_print_pcap(uint16_t pid)
                                                    (type == PG_IPPROTO_TCP)? "TCP" :
                                                    (proto == PG_IPPROTO_ICMP)? "ICMP" : "UDP",
                                                    (vlan & 0xFFF));
-        scrn_printf(row, col, "%*s", 15, buff);
+        wr_scrn_printf(row, col, "%*s", 15, buff);
         col += 15;
-        scrn_printf(row, col, "%5d", len);
+        wr_scrn_printf(row, col, "%5d", len);
 
         if ( skip && (type < ETHER_TYPE_IPv4) )
-        	scrn_printf(row, col+7, "<<< Skip %04x", type);
+        	wr_scrn_printf(row, col+7, "<<< Skip %04x", type);
         else if ( skip && (type != ETHER_TYPE_IPv4) )
-        	scrn_printf(row, col+7, " EthType %04x", type);
+        	wr_scrn_printf(row, col+7, " EthType %04x", type);
         row++;
     }
 leave:
@@ -265,7 +262,7 @@ pktgen_pcap_mbuf_ctor(struct rte_mempool *mp, void *opaque_arg, void *_m, unsign
 
     for(;;) {
         if ( (i & 0x3ff) == 0 ) {
-			printf_status("%c\b", "-\\|/"[(i >> 10) & 3]);
+			rte_printf_status("%c\b", "-\\|/"[(i >> 10) & 3]);
         	i++;
         }
 
@@ -317,7 +314,7 @@ pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
     wr_pcap_rewind(pcap);
 
 	snprintf(name, sizeof(name), "%-12s%d:%d", "PCAP TX", info->pid, 0);
-    printf_status("    Process: %-*s ", 18, name);
+    rte_printf_status("    Process: %-*s ", 18, name);
 
     pkt_sizes = elt_count = i = 0;
 
@@ -335,7 +332,7 @@ pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
         elt_count++;
 
         if ( (elt_count & 0x3ff) == 0 )
-			printf_status("%c\b", "-\\|/"[i++ & 3]);
+			rte_printf_status("%c\b", "-\\|/"[i++ & 3]);
 
         pkt_sizes += len;
     }
@@ -354,18 +351,18 @@ pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
         	elt_count = MAX_MBUFS_PER_PORT;
         elt_count = rte_align32pow2(elt_count);
 
-        printf_status("\r    Create: %-*s   \b", 16, name);
+        rte_printf_status("\r    Create: %-*s   \b", 16, name);
     	info->q[qid].pcap_mp = rte_mempool_create(name, elt_count, MBUF_SIZE, 0,
                    sizeof(struct rte_pktmbuf_pool_private),
                    rte_pktmbuf_pool_init, (void *)((uint64_t)MBUF_SIZE),
                    pktgen_pcap_mbuf_ctor, (void *)pcap,
                    rte_lcore_to_socket_id(0), MEMPOOL_F_DMA);
-        printf_status("\r");
+        rte_printf_status("\r");
         if ( info->q[qid].pcap_mp == NULL )
             pktgen_log_panic("Cannot init port %d for PCAP packets", info->pid);
 
         data_size = (info->pcap->pkt_count * MBUF_SIZE);
-        printf_status("    Create: %-*s - Number of MBUFs %6u for %5d packets                 = %6u KB\n",
+        rte_printf_status("    Create: %-*s - Number of MBUFs %6u for %5d packets                 = %6u KB\n",
                 16, name, elt_count, info->pcap->pkt_count, (data_size + 1023)/1024);
         pktgen.mem_used			+= data_size;
         pktgen.total_mem_used	+= data_size;

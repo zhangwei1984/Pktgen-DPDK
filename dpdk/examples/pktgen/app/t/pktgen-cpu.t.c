@@ -11,8 +11,8 @@
 #include "pktgen.h"
 
 
-/* rte_scrn.h function stub */
-void scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
+/* wr_scrn.h function stub */
+void wr_scrn_printf(int16_t r, int16_t c, const char * fmt, ...) { return; }
 
 
 pktgen_t pktgen;

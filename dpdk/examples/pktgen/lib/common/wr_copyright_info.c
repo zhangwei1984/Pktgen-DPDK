@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -80,10 +80,10 @@
 #include <rte_atomic.h>
 #include <rte_cycles.h>
 
-#include "rte_scrn.h"
+#include "wr_scrn.h"
 #include "wr_copyright_info.h"
 
-#define COPYRIGHT_MSG			"Copyright (c) <2010-2014>, Wind River Systems, Inc."
+#define COPYRIGHT_MSG			"Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved."
 #define POWERED_BY_DPDK			"Powered by Intel® DPDK"
 
 static const char * intel_copyright[] = {
@@ -167,27 +167,27 @@ static const char * wr_copyright[] = {
 */
 
 void
-wr_print_copyright(char * appname, char * created_by)
+wr_print_copyright(const char * appname, const char * created_by)
 {
 	int		i;
 
-	printf_status("-----------------------\n");
+	rte_printf_status("-----------------------\n");
 	for(i=0; intel_copyright[i] != NULL; i++)
-		printf_status("  %s\n", intel_copyright[i]);
-	printf_status("-----------------------\n");
+		rte_printf_status("  %s\n", intel_copyright[i]);
+	rte_printf_status("-----------------------\n");
 
-	printf_status("    %s\n\n", COPYRIGHT_MSG);
+	rte_printf_status("    %s\n\n", COPYRIGHT_MSG);
 	for(i=0; wr_copyright[i] != NULL; i++)
-		printf_status("  %s\n", wr_copyright[i]);
+		rte_printf_status("  %s\n", wr_copyright[i]);
 
-	scrn_color(YELLOW, NO_CHANGE, OFF);
-	printf_status("  %s created by: %s -- >>> %s <<<\n", appname, created_by, POWERED_BY_DPDK);
-	scrn_color(BLUE, NO_CHANGE, OFF);
-	printf_status("-----------------------\n");
+	wr_scrn_color(YELLOW, NO_CHANGE, OFF);
+	rte_printf_status("  %s created by: %s -- >>> %s <<<\n", appname, created_by, POWERED_BY_DPDK);
+	wr_scrn_color(BLUE, NO_CHANGE, OFF);
+	rte_printf_status("-----------------------\n");
 }
 
 void
-wr_logo(int row, int col, char * appname)
+wr_logo(int row, int col, const char * appname)
 {
 	int		i;
 	static const char * logo[] = {
@@ -217,44 +217,44 @@ wr_logo(int row, int col, char * appname)
 		NULL
 	};
 
-	scrn_cls();
-	scrn_color(GREEN, NO_CHANGE, BOLD);
+	wr_scrn_cls();
+	wr_scrn_color(GREEN, NO_CHANGE, BOLD);
 	for(i=0, row++; logo[i] != NULL; i++)
-		scrn_printf(row++, 7, "%s", logo[i]);
+		wr_scrn_printf(row++, 7, "%s", logo[i]);
 
-	scrn_color(MAGENTA, NO_CHANGE, OFF);
-	scrn_printf(++row, col, "%s", COPYRIGHT_MSG);
-	scrn_color(BLUE, NO_CHANGE, BOLD);
-	scrn_printf(++row, col+6, ">>> %s is %s <<<", appname, POWERED_BY_DPDK);
-	scrn_color(BLACK, NO_CHANGE, OFF);
-	scrn_pos(++row, 1);
+	wr_scrn_color(MAGENTA, NO_CHANGE, OFF);
+	wr_scrn_printf(++row, col, "%s", COPYRIGHT_MSG);
+	wr_scrn_color(BLUE, NO_CHANGE, BOLD);
+	wr_scrn_printf(++row, col+6, ">>> %s is %s <<<", appname, POWERED_BY_DPDK);
+	wr_scrn_color(BLACK, NO_CHANGE, OFF);
+	wr_scrn_pos(++row, 1);
 
 	rte_delay_ms(1500);
 
-    scrn_cls();
-    scrn_pos(100, 1);
+    wr_scrn_cls();
+    wr_scrn_pos(100, 1);
 }
 
 void
-wr_splash_screen(int row, int col, char * appname, char * created_by)
+wr_splash_screen(int row, int col, const char * appname, const char * created_by)
 {
 	int		i;
 
 	row = 3;
-	scrn_color(BLUE, NO_CHANGE, OFF);
-	scrn_printf(row++, col, "%s", COPYRIGHT_MSG);
-	scrn_color(GREEN, NO_CHANGE, BOLD);
+	wr_scrn_color(BLUE, NO_CHANGE, OFF);
+	wr_scrn_printf(row++, col, "%s", COPYRIGHT_MSG);
+	wr_scrn_color(GREEN, NO_CHANGE, BOLD);
 	for(i=0, row++; wr_copyright[i] != NULL; i++)
-		scrn_printf(row++, 7, "%s", wr_copyright[i]);
-	scrn_color(BLUE, NO_CHANGE, BOLD);
-	scrn_printf(row++, col, "%s created by %s -- >>> %s <<<", appname, created_by, POWERED_BY_DPDK);
-	scrn_color(BLACK, NO_CHANGE, OFF);
-	scrn_pos(++row, 1);
+		wr_scrn_printf(row++, 7, "%s", wr_copyright[i]);
+	wr_scrn_color(BLUE, NO_CHANGE, BOLD);
+	wr_scrn_printf(row++, col, "%s created by %s -- >>> %s <<<", appname, created_by, POWERED_BY_DPDK);
+	wr_scrn_color(BLACK, NO_CHANGE, OFF);
+	wr_scrn_pos(++row, 1);
 
 	rte_delay_ms(1500);
 
-    scrn_cls();
-    scrn_pos(100, 1);
+    wr_scrn_cls();
+    wr_scrn_pos(100, 1);
 }
 
 /**

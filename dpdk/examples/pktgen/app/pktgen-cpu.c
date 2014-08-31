@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -70,9 +70,6 @@
 #include "pktgen-log.h"
 
 #include "pktgen.h"
-
-// Allocated the pktgen structure for global use
-extern    pktgen_t        pktgen;
 
 static int
 save_uname(char * line, __attribute__ ((unused))int i) {
@@ -120,8 +117,6 @@ pktgen_page_cpu(void)
 
     display_topline("** CPU Information Page **");
 
-    row = PORT_STATE_ROW;
-
 	if ( (pktgen.core_cnt == 0) || (pktgen.lscpu == NULL) )
 		pktgen_cpu_init();
 
@@ -134,22 +129,22 @@ pktgen_page_cpu(void)
     	return;
 
     row = 3;
-    scrn_printf(row++, 1, "Kernel: %s", pktgen.uname);
+    wr_scrn_printf(row++, 1, "Kernel: %s", pktgen.uname);
     row++;
-    scrn_printf(row++, 1, "Model Name: %s", pktgen.lscpu->model_name);
-    scrn_printf(row++, 1, "CPU Speed : %s", pktgen.lscpu->cpu_mhz);
-    scrn_printf(row++, 1, "Cache Size: %s", pktgen.lscpu->cache_size);
+    wr_scrn_printf(row++, 1, "Model Name: %s", pktgen.lscpu->model_name);
+    wr_scrn_printf(row++, 1, "CPU Speed : %s", pktgen.lscpu->cpu_mhz);
+    wr_scrn_printf(row++, 1, "Cache Size: %s", pktgen.lscpu->cache_size);
     row++;
-    scrn_printf(row++, 1, "CPU Flags : %s", pktgen.lscpu->cpu_flags);
+    wr_scrn_printf(row++, 1, "CPU Flags : %s", pktgen.lscpu->cpu_flags);
     row += 4;
 
-    scrn_printf(row++, 5, "%d sockets, %d cores per socket and %d threads per core.",
+    wr_scrn_printf(row++, 5, "%d sockets, %d cores per socket and %d threads per core.",
     	nb_sockets, nb_cores, nb_threads);
 
     sprintf(buff, "Socket   : ");
     for(i = 0; i< nb_sockets; i++)
         strncatf(buff, "%4d      ", i);
-    scrn_printf(row++, 3, "%s", buff);
+    wr_scrn_printf(row++, 3, "%s", buff);
 
     buff[0] = '\0';
 	for(i = 0; i< nb_cores; i++) {
@@ -162,7 +157,7 @@ pktgen_page_cpu(void)
 			strncatf(buff, "[%2d,%2d]   ", sct(3, i, 0), sct(3, i, 1));
 		strncatf(buff, "\n");
 	}
-	scrn_printf(row++, 1, "%s", buff);
+	wr_scrn_printf(row++, 1, "%s", buff);
 
 	wr_port_matrix_dump(pktgen.l2p);
 
@@ -171,8 +166,8 @@ pktgen_page_cpu(void)
 		pktgen.last_row = 36;
 	    display_dashline(pktgen.last_row);
 
-		scrn_setw(pktgen.last_row);
-		scrn_printf(100, 1, "");        // Put cursor on the last row.
+		wr_scrn_setw(pktgen.last_row);
+		wr_scrn_printf(100, 1, "");        // Put cursor on the last row.
 	}
     pktgen.flags &= ~PRINT_LABELS_FLAG;
 }

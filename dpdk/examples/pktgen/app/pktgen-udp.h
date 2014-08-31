@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -73,7 +73,18 @@
 #include "pktgen-seq.h"
 
 
-extern void pktgen_udp_hdr_ctor(pkt_seq_t * pkt, udpip_t * uip, __attribute__ ((unused)) int type);
+/**************************************************************************//**
+*
+* pktgen_udp_hdr_ctor - UDP header constructor routine.
+*
+* DESCRIPTION
+* Construct the UDP header in a packer buffer.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
 
+extern void pktgen_udp_hdr_ctor(pkt_seq_t * pkt, udpip_t * uip, __attribute__ ((unused)) int type);
 
 #endif	// _PKTGEN_UDP_H_

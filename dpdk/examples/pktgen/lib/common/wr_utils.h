@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -95,7 +95,7 @@ wr_strtrimset( char * str, const char * set)
 	if ( (len == 0) || (len & 1) )
 		return NULL;
 
-	for(len = 0; set && (set[0] != '\0'); set += 2 ) {
+	for( ;set && (set[0] != '\0'); set += 2 ) {
 		if ( *str != *set )
 			continue;
 

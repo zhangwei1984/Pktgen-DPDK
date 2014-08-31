@@ -46,20 +46,17 @@ WERROR_FLAGS := -W -Wall
 WERROR_FLAGS += -Wpointer-arith
 WERROR_FLAGS += -Wcast-align
 WERROR_FLAGS += -Wnested-externs
+WERROR_FLAGS += -Wno-cast-align
 
-CFLAGS += $(WERROR_FLAGS) -I$(SRCDIR) -O3 -g -fno-stack-protector
-
-# install includes
-SYMLINK-$(CONFIG_WR_PKTGEN)-include := lapi.h lauxlib.h lcode.h lctype.h ldebug.h \
-	ldo.h lfunc.h lgc.h llex.h llimits.h lmem.h lobject.h lopcodes.h lparser.h lstate.h lstring.h \
-	ltable.h ltm.h luaconf.h lua.h lualib.h lua-socket.h lundump.h lvm.h lzio.h lua_shell.h
+CFLAGS += -O3 -g $(WERROR_FLAGS) -I$(SRCDIR) -fno-stack-protector
 
 # all source are stored in SRCS-y
-SRCS-$(CONFIG_WR_PKTGEN) := lapi.c lauxlib.c lbaselib.c lbitlib.c lcode.c lcorolib.c \
-            lctype.c ldblib.c ldebug.c ldo.c ldump.c lfunc.c lgc.c \
-            linit.c liolib.c llex.c lmathlib.c lmem.c loadlib.c \
-            lobject.c lopcodes.c loslib.c lparser.c lstate.c \
-            lstring.c lstrlib.c ltable.c ltablib.c ltm.c lua_shell.c \
-            lundump.c lvm.c lzio.c lua-socket.c
+SRCS-y := \
+	lapi.c lauxlib.c lbaselib.c lbitlib.c lcode.c lcorolib.c \
+	lctype.c ldblib.c ldebug.c ldo.c ldump.c lfunc.c lgc.c \
+	linit.c liolib.c llex.c lmathlib.c lmem.c loadlib.c \
+	lobject.c lopcodes.c loslib.c lparser.c lstate.c \
+	lstring.c lstrlib.c ltable.c ltablib.c ltm.c lua_shell.c \
+	lundump.c lvm.c lzio.c lua-socket.c
 
 include $(RTE_SDK)/mk/rte.lib.mk

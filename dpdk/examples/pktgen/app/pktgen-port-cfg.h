@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -216,7 +216,7 @@ static inline uint64_t
 pkt_atomic64_tx_count(rte_atomic64_t *v, int64_t burst)
 {
 	int success = 0;
-	uint64_t tmp1, tmp2;
+	int64_t tmp1, tmp2;
 
 	while (success == 0) {
 		tmp1 = v->cnt;

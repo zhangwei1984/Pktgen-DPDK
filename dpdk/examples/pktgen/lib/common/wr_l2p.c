@@ -33,7 +33,7 @@
  */
 
 /**
- * Copyright (c) <2010-2014>, Wind River Systems, Inc.
+ * Copyright (c) <2010-2014>, Wind River Systems, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
@@ -82,9 +82,9 @@
 #include <rte_cycles.h>
 #include <rte_pci.h>
 #include <rte_debug.h>
-#include <rte_scrn.h>
 #include <rte_memory.h>
 
+#include "wr_scrn.h"
 #include "wr_l2p.h"
 #include "wr_core_info.h"
 #include "wr_utils.h"
