@@ -287,6 +287,20 @@ pktgen_pcap_mbuf_ctor(struct rte_mempool *mp, void *opaque_arg, void *_m, unsign
     }
 }
 
+static inline int
+l2p_get_first_tx_lcore(l2p_t * l2p, uint8_t pid)
+{
+	rxtx_t cnt;
+	uint8_t lid;
+
+	for(lid = 0; lid < RTE_MAX_LCORE; lid++) {
+		cnt.rxtx = wr_get_map(l2p, pid, lid);
+		if (cnt.tx > 0)
+			return lid;
+	}
+	return -1;
+}
+
 /**************************************************************************//**
 *
 * pktgen_pcap_parse - Parse a PCAP file.
@@ -356,7 +370,7 @@ pktgen_pcap_parse(pcap_info_t * pcap, port_info_t * info, unsigned qid)
                    sizeof(struct rte_pktmbuf_pool_private),
                    rte_pktmbuf_pool_init, (void *)((uint64_t)MBUF_SIZE),
                    pktgen_pcap_mbuf_ctor, (void *)pcap,
-                   rte_lcore_to_socket_id(0), MEMPOOL_F_DMA);
+                   rte_lcore_to_socket_id(l2p_get_first_tx_lcore(pktgen.l2p, info->pid)), MEMPOOL_F_DMA);
         rte_printf_status("\r");
         if ( info->q[qid].pcap_mp == NULL )
             pktgen_log_panic("Cannot init port %d for PCAP packets", info->pid);
