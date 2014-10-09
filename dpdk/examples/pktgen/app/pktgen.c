@@ -259,7 +259,7 @@ pktgen_find_matching_ipdst( port_info_t * info, uint32_t addr )
 */
 
 static __inline__ void
-pktgen_send_burst(port_info_t * info, uint8_t qid)
+pktgen_send_burst(port_info_t * info, uint16_t qid)
 {
 	struct mbuf_table	* mtab = &info->q[qid].tx_mbufs;
 	struct rte_mbuf **pkts;
@@ -301,7 +301,7 @@ pktgen_send_burst(port_info_t * info, uint8_t qid)
 */
 
 static __inline__ void
-pktgen_tx_flush(port_info_t * info, uint8_t qid)
+pktgen_tx_flush(port_info_t * info, uint16_t qid)
 {
 	// Flush any queued pkts to the driver.
 	pktgen_send_burst(info, qid);
@@ -322,7 +322,7 @@ pktgen_tx_flush(port_info_t * info, uint8_t qid)
 */
 
 static __inline__ void
-pktgen_tx_cleanup(port_info_t * info, uint8_t qid)
+pktgen_tx_cleanup(port_info_t * info, uint16_t qid)
 {
 	// Flush any done transmit buffers and descriptors.
 	pktgen_send_burst(info, qid);
@@ -595,7 +595,7 @@ pktgen_packet_ctor(port_info_t * info, int32_t seq_idx, int32_t type) {
 */
 
 void
-pktgen_send_mbuf(struct rte_mbuf *m, uint8_t pid, uint8_t qid)
+pktgen_send_mbuf(struct rte_mbuf *m, uint8_t pid, uint16_t qid)
 {
     port_info_t * info = &pktgen.info[pid];
 	struct mbuf_table	* mtab = &info->q[qid].tx_mbufs;
@@ -809,7 +809,7 @@ pktgen_send_special(port_info_t * info)
 */
 
 static __inline__ void
-pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp, uint8_t qid)
+pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp, uint16_t qid)
 {
 	struct rte_mbuf	* m, * mm;
 	pkt_seq_t * pkt;
@@ -831,7 +831,7 @@ pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp, uint8_t qid)
 
 	// allocate each mbuf and put them on a list to be freed.
 	for(;;) {
-		m = rte_pktmbuf_alloc_noreset(mp);
+		m = rte_pktmbuf_alloc(mp);
 		if ( unlikely(m == NULL) )
 			break;
 
@@ -869,14 +869,8 @@ pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp, uint8_t qid)
 		}
 	}
 
-	// Free all of the mbufs
-	if ( likely(mm != 0) ) {
-		while( (m = mm) != NULL ) {
-			mm = m->pkt.next;
-			m->pkt.next = NULL;
-			rte_pktmbuf_free(m);
-		}
-	}
+	if ( mm != NULL )
+		rte_pktmbuf_free(mm);
 }
 
 /**************************************************************************//**
@@ -892,24 +886,28 @@ pktgen_setup_packets(port_info_t * info, struct rte_mempool * mp, uint8_t qid)
 */
 
 static __inline__ void
-pktgen_send_pkts(port_info_t * info, uint8_t qid, struct rte_mempool * mp)
+pktgen_send_pkts(port_info_t * info, uint16_t qid, struct rte_mempool * mp)
 {
-	int			txCnt = 0;
+	int64_t		txCnt = 0;
+	int			len = 0;
 
 	if ( unlikely(rte_atomic32_read(&info->q[qid].flags) & CLEAR_FAST_ALLOC_FLAG) )
 		pktgen_setup_packets(info, mp, qid);
 
-	if ( rte_atomic64_read(&info->current_tx_count) == 0 )
-		info->q[qid].tx_mbufs.len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, info->tx_burst);
-	else {
+	if ( rte_atomic32_read(&info->port_flags) & SEND_FOREVER ) {
+		len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, info->tx_burst);
+	} else {
 		txCnt = pkt_atomic64_tx_count(&info->current_tx_count, info->tx_burst);
-		info->q[qid].tx_mbufs.len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, txCnt);
+		if ( txCnt )
+			len = rte_pktmbuf_alloc_bulk_noreset(mp, (void **)info->q[qid].tx_mbufs.m_table, txCnt);
+		else {
+			pktgen_clr_port_flags(info, (SENDING_PACKETS | SEND_FOREVER));
+			pktgen_set_q_flags(info, qid, DO_TX_CLEANUP);
+		}
 	}
-	pktgen_send_burst(info, qid);
-
-	if ( (txCnt != 0) && (rte_atomic64_read(&info->current_tx_count) == 0) ) {
-		pktgen_clr_port_flags(info, SENDING_PACKETS);
-		pktgen_set_q_flags(info, qid, DO_TX_CLEANUP);
+	if ( len > 0 ) {
+		info->q[qid].tx_mbufs.len = len;
+		pktgen_send_burst(info, qid);
 	}
 }
 
@@ -926,7 +924,7 @@ pktgen_send_pkts(port_info_t * info, uint8_t qid, struct rte_mempool * mp)
 */
 
 static __inline__ void
-pktgen_main_transmit(port_info_t * info, uint8_t qid)
+pktgen_main_transmit(port_info_t * info, uint16_t qid)
 {
     uint32_t		flags;
 
@@ -978,9 +976,10 @@ pktgen_main_transmit(port_info_t * info, uint8_t qid)
 static __inline__ void
 pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbuf *pkts_burst[])
 {
-	uint32_t nb_rx, pid, qid;
+	uint8_t pid;
+	uint16_t qid, nb_rx;
+	int		i;
 	capture_t *capture;
-	uint32_t i;
 
 	pid = info->pid;
 	qid = wr_get_rxque(pktgen.l2p, lid, idx);
@@ -999,8 +998,7 @@ pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbu
 
 	if ( unlikely(rte_atomic32_read(&info->port_flags) & CAPTURE_PKTS) ) {
 		capture = &pktgen.capture[pktgen.core_info[lid].s.socket_id];
-		if ( unlikely((capture->port == pid) &&
-				   (capture->lcore == lid)) ) {
+		if ( unlikely((capture->port == pid) && (capture->lcore == lid)) ) {
 			pktgen_packet_capture_bulk(pkts_burst, nb_rx, capture);
 		}
 	}

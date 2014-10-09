@@ -65,7 +65,7 @@ typedef struct wr_scrn_s {
 extern wr_scrn_t	* __scrn;	/**< Global extern for wr_scrn_t pointer (their can be only one!) */
 
 /** Enable or disable the screen from being updated */
-enum { SCRN_ON = 0, SCRN_OFF = 1 };
+enum { SCRN_RUNNING = 0, SCRN_PAUSED = 1 };
 
 /** Enable or disable the theme or color options */
 enum { THEME_OFF = 0, THEME_ON = 1 };
@@ -94,15 +94,15 @@ static __inline__ void wr_scrn_turn_off(void)		wr_scrn_puts("\033[?25l")			/** D
 static __inline__ void wr_scrn_save(void)			wr_scrn_puts("\0337")				/** Save current cursor position */
 static __inline__ void wr_scrn_restore(void)		wr_scrn_puts("\0338")				/** Restore the saved cursor position */
 static __inline__ void wr_scrn_eol(void)			wr_scrn_puts("\033[K")				/** Clear from cursor to end of line */
-static __inline__ void wr_scrn_cbl(void)			wr_scrn_puts("\033[1K")			/** Clear from cursor to begining of line */
-static __inline__ void wr_scrn_cel(void)			wr_scrn_puts("\033[2K")			/** Clear entire line */
+static __inline__ void wr_scrn_cbl(void)			wr_scrn_puts("\033[1K")				/** Clear from cursor to begining of line */
+static __inline__ void wr_scrn_cel(void)			wr_scrn_puts("\033[2K")				/** Clear entire line */
 static __inline__ void wr_scrn_clw(void)			wr_scrn_puts("\033[J")				/** Clear from cursor to end of screen */
-static __inline__ void wr_scrn_clb(void)			wr_scrn_puts("\033[1J")			/** Clear from cursor to begining of screen */
-static __inline__ void wr_scrn_cls(void)			wr_scrn_puts("\033[2J")			/** Clear the screen, more cursor to home */
-static __inline__ void wr_scrn_reverse(void)		wr_scrn_puts("\033[7m")			/** Start reverse video */
-static __inline__ void wr_scrn_normal(void)		wr_scrn_puts("\033[0m")			/** Stop attribute like reverse and underscore */
-static __inline__ void wr_scrn_scroll(int r)		wr_scrn_puts("\033[%d;r",r)		/** Scroll whole screen up r number of lines */
-static __inline__ void wr_scrn_scroll_up(int r)	wr_scrn_puts("\033[%dS",r)			/** Scroll whole screen up r number of lines */
+static __inline__ void wr_scrn_clb(void)			wr_scrn_puts("\033[1J")				/** Clear from cursor to begining of screen */
+static __inline__ void wr_scrn_cls(void)			wr_scrn_puts("\033[2J")				/** Clear the screen, more cursor to home */
+static __inline__ void wr_scrn_reverse(void)		wr_scrn_puts("\033[7m")				/** Start reverse video */
+static __inline__ void wr_scrn_normal(void)		wr_scrn_puts("\033[0m")					/** Stop attribute like reverse and underscore */
+static __inline__ void wr_scrn_scroll(int r)		wr_scrn_puts("\033[%d;r",r)			/** Scroll whole screen up r number of lines */
+static __inline__ void wr_scrn_scroll_up(int r)	wr_scrn_puts("\033[%dS",r)				/** Scroll whole screen up r number of lines */
 static __inline__ void wr_scrn_scroll_down(int r)	wr_scrn_puts("\033[%dT",r)			/** Scroll whole screen down r number of lines */
 static __inline__ void wr_scrn_nlines(int r)		wr_scrn_puts("\033[%dE",r)			/** Move down nlines plus move to column 1 */
 static __inline__ void wr_scrn_setw(int t)			wr_scrn_puts("\033[%d;r", t)		/** Set window size, from to end of screen */
@@ -125,34 +125,23 @@ static __inline__ void wr_scrn_eol_pos(int r, int c) {
 	wr_scrn_eol();
 }
 
-/** Turn off screen updates if async processes are writing to the screen */
-static __inline__ void wr_scrn_off(void) {
-	rte_atomic32_set(&__scrn->state, SCRN_OFF);
-}
-
-/** Turn on screen updates if being done. */
-static __inline__ void wr_scrn_on(void) {
-	rte_atomic32_set(&__scrn->state, SCRN_ON);
-}
-
-/** Determine if the screen is currently off meaning no updates */
-static __inline__ int wr_scrn_is_off(void) {
-	return (rte_atomic32_read(&__scrn->state) == SCRN_OFF);
-}
+extern void pktgen_set_prompt(void);
 
 /** Stop screen from updating until resumed later */
 static __inline__ void wr_scrn_pause(void) {
-	rte_atomic32_set(&__scrn->pause, 1);
+	rte_atomic32_set(&__scrn->pause, SCRN_PAUSED);
+	pktgen_set_prompt();
 }
 
 /** Resume the screen from a pause */
 static __inline__ void wr_scrn_resume(void) {
-	rte_atomic32_set(&__scrn->pause, 0);
+	rte_atomic32_set(&__scrn->pause, SCRN_RUNNING);
+	pktgen_set_prompt();
 }
 
 /* Is the screen in the paused state */
 static __inline__ int wr_scrn_is_paused(void) {
-	return (rte_atomic32_read(&__scrn->pause) == 1);
+	return (rte_atomic32_read(&__scrn->pause) == SCRN_PAUSED);
 }
 
 /** Output a message of the current line centered */

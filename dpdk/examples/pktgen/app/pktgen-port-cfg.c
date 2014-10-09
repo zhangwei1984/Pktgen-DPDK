@@ -121,15 +121,6 @@ const struct rte_eth_txconf tx_conf = {
     .tx_free_thresh = 0, /* Use PMD default values */
     .txq_flags = IXGBE_SIMPLE_FLAGS,
 };
-#if 0
-static struct rte_eth_fc_conf fc_conf = {
-    .mode       = RTE_FC_NONE, //RTE_FC_TX_PAUSE
-    .high_water = 80 * 510 / 100,
-    .low_water  = 60 * 510 / 100,
-    .pause_time = 1337,
-    .send_xon   = 0,
-};
-#endif
 
 /**************************************************************************//**
 *
