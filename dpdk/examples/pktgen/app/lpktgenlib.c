@@ -2144,6 +2144,13 @@ static void port_stats(lua_State * L, port_info_t * info, char * type )
 	setf_integer(L, "oerrors", stats.oerrors);
 	setf_integer(L, "rx_nombuf", stats.rx_nombuf);
 
+	if ( strcmp(type, "rate") == 0 ) {
+		setf_integer(L, "pkts_rx", stats.ipackets);
+		setf_integer(L, "pkts_tx", stats.opackets);
+		setf_integer(L, "mbits_rx", iBitsTotal(stats)/Million);
+		setf_integer(L, "mbits_tx", oBitsTotal(stats)/Million);
+	}
+
 	// Now set the table as an array with pid as the index.
 	lua_rawset(L, -3);
 }
