@@ -1385,16 +1385,48 @@ static int pktgen_vlan_id (lua_State *L) {
 
 	switch( lua_gettop(L) ) {
 	default: return luaL_error(L, "vlan_id, wrong number of arguments");
-	case 2:
+	case 3:
 		break;
 	}
 	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
-	vlan_id = luaL_checkinteger(L, 2);
+	vlan_id = luaL_checkinteger(L, 3);
 	if ( (vlan_id < MIN_VLAN_ID) || (vlan_id > MAX_VLAN_ID) )
 		vlan_id = 1;
 
 	foreach_port( portlist,
-		pktgen_set_vlanid(info, vlan_id) );
+		pktgen_set_vlan_id(info, (char *)luaL_checkstring(L, 2), vlan_id) );
+
+	pktgen_update_display();
+	return 0;
+}
+
+/**************************************************************************//**
+*
+* pktgen_vlanid - Set the VLAN id for a single port
+*
+* DESCRIPTION
+* Set the VLAN id for a single port.
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_vlanid (lua_State *L) {
+	uint32_t	portlist, vlanid;
+
+	switch( lua_gettop(L) ) {
+	default: return luaL_error(L, "vlanid, wrong number of arguments");
+	case 2:
+		break;
+	}
+	cmdline_parse_portlist(NULL, luaL_checkstring(L, 1), &portlist);
+	vlanid = luaL_checkinteger(L, 2);
+	if ( (vlanid < MIN_VLAN_ID) || (vlanid > MAX_VLAN_ID) )
+		vlanid = 1;
+
+	foreach_port( portlist,
+		pktgen_set_vlanid(info, vlanid) );
 
 	pktgen_update_display();
 	return 0;
@@ -2318,6 +2350,44 @@ static int pktgen_sendPkt (lua_State *L) {
 
 /**************************************************************************//**
 *
+* pktgen_portCount - Return number of ports used
+*
+* DESCRIPTION
+* Return the number of ports used
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_portCount (lua_State *L) {
+
+	lua_pushinteger(L, pktgen.port_cnt);
+
+	return 1;
+}
+
+/**************************************************************************//**
+*
+* pktgen_totalPorts - Return the total number of ports
+*
+* DESCRIPTION
+* Return the total number of ports seen by DPDK
+*
+* RETURNS: N/A
+*
+* SEE ALSO:
+*/
+
+static int pktgen_totalPorts(lua_State *L) {
+
+	lua_pushinteger(L, pktgen.nb_ports);
+
+	return 1;
+}
+
+/**************************************************************************//**
+*
 * pktgen_recvPkt - Receive a packet from a port.
 *
 * DESCRIPTION
@@ -2445,6 +2515,8 @@ static const char * lua_help_info[] = {
 	"portSizes      - Return the stats on the size of packet for a port.\n",
 	"pktStats       - return the current packet stats on a port\n",
 	"portStats      - return the current port stats\n",
+	"portCount      - Number of port being used\n",
+	"totalPorts     - Total number of ports seen by DPDK\n",
 	"\n",
 	"compile        - Convert a structure into a frame to be sent\n",
 	"decompile      - decompile a frame into Ethernet, IP, TCP, UDP or other protocols\n",
@@ -2489,9 +2561,12 @@ static const char * lua_help_info[] = {
   	"defaultBuffSize- Default buffer size value\n",
   	"maxMbufsPerPort- Max mbufs per port value\n",
   	"maxPrimeCount  - Max prime count\n",
+  	"portCount      - Number of ports used\n",
+  	"totalPorts     - Total ports found\n",
 
 	NULL
 };
+
 /**************************************************************************//**
 *
 * pktgen_lua_help - Display the current Lua help information.
@@ -2554,8 +2629,11 @@ static const luaL_Reg pktgenlib[] = {
   {"cls",			pktgen_cls_screen},		// Redraw the screen
   {"update",		pktgen_update_screen},	// Update the screen information
   {"reset",			pktgen_reset_config},	// Reset the configuration to all ports
+  {"portCount",		pktgen_portCount},		// Used port count value
+  {"totalPorts",    pktgen_totalPorts},     // Total ports seen by DPDK
 
   {"vlan",			pktgen_vlan},			// Enable or disable VLAN header
+  {"vlanid",		pktgen_vlanid},			// Set the vlan ID for a given portlist
 
   {"mpls",			pktgen_mpls},			// Enable or disable MPLS header
   {"qinq",			pktgen_qinq},			// Enable or disable Q-in-Q header

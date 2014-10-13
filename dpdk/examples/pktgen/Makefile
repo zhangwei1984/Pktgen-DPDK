@@ -1,5 +1,3 @@
-# <COPYRIGHT_TAG>
-
 #
 # Copyright (c) <2010-2012>, Wind River Systems, Inc.
 #
