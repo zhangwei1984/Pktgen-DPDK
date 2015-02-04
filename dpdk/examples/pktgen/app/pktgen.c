@@ -974,7 +974,7 @@ pktgen_main_transmit(port_info_t * info, uint16_t qid)
 */
 
 static __inline__ void
-pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbuf *pkts_burst[])
+pktgen_main_receive(port_info_t * info, uint8_t lid, __rte_unused uint8_t idx, struct rte_mbuf *pkts_burst[])
 {
 	uint8_t pid;
 	uint16_t qid, nb_rx;
@@ -982,7 +982,7 @@ pktgen_main_receive(port_info_t * info, uint8_t lid, uint8_t idx, struct rte_mbu
 	capture_t *capture;
 
 	pid = info->pid;
-	qid = wr_get_rxque(pktgen.l2p, lid, idx);
+	qid = wr_get_rxque(pktgen.l2p, lid, pid);
 
 	/*
 	 * Read packet from RX queues and free the mbufs
