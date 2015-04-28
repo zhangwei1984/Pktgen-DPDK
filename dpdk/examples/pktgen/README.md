@@ -1,11 +1,12 @@
 Pktgen version 2.7.7 using DPDK-1.7.1
 =====================================
 
+**The latest version is located on dpdk.org at http://dpdk.org/download**
+=========================================================================
+
 **Pktgen is a traffic generator powered by Intel's DPDK at 10Gbit wire rate traffic with 64 byte frames.**
 
 **Sounds like 'Packet-Gen'**
-
-**The latest version is located on dpdk.org at http://dpdk.org/download**
 
 **=== Modifications ===**
  - 2.7.7   - Update Lua to 5.2.3 and fixed setting vlan ID on single ports plus added new Lua functions
