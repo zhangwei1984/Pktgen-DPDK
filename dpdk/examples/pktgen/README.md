@@ -311,7 +311,7 @@ if [ $name == "keithw-S5520HC" ]; then
 fi
 ```
 ** Note: The '-m NNN' in the DPDK arguments is to have DPDK allocate 512 megs of memory.
-   The '--socket-mem 256,156' DPDK command will allocate 256M from each CPU (two in this
+   The '--socket-mem 256,256' DPDK command will allocate 256M from each CPU (two in this
    case). Do not use the '-m NNN' and '--socket-mem NN,NN' commands on the same command
    line.
    
