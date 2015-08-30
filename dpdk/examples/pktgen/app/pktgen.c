@@ -67,6 +67,7 @@
 
 
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "pktgen.h"
 #include "pktgen-gre.h"
@@ -80,6 +81,30 @@
 #include "pktgen-display.h"
 #include "pktgen-random.h"
 #include "pktgen-log.h"
+
+#include <math.h>
+#include <stdlib.h>
+
+#define NUM 64
+//#define EXPONENTIAL
+#define UNIFORM
+#define THRESHOLD (int)5
+
+inline int randInRange(int min, int max);
+float exponential(float mean);
+
+inline int randInRange(int min, int max) {
+	//generate a percent number [-THRESHOLD, THRESHOLD]
+        return min + (int)(rand() / (double)RAND_MAX * (max - min + 1));
+}
+
+float exponential(float mean) {
+	float R;
+	
+	R = (float)rand() / (float)RAND_MAX;
+
+	return (float)(-mean*log(R));
+}
 
 
 // Allocated the pktgen structure for global use
@@ -1102,6 +1127,11 @@ pktgen_main_tx_loop(uint8_t lid)
 	uint64_t	  tx_next_cycle;		/**< Next cycle to send a burst of traffic */
 	char			msg[256];
 
+    #if defined(EXPONENTIAL) || defined(UNIFORM)
+    uint64_t tx_cycles[NUM];
+    int i;
+    #endif
+
     txcnt = wr_get_lcore_txcnt(pktgen.l2p, lid);
 	snprintf(msg, sizeof(msg),
 			"=== TX processing on lcore %2d, txcnt %d, port/qid,",
@@ -1118,14 +1148,41 @@ pktgen_main_tx_loop(uint8_t lid)
 
 	tx_next_cycle = 0;
 
+	printf("tx_cycles:%"PRIu64"\n", infos[0]->tx_cycles);
+
+	#if defined(EXPONENTIAL) || defined(UNIFORM)
+	srand(time(NULL));
+	for (i = 0; i < NUM; i++) {
+	#ifdef EXPONENTIAL
+	    float factor = exponential(1.0);
+	    tx_cycles[i] = infos[0]->tx_cycles * factor;
+	    printf("tx_cycles[%d]:%"PRIu64", %.2lf\n", i, tx_cycles[i], factor);
+	#elif defined(UNIFORM)
+	    int factor = randInRange(-1 * THRESHOLD, THRESHOLD);
+	    tx_cycles[i] = infos[0]->tx_cycles * (1 + (double)randInRange(-1 * THRESHOLD, THRESHOLD) / 100);
+	    printf("tx_cycles[%d]:%"PRIu64", %d\n", i, tx_cycles[i], factor);
+	#endif
+
+        }
+	i = 0;
+	#endif
+
 	wr_start_lcore(pktgen.l2p, lid);
     do {
 		curr_tsc = rte_rdtsc();
 
 		// Determine when is the next time to send packets
 		if ( unlikely(curr_tsc >= tx_next_cycle) ) {
-
+			
+			#if defined(EXPONENTIAL) || defined(UNIFORM)
+			tx_next_cycle = curr_tsc + tx_cycles[i];
+			if (++i == NUM) {
+				i = 0;
+			}
+			#else
 			tx_next_cycle = curr_tsc + infos[0]->tx_cycles;
+			//printf("tx_cycles:%"PRIu64"\n", infos[0]->tx_cycles);
+			#endif
 
 	    	for(idx = 0; idx < txcnt; idx++) {
 				/* Transmit packets */
